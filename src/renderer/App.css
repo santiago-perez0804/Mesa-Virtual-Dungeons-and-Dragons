@@ -1,15 +1,18 @@
-import './App.css'
+/* Estilos globales y reset */
 
-function App() {
-  return (
-    <div className="container">
-      <h1>VTT - Decide and Die</h1>
-      <p>Estado del Servidor: <span style={{color: 'green'}}>Conectado</span></p>
-      <div className="dashboard">
-        <button onClick={() => console.log("Importar SRD")}>Sincronizar Datos SRD</button>
-      </div>
-    </div>
-  )
+body {
+  margin: 0;
+  padding: 0;
+  font-family: sans-serif;
+  background-color: #121212;
+  color: white;
 }
 
-export default App
+* {
+  box-sizing: border-box;
+}
+
+/* Clases de utilidad */
+.container {
+  padding: 20px;
+}

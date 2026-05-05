@@ -15,6 +15,31 @@ export const db = new Database(dbPath);
 export const initDB = () => {
   // --- TABLAS DEL ROADMAP (Fase Fundación) ---
 
+  // Gestión de Usuarios (Autenticación)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      username TEXT UNIQUE NOT NULL,
+      password TEXT NOT NULL,
+      role TEXT NOT NULL -- 'admin', 'dm', 'player'
+    )
+  `);
+
+  // Insertar administrador y DM por defecto si no existen
+  try {
+    const adminCheck = db.prepare("SELECT count(*) as count FROM users WHERE username = 'admin'").get() as { count: number };
+    if (adminCheck.count === 0) {
+      db.prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)").run('admin', 'admin', 'admin');
+    }
+
+    const dmCheck = db.prepare("SELECT count(*) as count FROM users WHERE role = 'dm'").get() as { count: number };
+    if (dmCheck.count === 0) {
+      db.prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)").run('Dungeon Master', 'dm', 'dm');
+    }
+  } catch (e) {
+    console.error("Error al crear cuentas por defecto:", e);
+  }
+
   // Gestión de Campañas
   db.exec(`
     CREATE TABLE IF NOT EXISTS campaigns (
@@ -33,9 +58,17 @@ export const initDB = () => {
       description TEXT,
       stats TEXT, 
       owner TEXT NOT NULL, 
+      race TEXT DEFAULT 'Humano',
+      image TEXT,
+      inventory TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
+
+  // Migración para añadir nuevas columnas a db existentes
+  try { db.exec("ALTER TABLE characters ADD COLUMN race TEXT DEFAULT 'Humano'"); } catch (e) { /* Columna ya existe */ }
+  try { db.exec("ALTER TABLE characters ADD COLUMN image TEXT"); } catch (e) { /* Columna ya existe */ }
+  try { db.exec("ALTER TABLE characters ADD COLUMN inventory TEXT"); } catch (e) { /* Columna ya existe */ }
 
   // Omni-tabla para el SRD (Monstruos, Hechizos, Ítems)
   db.exec(`
@@ -80,13 +113,13 @@ export const initDB = () => {
   // --- SEED DE EMERGENCIA (Para testeo inmediato) ---
   // Esto asegura que mañana, aunque no corras el seeder, tengas algo que buscar[cite: 1].
   const check = db.prepare("SELECT count(*) as count FROM content_items WHERE name = ?").get('Poro Guerrero') as { count: number };
-  
+
   if (check.count === 0) {
     const insert = db.prepare("INSERT INTO content_items (name, type, data, source) VALUES (?, ?, ?, ?)");
     insert.run(
-      'Poro Guerrero', 
-      'monster', 
-      JSON.stringify({ hp: 20, ac: 12, str: 10, dex: 14, description: "Un valiente Poro con armadura." }), 
+      'Poro Guerrero',
+      'monster',
+      JSON.stringify({ hp: 20, ac: 12, str: 10, dex: 14, description: "Un valiente Poro con armadura." }),
       'homebrew'
     );
     console.log("⚠️ Insertado 'Poro Guerrero' para pruebas iniciales.");
