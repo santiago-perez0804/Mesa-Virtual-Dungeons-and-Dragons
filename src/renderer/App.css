@@ -1,0 +1,15 @@
+import './App.css'
+
+function App() {
+  return (
+    <div className="container">
+      <h1>VTT - Decide and Die</h1>
+      <p>Estado del Servidor: <span style={{color: 'green'}}>Conectado</span></p>
+      <div className="dashboard">
+        <button onClick={() => console.log("Importar SRD")}>Sincronizar Datos SRD</button>
+      </div>
+    </div>
+  )
+}
+
+export default App
