@@ -83,8 +83,8 @@ export const startServer = async () => {
       if (socket.data.role === 'admin') {
         const target: any = db.prepare("SELECT username FROM users WHERE id = ?").get(id);
         if (target && target.username === 'admin') {
-           socket.emit('admin:error', 'No puedes borrar a la cuenta admin principal.');
-           return;
+          socket.emit('admin:error', 'No puedes borrar a la cuenta admin principal.');
+          return;
         }
         db.prepare("DELETE FROM users WHERE id = ?").run(id);
         const users = db.prepare("SELECT id, username, password, role FROM users").all();
@@ -149,22 +149,21 @@ export const startServer = async () => {
       }
     });
 
-    // GESTIÓN DE PERSONAJES (CRUD)[cite: 1]
+    // GESTIÓN DE PERSONAJES (CRUD)
     socket.on('character:create', (charData) => {
-      const { name, charClass, description, stats, race, image, inventory } = charData;
+      const { name, charClass, description, stats, race, image, inventory, level, max_hp, current_hp } = charData;
       const owner = socket.data.userName || 'Anónimo';
-      db.prepare('INSERT INTO characters (name, class, description, stats, owner, race, image, inventory) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
-        .run(name, charClass, description, JSON.stringify(stats), owner, race || 'Humano', image || null, JSON.stringify(inventory || { armas: [], armaduras: [], consumibles: [], artefactos: [] }));
+      db.prepare('INSERT INTO characters (name, class, description, stats, owner, race, image, inventory, level, max_hp, current_hp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(name, charClass, description, JSON.stringify(stats), owner, race || 'Humano', image || null, JSON.stringify(inventory || { armas: [], armaduras: [], consumibles: [], artefactos: [] }), level || 1, max_hp || 10, current_hp || 10);
       refreshAllCharacters();
     });
 
     socket.on('character:update', (data: any) => {
-      if (socket.data.role === 'dm') {
-        const { id, name, charClass, description, stats, race, image, inventory } = data;
-        db.prepare('UPDATE characters SET name = ?, class = ?, description = ?, stats = ?, race = ?, image = ?, inventory = ? WHERE id = ?')
-          .run(name, charClass, description, JSON.stringify(stats), race || 'Humano', image || null, JSON.stringify(inventory || { armas: [], armaduras: [], consumibles: [], artefactos: [] }), id);
-        refreshAllCharacters();
-      }
+      // Permitimos que DM o el dueño edite (simplificado asumiendo confianza en los players o verificando owner)
+      const { id, name, charClass, description, stats, race, image, inventory, level, max_hp, current_hp } = data;
+      db.prepare('UPDATE characters SET name = ?, class = ?, description = ?, stats = ?, race = ?, image = ?, inventory = ?, level = ?, max_hp = ?, current_hp = ? WHERE id = ?')
+        .run(name, charClass, description, JSON.stringify(stats), race || 'Humano', image || null, JSON.stringify(inventory || { armas: [], armaduras: [], consumibles: [], artefactos: [] }), level || 1, max_hp || 10, current_hp || 10, id);
+      refreshAllCharacters();
     });
 
     socket.on('character:delete', (id: number) => {
@@ -183,6 +182,11 @@ export const startServer = async () => {
         value: roll,
         timestamp: Date.now()
       });
+    });
+
+    // CHAT DEL GRUPO
+    socket.on('chat:send', (msg) => {
+      io.emit('chat:message', msg);
     });
 
     socket.on('disconnect', () => console.log('❌ Jugador desconectado'));

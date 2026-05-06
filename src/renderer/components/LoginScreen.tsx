@@ -9,7 +9,7 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
   const [profiles, setProfiles] = useState<any[]>([]);
   const [selectedProfile, setSelectedProfile] = useState<any>(null);
   const [password, setPassword] = useState('');
-  
+
   const [isRegistering, setIsRegistering] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -36,8 +36,8 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
     socket.on('auth:register_success', (msg: string) => {
       setSuccessMsg(msg);
       setErrorMsg('');
-      setIsRegistering(false); 
-      setNewPassword(''); 
+      setIsRegistering(false);
+      setNewPassword('');
       setNewUsername('');
       socket.emit('auth:get_profiles'); // Refresh profiles
     });
@@ -77,7 +77,7 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', backgroundColor: '#121212', color: 'white', fontFamily: 'sans-serif', padding: '40px' }}>
-      
+
       <h1 style={{ color: '#a855f7', marginBottom: '10px', fontSize: '3rem' }}>Decide and Die</h1>
       <p style={{ color: '#94a3b8', fontSize: '1.2rem', marginBottom: '40px' }}>¿Quién está jugando?</p>
 
@@ -87,8 +87,8 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
       {!selectedProfile && !isRegistering && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px', justifyContent: 'center', maxWidth: '800px' }}>
           {profiles.map(p => (
-            <div 
-              key={p.id} 
+            <div
+              key={p.id}
               onClick={() => { setSelectedProfile(p); setErrorMsg(''); setSuccessMsg(''); setPassword(''); }}
               style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', transition: 'transform 0.2s', width: '120px' }}
               onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
@@ -100,8 +100,8 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
               <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#cbd5e1', textAlign: 'center' }}>{p.username}</span>
             </div>
           ))}
-          
-          <div 
+
+          <div
             onClick={() => { setIsRegistering(true); setErrorMsg(''); setSuccessMsg(''); }}
             style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', transition: 'transform 0.2s', width: '120px' }}
             onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
@@ -118,32 +118,32 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
       {selectedProfile && (
         <div style={{ background: '#1e293b', padding: '40px', borderRadius: '12px', width: '350px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)', border: '1px solid #334155', animation: 'fadeIn 0.3s ease-in-out' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
-             <div style={{ width: '60px', height: '60px', borderRadius: '8px', background: selectedProfile.role === 'admin' ? '#fbbf24' : selectedProfile.role === 'dm' ? '#a855f7' : '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
-                {getProfileIcon(selectedProfile.role)}
-             </div>
-             <div>
-               <h3 style={{ margin: 0, color: 'white' }}>{selectedProfile.username}</h3>
-               <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>{selectedProfile.role.toUpperCase()}</span>
-             </div>
+            <div style={{ width: '60px', height: '60px', borderRadius: '8px', background: selectedProfile.role === 'admin' ? '#fbbf24' : selectedProfile.role === 'dm' ? '#a855f7' : '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
+              {getProfileIcon(selectedProfile.role)}
+            </div>
+            <div>
+              <h3 style={{ margin: 0, color: 'white' }}>{selectedProfile.username}</h3>
+              <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>{selectedProfile.role.toUpperCase()}</span>
+            </div>
           </div>
           <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <input 
-              type="password" 
+            <input
+              type="password"
               placeholder="Contraseña"
-              value={password} 
-              onChange={(e) => setPassword(e.target.value)} 
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
               autoFocus
               style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: 'white', boxSizing: 'border-box', fontSize: '1rem' }}
             />
             <div style={{ display: 'flex', gap: '10px' }}>
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 style={{ flex: 1, padding: '12px', background: '#a855f7', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
               >
                 Entrar
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setSelectedProfile(null)}
                 style={{ padding: '12px', background: '#475569', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
               >
@@ -158,30 +158,30 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
         <div style={{ background: '#1e293b', padding: '40px', borderRadius: '12px', width: '350px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)', border: '1px solid #334155', animation: 'fadeIn 0.3s ease-in-out' }}>
           <h2 style={{ textAlign: 'center', color: '#3b82f6', marginBottom: '20px', marginTop: 0 }}>Nuevo Jugador</h2>
           <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <input 
-              type="text" 
+            <input
+              type="text"
               placeholder="Nombre de Usuario"
-              value={newUsername} 
-              onChange={(e) => setNewUsername(e.target.value)} 
+              value={newUsername}
+              onChange={(e) => setNewUsername(e.target.value)}
               autoFocus
               style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: 'white', boxSizing: 'border-box', fontSize: '1rem' }}
             />
-            <input 
-              type="password" 
+            <input
+              type="password"
               placeholder="Contraseña"
-              value={newPassword} 
-              onChange={(e) => setNewPassword(e.target.value)} 
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
               style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: 'white', boxSizing: 'border-box', fontSize: '1rem' }}
             />
             <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-              <button 
-                type="submit" 
+              <button
+                type="submit"
                 style={{ flex: 1, padding: '12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
               >
                 Crear Perfil
               </button>
-              <button 
-                type="button" 
+              <button
+                type="button"
                 onClick={() => setIsRegistering(false)}
                 style={{ padding: '12px', background: '#475569', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
               >

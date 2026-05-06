@@ -69,6 +69,9 @@ export const initDB = () => {
   try { db.exec("ALTER TABLE characters ADD COLUMN race TEXT DEFAULT 'Humano'"); } catch (e) { /* Columna ya existe */ }
   try { db.exec("ALTER TABLE characters ADD COLUMN image TEXT"); } catch (e) { /* Columna ya existe */ }
   try { db.exec("ALTER TABLE characters ADD COLUMN inventory TEXT"); } catch (e) { /* Columna ya existe */ }
+  try { db.exec("ALTER TABLE characters ADD COLUMN level INTEGER DEFAULT 1"); } catch (e) { /* Columna ya existe */ }
+  try { db.exec("ALTER TABLE characters ADD COLUMN max_hp INTEGER DEFAULT 10"); } catch (e) { /* Columna ya existe */ }
+  try { db.exec("ALTER TABLE characters ADD COLUMN current_hp INTEGER DEFAULT 10"); } catch (e) { /* Columna ya existe */ }
 
   // Omni-tabla para el SRD (Monstruos, Hechizos, Ítems)
   db.exec(`

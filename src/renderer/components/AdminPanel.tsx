@@ -36,7 +36,7 @@ export const AdminPanel = ({ socket }: any) => {
   return (
     <div style={{ padding: '25px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'sans-serif', color: 'white' }}>
       <h2 style={{ color: '#a855f7', marginBottom: '20px' }}>👑 Panel de Administración de Perfiles</h2>
-      
+
       {errorMsg && (
         <div style={{ background: '#ef4444', color: 'white', padding: '10px', borderRadius: '6px', marginBottom: '20px' }}>
           {errorMsg}
@@ -59,24 +59,24 @@ export const AdminPanel = ({ socket }: any) => {
               <tr key={u.id} style={{ borderBottom: '1px solid #334155' }}>
                 <td style={{ padding: '15px', color: '#94a3b8' }}>#{u.id}</td>
                 <td style={{ padding: '15px' }}>
-                  <input 
-                    type="text" 
-                    value={u.username} 
+                  <input
+                    type="text"
+                    value={u.username}
                     onChange={(e) => handleUpdate(u, 'username', e.target.value)}
                     style={{ background: '#0f172a', color: 'white', border: '1px solid #475569', padding: '8px', borderRadius: '4px', width: '100%' }}
                   />
                 </td>
                 <td style={{ padding: '15px' }}>
-                  <input 
-                    type="text" 
-                    value={u.password} 
+                  <input
+                    type="text"
+                    value={u.password}
                     onChange={(e) => handleUpdate(u, 'password', e.target.value)}
                     style={{ background: '#0f172a', color: '#fbbf24', border: '1px solid #475569', padding: '8px', borderRadius: '4px', width: '100%' }}
                   />
                 </td>
                 <td style={{ padding: '15px' }}>
-                  <select 
-                    value={u.role} 
+                  <select
+                    value={u.role}
                     onChange={(e) => handleUpdate(u, 'role', e.target.value)}
                     disabled={u.username === 'admin'}
                     style={{ background: '#0f172a', color: 'white', border: '1px solid #475569', padding: '8px', borderRadius: '4px', width: '100%' }}
@@ -87,7 +87,7 @@ export const AdminPanel = ({ socket }: any) => {
                   </select>
                 </td>
                 <td style={{ padding: '15px', textAlign: 'center' }}>
-                  <button 
+                  <button
                     onClick={() => handleDelete(u.id)}
                     disabled={u.username === 'admin'}
                     style={{ background: u.username === 'admin' ? '#475569' : '#ef4444', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '4px', cursor: u.username === 'admin' ? 'not-allowed' : 'pointer' }}
@@ -100,7 +100,7 @@ export const AdminPanel = ({ socket }: any) => {
           </tbody>
         </table>
       </div>
-      
+
       <p style={{ color: '#94a3b8', fontSize: '0.9rem', marginTop: '20px' }}>
         * Los cambios en nombre de usuario, contraseña o rol se guardan automáticamente al escribirlos.
       </p>

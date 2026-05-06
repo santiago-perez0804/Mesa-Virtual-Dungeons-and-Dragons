@@ -48,8 +48,8 @@ export const DiceRoller = ({ socket }: { socket: Socket }) => {
             key={d}
             onClick={() => rollDice(d)}
             disabled={isWaiting}
-            style={{ 
-              opacity: isWaiting ? 0.5 : 1, 
+            style={{
+              opacity: isWaiting ? 0.5 : 1,
               cursor: isWaiting ? 'not-allowed' : 'pointer',
               margin: '2px',
               padding: '8px'
@@ -72,7 +72,7 @@ export const DiceRoller = ({ socket }: { socket: Socket }) => {
         <ul style={{ listStyle: 'none', padding: 0 }}>
           {logs.map((log, i) => (
             <li key={i} style={{ fontSize: '14px', borderBottom: '1px solid #333' }}>
-              <strong>{log.user}</strong> tiró un <strong>{log.die}</strong>: 
+              <strong>{log.user}</strong> tiró un <strong>{log.die}</strong>:
               <span style={{ color: '#4caf50', fontWeight: 'bold' }}> {log.value} </span>
             </li>
           ))}

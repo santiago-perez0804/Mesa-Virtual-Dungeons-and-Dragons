@@ -16,7 +16,7 @@ async function fetchAll(endpoint: string, type: string): Promise<void> {
       // Tipamos explícitamente para evitar el error ts(7022)
       const response: Response = await fetch(nextUrl);
       if (!response.ok) throw new Error(`Error en la API: ${response.statusText}`);
-      
+
       const data: any = await response.json();
 
       const insert = db.prepare('INSERT INTO content_items (name, type, data, source) VALUES (?, ?, ?, ?)');
@@ -30,14 +30,14 @@ async function fetchAll(endpoint: string, type: string): Promise<void> {
       });
 
       transaction(data.results);
-      
+
       totalImported += data.results.length;
       console.log(`📦 ${type}: ${totalImported} procesados...`);
 
-      nextUrl = data.next; 
+      nextUrl = data.next;
     } catch (error) {
       console.error(`❌ Error fatal importando ${type}:`, error);
-      nextUrl = null; 
+      nextUrl = null;
     }
   }
 }
@@ -49,7 +49,7 @@ async function fetchAll(endpoint: string, type: string): Promise<void> {
 export const runFullImport = async (): Promise<void> => {
   try {
     const check = db.prepare('SELECT COUNT(*) as total FROM content_items').get() as { total: number };
-    
+
     if (check && check.total > 10) {
       console.log("⚠️ La base de datos ya tiene contenido. Saltando descarga.");
       return;
