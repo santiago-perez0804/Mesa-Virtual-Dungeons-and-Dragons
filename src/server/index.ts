@@ -1,10 +1,11 @@
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { db, initDB } from './db.js';
+import { db, initDB, updateCompendiumItem } from './db.js';
 import { runFullImport } from './seeder.js';
 
 // Estado volátil del tablero: se sincroniza en tiempo real entre todos los clientes[cite: 1]
 let boardTokens: any[] = [];
+let currentGridBg: string = '';
 
 const httpServer = createServer();
 const io = new Server(httpServer, {
@@ -22,13 +23,14 @@ export const startServer = async () => {
 
     // AUTENTICACIÓN
     socket.on('auth:get_profiles', () => {
-      const profiles = db.prepare("SELECT id, username, role FROM users").all();
+      const profiles = db.prepare("SELECT id, username, role, profile_image FROM users").all();
       socket.emit('auth:profiles_list', profiles);
     });
 
     socket.on('auth:login', ({ username, password }) => {
-      const user: any = db.prepare("SELECT id, username, role FROM users WHERE username = ? AND password = ?").get(username, password);
+      const user: any = db.prepare("SELECT id, username, role, profile_image FROM users WHERE username = ? AND password = ?").get(username, password);
       if (user) {
+        socket.data.userId = user.id;
         socket.data.userName = user.username;
         socket.data.role = user.role;
         socket.emit('auth:success', user);
@@ -40,21 +42,34 @@ export const startServer = async () => {
           const monsters = db.prepare("SELECT * FROM content_items WHERE type = 'monster'").all();
           socket.emit('monsters:list', monsters);
           socket.emit('token:board-list', boardTokens);
+          if (currentGridBg) socket.emit('grid:bg-update', currentGridBg);
         }
       } else {
         socket.emit('auth:error', 'Usuario o contraseña incorrectos.');
       }
     });
 
-    socket.on('auth:register', ({ username, password, role }) => {
+    socket.on('auth:register', ({ username, password, role, profile_image }) => {
       try {
-        db.prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)").run(username, password, role);
+        db.prepare("INSERT INTO users (username, password, role, profile_image) VALUES (?, ?, ?, ?)").run(username, password, role, profile_image || null);
         socket.emit('auth:register_success', 'Usuario creado exitosamente. Por favor, inicia sesión.');
       } catch (e: any) {
         if (e.message.includes('UNIQUE constraint failed')) {
           socket.emit('auth:error', 'Ese nombre de usuario ya existe.');
         } else {
           socket.emit('auth:error', 'Error al crear la cuenta.');
+        }
+      }
+    });
+
+    socket.on('auth:update_profile', ({ profile_image }) => {
+      if (socket.data.userId) {
+        try {
+          db.prepare("UPDATE users SET profile_image = ? WHERE id = ?").run(profile_image, socket.data.userId);
+          const user: any = db.prepare("SELECT id, username, role, profile_image FROM users WHERE id = ?").get(socket.data.userId);
+          socket.emit('auth:success', user); // Actualizamos el estado local del cliente
+        } catch (e) {
+          socket.emit('auth:error', 'Error al actualizar perfil.');
         }
       }
     });
@@ -99,13 +114,31 @@ export const startServer = async () => {
     });
 
     socket.on('content:create', (payload) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'player') {
+      if (socket.data.role === 'admin') {
         const { name, type, data } = payload;
         db.prepare("INSERT INTO content_items (name, type, data, source) VALUES (?, ?, ?, 'homebrew')")
           .run(name, type, JSON.stringify(data));
 
         const allContent = db.prepare("SELECT * FROM content_items").all();
-        io.emit('content:list', allContent); // Emitimos a todos para que se actualice el compendio
+        io.emit('content:list', allContent); 
+      }
+    });
+
+    socket.on('content:update', (payload) => {
+      if (socket.data.role === 'admin') {
+        const { id, name, type, data } = payload;
+        updateCompendiumItem(id, name, type, data);
+
+        const allContent = db.prepare("SELECT * FROM content_items").all();
+        io.emit('content:list', allContent);
+      }
+    });
+
+    socket.on('content:delete', (id) => {
+      if (socket.data.role === 'admin') {
+        db.prepare("DELETE FROM content_items WHERE id = ?").run(id);
+        const allContent = db.prepare("SELECT * FROM content_items").all();
+        io.emit('content:list', allContent);
       }
     });
 
@@ -117,8 +150,11 @@ export const startServer = async () => {
           originalId: data.id,
           name: data.name,
           type: data.type,
-          hp: data.hp, // Stats extraídos del JSON del SRD[cite: 1]
+          hp: data.current_hp || data.hp || 10,
+          max_hp: data.max_hp || data.hp || 10,
           ac: data.ac,
+          image: data.image || null,
+          owner: data.owner || null, // Guardamos el dueño para los personajes
           x: 0,
           y: 0
         };
@@ -136,6 +172,26 @@ export const startServer = async () => {
       }
     });
 
+    socket.on('token:update-hp', (data: { tokenId: string; amount: number }) => {
+      if (socket.data.role === 'dm') {
+        const token = boardTokens.find(t => t.instanceId === data.tokenId);
+        if (token) {
+          token.hp = Math.max(0, Math.min(token.hp + data.amount, token.max_hp));
+          io.emit('token:board-list', boardTokens);
+        }
+      }
+    });
+
+    socket.on('token:update-team', (data: { tokenId: string; color: string | null }) => {
+      if (socket.data.role === 'dm') {
+        const token = boardTokens.find(t => t.instanceId === data.tokenId);
+        if (token) {
+          token.teamColor = data.color;
+          io.emit('token:board-list', boardTokens);
+        }
+      }
+    });
+
     socket.on('token:remove', (instanceId) => {
       if (socket.data.role === 'dm') {
         boardTokens = boardTokens.filter(t => t.instanceId !== instanceId);
@@ -145,7 +201,14 @@ export const startServer = async () => {
 
     socket.on('grid:set-bg', (imageUrl: string) => {
       if (socket.data.role === 'dm') {
-        io.emit('grid:bg-update', imageUrl); // Cambia el mapa para todos los jugadores[cite: 1]
+        currentGridBg = imageUrl;
+        io.emit('grid:bg-update', imageUrl); // Cambia el mapa para todos los jugadores
+      }
+    });
+
+    socket.on('combat:request-save', (data: { targetName: string; stat: string; statKey: string; dc: number }) => {
+      if (socket.data.role === 'dm') {
+        io.emit('combat:save-notification', data);
       }
     });
 

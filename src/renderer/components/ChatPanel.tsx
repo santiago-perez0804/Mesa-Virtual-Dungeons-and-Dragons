@@ -1,22 +1,38 @@
 import { useState, useEffect, useRef } from 'react';
+import { DiceRoller } from './DiceRoller';
 
 export const ChatPanel = ({ socket, currentUser, characters }: any) => {
   const [messages, setMessages] = useState<any[]>([]);
   const [inputValue, setInputValue] = useState('');
   const [sendTo, setSendTo] = useState('all');
-  const messagesEndRef = useRef<HTMLDivElement>(null);
+  const chatContainerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     socket.on('chat:message', (msg: any) => {
       setMessages(prev => [...prev, msg]);
     });
+    
+    socket.on('dice:result', (data: any) => {
+      setMessages(prev => [...prev, {
+        id: Date.now() + Math.random(),
+        sender: 'Sistema',
+        to: 'all',
+        text: `🎲 ${data.user} tiró un ${data.die}: ${data.value}`,
+        timestamp: new Date(data.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isSystem: true
+      }]);
+    });
+
     return () => {
       socket.off('chat:message');
+      socket.off('dice:result');
     };
   }, [socket]);
 
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+    if (chatContainerRef.current) {
+      chatContainerRef.current.scrollTop = chatContainerRef.current.scrollHeight;
+    }
   }, [messages]);
 
   const handleSend = () => {
@@ -37,13 +53,26 @@ export const ChatPanel = ({ socket, currentUser, characters }: any) => {
   if (!users.includes('Dungeon Master')) users.push('Dungeon Master');
 
   return (
-    <div style={{ background: '#1a1a1a', borderRadius: '12px', border: '1px solid #333', display: 'flex', flexDirection: 'column', height: '400px', boxShadow: '0 4px 15px rgba(0,0,0,0.5)' }}>
-      <div style={{ background: '#0f172a', padding: '10px 15px', borderTopLeftRadius: '12px', borderTopRightRadius: '12px', borderBottom: '1px solid #333', fontWeight: 'bold', color: '#a855f7', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        💬 <span style={{ marginTop: '2px' }}>Mesa de Taberna (Chat)</span>
+    <div style={{ background: 'transparent', display: 'flex', flexDirection: 'column', flex: 1, boxShadow: 'none' }}>
+      <div style={{ background: '#0f172a', padding: '10px 15px', borderBottom: '1px solid #333', fontWeight: 'bold', color: '#a855f7', display: 'flex', alignItems: 'center', gap: '8px' }}>
+        💬 <span style={{ marginTop: '2px' }}>Mesa de Taberna (Chat y Dados)</span>
       </div>
 
-      <div style={{ flex: 1, padding: '15px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+      <div style={{ padding: '10px', background: '#111', borderBottom: '1px solid #333' }}>
+        <DiceRoller socket={socket} user={currentUser} />
+      </div>
+
+      <div ref={chatContainerRef} style={{ flex: 1, padding: '15px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {messages.map(m => {
+          if (m.isSystem) {
+            return (
+              <div key={m.id} style={{ alignSelf: 'center', margin: '5px 0', background: '#1e293b', border: '1px solid #334155', color: '#cbd5e1', padding: '6px 12px', borderRadius: '12px', fontSize: '0.85rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <span style={{ opacity: 0.5 }}>{m.timestamp}</span>
+                <span>{m.text}</span>
+              </div>
+            );
+          }
+
           const isMine = m.sender === currentUser.name;
           const isPrivate = m.to !== 'all';
 
@@ -71,10 +100,9 @@ export const ChatPanel = ({ socket, currentUser, characters }: any) => {
             </div>
           );
         })}
-        <div ref={messagesEndRef} />
       </div>
 
-      <div style={{ padding: '12px', background: '#0f172a', borderBottomLeftRadius: '12px', borderBottomRightRadius: '12px', borderTop: '1px solid #333', display: 'flex', gap: '10px' }}>
+      <div style={{ padding: '12px', background: '#0f172a', borderTop: '1px solid #333', display: 'flex', gap: '10px' }}>
         <select value={sendTo} onChange={(e) => setSendTo(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #444', background: '#1e293b', color: 'white', maxWidth: '110px', outline: 'none' }}>
           <option value="all">A todos</option>
           <optgroup label="Privado">

@@ -21,9 +21,12 @@ export const initDB = () => {
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       username TEXT UNIQUE NOT NULL,
       password TEXT NOT NULL,
-      role TEXT NOT NULL -- 'admin', 'dm', 'player'
+      role TEXT NOT NULL, -- 'admin', 'dm', 'player'
+      profile_image TEXT
     )
   `);
+
+  try { db.exec("ALTER TABLE users ADD COLUMN profile_image TEXT"); } catch (e) { /* Columna ya existe */ }
 
   // Insertar administrador y DM por defecto si no existen
   try {
@@ -129,6 +132,11 @@ export const initDB = () => {
   }
 
   console.log(`✅ Database SQLite: LISTA y ESTRUCTURADA en ${dbPath}`);
+};
+
+export const updateCompendiumItem = (id: number, name: string, type: string, data: any) => {
+  const update = db.prepare("UPDATE content_items SET name = ?, type = ?, data = ? WHERE id = ?");
+  update.run(name, type, JSON.stringify(data), id);
 };
 
 export default db;

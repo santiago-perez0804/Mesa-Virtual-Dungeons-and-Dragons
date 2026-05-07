@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 
 interface LoginProps {
   socket: any;
-  onLoginSuccess: (user: { name: string; role: 'dm' | 'player' | 'admin' }) => void;
+  onLoginSuccess: (user: { name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string }) => void;
 }
 
 const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
@@ -13,6 +13,7 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
   const [isRegistering, setIsRegistering] = useState(false);
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
+  const [newProfileImage, setNewProfileImage] = useState('');
 
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -25,7 +26,7 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
     });
 
     socket.on('auth:success', (user: any) => {
-      onLoginSuccess({ name: user.username, role: user.role });
+      onLoginSuccess({ name: user.username, role: user.role, profile_image: user.profile_image });
     });
 
     socket.on('auth:error', (msg: string) => {
@@ -39,6 +40,7 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
       setIsRegistering(false);
       setNewPassword('');
       setNewUsername('');
+      setNewProfileImage('');
       socket.emit('auth:get_profiles'); // Refresh profiles
     });
 
@@ -66,13 +68,23 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
       return;
     }
     // Como solo puede haber 1 Admin y 1 DM, forzamos que todos los registros nuevos sean players
-    socket.emit('auth:register', { username: newUsername.trim(), password: newPassword, role: 'player' });
+    socket.emit('auth:register', { username: newUsername.trim(), password: newPassword, role: 'player', profile_image: newProfileImage });
   };
 
-  const getProfileIcon = (role: string) => {
-    if (role === 'admin') return '👑';
-    if (role === 'dm') return '🧙‍♂️';
-    return '🛡️';
+  const handleRegisterImage = (e: any) => {
+    const file = e.target.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (ev) => setNewProfileImage(ev.target?.result as string);
+      reader.readAsDataURL(file);
+    }
+  };
+
+  const getProfileIcon = (profile: any) => {
+    if (profile.profile_image) return <img src={profile.profile_image} alt="User" style={{ width: '100%', height: '100%', borderRadius: '12px', objectFit: 'cover' }} />;
+    if (profile.role === 'admin') return <span>👑</span>;
+    if (profile.role === 'dm') return <img src="/img/dm_profile.png" alt="DM" style={{ width: '100%', height: '100%', borderRadius: '12px', objectFit: 'cover' }} />;
+    return <span>🛡️</span>;
   };
 
   return (
@@ -94,8 +106,8 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
               onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
               onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
             >
-              <div style={{ width: '100px', height: '100px', borderRadius: '12px', background: p.role === 'admin' ? '#fbbf24' : p.role === 'dm' ? '#a855f7' : '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem', marginBottom: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.5)' }}>
-                {getProfileIcon(p.role)}
+              <div style={{ width: '100px', height: '100px', borderRadius: '12px', background: p.role === 'admin' ? '#fbbf24' : p.role === 'dm' ? '#a855f7' : '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem', marginBottom: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
+                {getProfileIcon(p)}
               </div>
               <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#cbd5e1', textAlign: 'center' }}>{p.username}</span>
             </div>
@@ -118,8 +130,8 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
       {selectedProfile && (
         <div style={{ background: '#1e293b', padding: '40px', borderRadius: '12px', width: '350px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)', border: '1px solid #334155', animation: 'fadeIn 0.3s ease-in-out' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
-            <div style={{ width: '60px', height: '60px', borderRadius: '8px', background: selectedProfile.role === 'admin' ? '#fbbf24' : selectedProfile.role === 'dm' ? '#a855f7' : '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem' }}>
-              {getProfileIcon(selectedProfile.role)}
+            <div style={{ width: '60px', height: '60px', borderRadius: '8px', background: selectedProfile.role === 'admin' ? '#fbbf24' : selectedProfile.role === 'dm' ? '#a855f7' : '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', overflow: 'hidden' }}>
+              {getProfileIcon(selectedProfile)}
             </div>
             <div>
               <h3 style={{ margin: 0, color: 'white' }}>{selectedProfile.username}</h3>
@@ -173,6 +185,14 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
               onChange={(e) => setNewPassword(e.target.value)}
               style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: 'white', boxSizing: 'border-box', fontSize: '1rem' }}
             />
+            <div style={{ border: '2px dashed #475569', borderRadius: '8px', padding: '10px', textAlign: 'center', position: 'relative', overflow: 'hidden', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+              {newProfileImage ? (
+                <img src={newProfileImage} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute' }} />
+              ) : (
+                <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Subir Foto de Perfil</span>
+              )}
+              <input type="file" accept="image/*" onChange={handleRegisterImage} style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
+            </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
               <button
                 type="submit"

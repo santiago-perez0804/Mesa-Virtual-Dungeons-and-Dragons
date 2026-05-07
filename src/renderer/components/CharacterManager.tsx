@@ -236,7 +236,8 @@ export const CharacterManager = ({ socket, characters, monsters, userRole }: any
       name: monster.name,
       type: 'monster',
       hp: mData.hit_points || mData.hp || 10,
-      ac: mData.armor_class || 10
+      ac: mData.armor_class || 10,
+      image: mData.image || null
     });
   };
 
@@ -280,7 +281,7 @@ export const CharacterManager = ({ socket, characters, monsters, userRole }: any
       <section>
         <div style={styles.card}>
           <h2 style={{ textAlign: 'center', color: editingId ? '#22c55e' : '#a855f7', marginTop: 0 }}>
-            {editingId ? '⚡ Editando Aventurero' : '⚔️ Forjar Personaje (Point Buy)'}
+            {editingId ? '⚡ Editando Aventurero' : '⚔️ Forjar Personaje'}
           </h2>
 
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
@@ -327,8 +328,40 @@ export const CharacterManager = ({ socket, characters, monsters, userRole }: any
                   {Object.keys(classDesc).map(c => <option key={c} value={c}>{c}</option>)}
                 </select>
                 <div style={{ fontSize: '0.8rem', color: '#94a3b8', padding: '0 4px' }}>
-                  {classDesc[charClass]} <br />
-                  <strong style={{ color: '#fbbf24' }}>Dado de Golpe: d{classHitDice[charClass]}</strong>
+                  {classDesc[charClass]}
+                </div>
+              </div>
+            </div>
+
+            {/* NUEVA CUADRÍCULA DE CLASE */}
+            <div style={{ background: '#0f172a', padding: '15px', borderRadius: '8px', border: '1px solid #334155' }}>
+              <h4 style={{ margin: '0 0 15px 0', color: '#3b82f6', borderBottom: '1px solid #1e293b', paddingBottom: '10px' }}>📜 Rasgos de Clase: {charClass}</h4>
+              
+              <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '15px' }}>
+                <div style={{ background: '#1e293b', padding: '15px', borderRadius: '8px', border: '1px solid #475569' }}>
+                  <h5 style={{ margin: '0 0 10px 0', color: '#ef4444' }}>❤️ Puntos de Golpe</h5>
+                  {editingId ? (
+                    <p style={{ margin: 0, fontSize: '0.9rem', color: '#cbd5e1' }}>
+                      <em>En edición se conserva tu HP actual. Para ganar vida por nivel, ve a la ficha del personaje y usa "Subir Nivel".</em>
+                    </p>
+                  ) : (
+                    <p style={{ margin: 0, fontSize: '0.9rem', color: '#cbd5e1', lineHeight: '1.5' }}>
+                      Dado de Golpe: <strong style={{ color: '#fbbf24' }}>d{classHitDice[charClass]}</strong><br/>
+                      Vida Nivel 1: <strong>{classHitDice[charClass]} + Modificador de CON</strong><br/>
+                      <br/>
+                      <span style={{ fontSize: '0.8rem', color: '#94a3b8' }}>
+                        (A nivel 1 la vida está al máximo. En niveles superiores podrás tirar el dado).
+                      </span>
+                    </p>
+                  )}
+                </div>
+                <div style={{ background: '#1e293b', padding: '15px', borderRadius: '8px', border: '1px solid #475569' }}>
+                  <h5 style={{ margin: '0 0 10px 0', color: '#2dd4bf' }}>✨ Habilidades de Nivel 1</h5>
+                  <p style={{ margin: 0, fontSize: '0.9rem', color: '#94a3b8', fontStyle: 'italic', lineHeight: '1.5' }}>
+                    Las habilidades, competencias y poderes que tu clase te otorga a nivel 1 se mostrarán aquí.
+                    <br/><br/>
+                    (El contenido se rellenará más adelante...)
+                  </p>
                 </div>
               </div>
             </div>
