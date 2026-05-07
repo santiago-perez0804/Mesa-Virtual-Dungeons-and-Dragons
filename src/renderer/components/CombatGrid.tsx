@@ -155,18 +155,19 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
   const myCharToken = boardTokens.find((t: any) => t.type === 'character' && t.owner === currentUser.name);
   const myTeam = myCharToken?.teamColor || null;
 
-  // TRACKER: solo muestra tokens del propio equipo (o sin equipo)
-  const visibleFighters = boardTokens.filter((t: any) => {
+  // Visibilidad en la Grilla (Mapa)
+  const canSeeOnGrid = (t: any) => {
     if (userRole === 'dm') return true;
-    if (!t.teamColor) return true;       // sin equipo = público
-    return t.teamColor === myTeam;       // mismo equipo
-  });
+    if (t.owner === currentUser.name) return true;
+    if (t.teamColor) return true; // Con color es público en mapa
+    return false;
+  };
 
-  // TABLERO: devuelve si el jugador puede ver la vida del token
-  const canSeeHP = (t: any) => {
+  // Visibilidad en el Panel de Combatientes (Sidebar)
+  const canSeeInSidebar = (t: any) => {
     if (userRole === 'dm') return true;
-    if (!t.teamColor) return true;
-    return t.teamColor === myTeam;
+    if (t.owner === currentUser.name) return true;
+    return false; // Privado en sidebar
   };
 
   return (
@@ -209,7 +210,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
           <div style={{ textAlign: 'center', marginBottom: '8px', paddingBottom: '12px', borderBottom: '1px solid rgba(168,85,247,0.2)' }}>
             <h4 style={{ margin: 0, color: '#c4b5fd', fontSize: '0.85rem', fontWeight: '700', letterSpacing: '2px', textTransform: 'uppercase' }}>⚔️ Combatientes</h4>
           </div>
-          {visibleFighters.map((t: any) => (
+          {boardTokens.filter(canSeeInSidebar).map((t: any) => (
             <div key={t.instanceId}
               style={{ background: activeTokenId === t.instanceId ? 'linear-gradient(135deg, rgba(124,58,237,0.25), rgba(109,40,217,0.15))' : 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '10px 12px', border: activeTokenId === t.instanceId ? '1px solid rgba(168,85,247,0.5)' : '1px solid rgba(255,255,255,0.06)', cursor: 'pointer', position: 'relative', transition: 'all 0.2s', boxShadow: activeTokenId === t.instanceId ? '0 0 15px rgba(168,85,247,0.2)' : 'none' }}
               onClick={(e) => { e.stopPropagation(); setActiveTokenId(t.instanceId); }}
@@ -233,11 +234,29 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                   <div style={{ color: 'white', fontSize: '0.88rem', fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
                   <div style={{ fontSize: '0.68rem', color: t.type === 'character' ? '#60a5fa' : '#f87171', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t.type === 'character' ? 'Héroe' : 'Criatura'}</div>
                 </div>
+
+                {/* Vida: DM ve todo, Jugador solo la suya */}
+                {(userRole === 'dm' || t.owner === currentUser.name) && (
+                  <div style={{ marginRight: '10px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
+                    <div style={{ color: '#4ade80', fontSize: '0.85rem', fontWeight: '800' }}>
+                      {t.hp} <span style={{ color: '#64748b', fontSize: '0.65rem', fontWeight: '400' }}>/ {t.max_hp}</span>
+                    </div>
+                    <div style={{ width: '45px', height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', marginTop: '2px', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.3)' }}>
+                      <div style={{ 
+                        width: `${Math.max(0, Math.min(100, (t.hp / t.max_hp) * 100))}%`, 
+                        height: '100%', 
+                        background: t.hp / t.max_hp > 0.5 ? '#22c55e' : (t.hp / t.max_hp > 0.2 ? '#eab308' : '#ef4444'),
+                        transition: 'width 0.3s ease'
+                      }} />
+                    </div>
+                  </div>
+                )}
+
                 {userRole === 'dm' && <button onClick={(e) => { e.stopPropagation(); socket.emit('token:remove', t.instanceId); }} style={{ background: 'transparent', border: 'none', color: '#ef444480', cursor: 'pointer', fontSize: '1rem', padding: '2px 4px', transition: 'color 0.2s' }} onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')} onMouseLeave={e => (e.currentTarget.style.color = '#ef444480')}>✕</button>}
               </div>
             </div>
           ))}
-          {visibleFighters.length === 0 && <div style={{ textAlign: 'center', color: '#334155', fontSize: '0.8rem', paddingTop: '20px', fontStyle: 'italic' }}>Sin combatientes</div>}
+          {boardTokens.filter(canSeeInSidebar).length === 0 && <div style={{ textAlign: 'center', color: '#334155', fontSize: '0.8rem', paddingTop: '20px', fontStyle: 'italic' }}>Sin combatientes</div>}
         </div>
 
         {/* VIEWPORT */}
@@ -298,9 +317,9 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
               }}
             />
 
-            {boardTokens.map((t: any) => {
+            {boardTokens.filter(canSeeOnGrid).map((t: any) => {
               const isDragging = drag === t.instanceId;
-              const isMyTeam = canSeeHP(t);
+              const isMyTeam = (userRole === 'dm' || (t.teamColor && t.teamColor === myTeam) || t.owner === currentUser.name);
               // Tokens de otro equipo: visibles pero atenuados, sin HP
               const tokenOpacity = isDragging ? 0 : (isMyTeam ? 1 : 0.45);
               const showHpBar = isMyTeam && !isDragging;

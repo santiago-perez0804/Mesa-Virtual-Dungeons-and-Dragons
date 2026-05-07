@@ -53,6 +53,14 @@ export const DatabaseView = ({ compendium, socket, userRole }: any) => {
     }
   };
 
+  const toggleDamage = (type: string, current: string[], setter: (val: string[]) => void) => {
+    if (current.includes(type)) {
+      setter(current.filter(t => t !== type));
+    } else {
+      setter([...current, type]);
+    }
+  };
+
   const handleSave = () => {
     if (!createName) return alert("El elemento necesita un nombre");
 
@@ -125,8 +133,9 @@ export const DatabaseView = ({ compendium, socket, userRole }: any) => {
 
     if (item.type === 'monster') {
       let parsedAc = 10;
-      if (Array.isArray(data.armor_class)) parsedAc = data.armor_class[0]?.value ?? 10;
-      else if (typeof data.armor_class === 'number') parsedAc = data.armor_class;
+      if (typeof data.armor_class === 'number') parsedAc = data.armor_class;
+      else if (Array.isArray(data.armor_class)) parsedAc = data.armor_class[0]?.value ?? 10;
+      else if (typeof data.armor_class === 'object' && data.armor_class !== null) parsedAc = data.armor_class.value ?? 10;
       else parsedAc = parseInt(data.armor_class ?? data.ac) || 10;
 
       let parsedSpeed = '30 ft.';
@@ -149,7 +158,11 @@ export const DatabaseView = ({ compendium, socket, userRole }: any) => {
         cha: parseInt(data.charisma ?? data.cha) || 10,
       });
 
-      const actionsArray = Array.isArray(data.actions) ? data.actions : [];
+      const actionsArray = [
+        ...(Array.isArray(data.actions) ? data.actions : []),
+        ...(Array.isArray(data.legendary_actions) ? data.legendary_actions : []),
+        ...(Array.isArray(data.reactions) ? data.reactions : [])
+      ];
       const safeActions = actionsArray.map((a: any) => ({
         name: safeStr(a.name ?? ''),
         desc: safeStr(a.desc ?? a.description ?? ''),
@@ -165,7 +178,7 @@ export const DatabaseView = ({ compendium, socket, userRole }: any) => {
       setCreateRes(Array.isArray(data.resistances) ? data.resistances : []);
       setCreateImm(Array.isArray(data.immunities) ? data.immunities : []);
       setCreateSize(safeStr(data.size ?? 'Mediano'));
-      const traitsArray = Array.isArray(data.traits) ? data.traits : [];
+      const traitsArray = Array.isArray(data.traits) ? data.traits : (Array.isArray(data.special_abilities) ? data.special_abilities : []);
       setCreateTraits(traitsArray.length > 0 ? traitsArray : [{ name: '', desc: '' }]);
     } else {
       setCreateRarity(safeStr(data.rarity ?? 'Común'));
@@ -231,34 +244,40 @@ export const DatabaseView = ({ compendium, socket, userRole }: any) => {
                 </div>
 
                 {createType === 'monster' && (
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '10px' }}>
-                    <div>
-                      <label style={{ color: '#94a3b8', fontSize: '0.75rem', display: 'block', marginBottom: '4px' }}>Vulnerabilidades</label>
-                      <input 
-                        style={{ width: '100%', padding: '10px', background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: 'white', fontSize: '0.85rem' }}
-                        value={createVuln.join(', ')} 
-                        onChange={e => setCreateVuln(e.target.value.split(',').map(s => s.trim()))}
-                        placeholder="fuego, frio..."
-                      />
-                    </div>
-                    <div>
-                      <label style={{ color: '#94a3b8', fontSize: '0.75rem', display: 'block', marginBottom: '4px' }}>Resistencias</label>
-                      <input 
-                        style={{ width: '100%', padding: '10px', background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: 'white', fontSize: '0.85rem' }}
-                        value={createRes.join(', ')} 
-                        onChange={e => setCreateRes(e.target.value.split(',').map(s => s.trim()))}
-                        placeholder="veneno, psiquico..."
-                      />
-                    </div>
-                    <div>
-                      <label style={{ color: '#94a3b8', fontSize: '0.75rem', display: 'block', marginBottom: '4px' }}>Inmunidades</label>
-                      <input 
-                        style={{ width: '100%', padding: '10px', background: '#1e293b', border: '1px solid #334155', borderRadius: '8px', color: 'white', fontSize: '0.85rem' }}
-                        value={createImm.join(', ')} 
-                        onChange={e => setCreateImm(e.target.value.split(',').map(s => s.trim()))}
-                        placeholder="necrotico, trueno..."
-                      />
-                    </div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                    {[
+                      { label: 'Vulnerabilidades', current: createVuln, setter: setCreateVuln, color: '#ef4444' },
+                      { label: 'Resistencias', current: createRes, setter: setCreateRes, color: '#fbbf24' },
+                      { label: 'Inmunidades', current: createImm, setter: setCreateImm, color: '#a78bfa' },
+                    ].map(({ label, current, setter, color }) => (
+                      <div key={label}>
+                        <label style={{ color: '#94a3b8', fontSize: '0.75rem', display: 'block', marginBottom: '8px' }}>{label}</label>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '6px' }}>
+                          {DAMAGE_TYPES.map(type => {
+                            const isActive = current.includes(type);
+                            return (
+                              <span
+                                key={type}
+                                onClick={() => toggleDamage(type, current, setter)}
+                                style={{
+                                  padding: '4px 10px',
+                                  borderRadius: '6px',
+                                  fontSize: '0.75rem',
+                                  cursor: 'pointer',
+                                  background: isActive ? color : '#1e293b',
+                                  color: isActive ? 'white' : '#64748b',
+                                  border: `1px solid ${isActive ? color : '#334155'}`,
+                                  transition: 'all 0.15s',
+                                  userSelect: 'none'
+                                }}
+                              >
+                                {type}
+                              </span>
+                            );
+                          })}
+                        </div>
+                      </div>
+                    ))}
                   </div>
                 )}
               </div>
@@ -479,8 +498,20 @@ export const DatabaseView = ({ compendium, socket, userRole }: any) => {
         const isMonster = selectedItem.type === 'monster';
         // Normaliza campos que vienen de distintas fuentes (SRD vs homebrew)
         const hp   = d.hit_points ?? d.hp ?? d.hitPoints ?? '—';
-        const ac   = d.armor_class ?? d.ac ?? d.armorClass ?? '—';
-        const spd  = d.speed ?? '—';
+        
+        let ac = '—';
+        if (typeof d.armor_class === 'number') ac = String(d.armor_class);
+        else if (Array.isArray(d.armor_class)) ac = String(d.armor_class[0]?.value ?? '—');
+        else if (typeof d.armor_class === 'object' && d.armor_class !== null) ac = String(d.armor_class.value ?? '—');
+        else ac = String(d.armor_class ?? d.ac ?? d.armorClass ?? '—');
+
+        let spd = '—';
+        const spdRaw = d.speed;
+        if (typeof spdRaw === 'string') spd = spdRaw;
+        else if (typeof spdRaw === 'object' && spdRaw !== null) {
+          spd = Object.entries(spdRaw).map(([k, v]) => `${k} ${v}${typeof v === 'number' ? ' ft.' : ''}`).join(', ');
+        }
+
         const cr   = d.challenge_rating ?? d.cr ?? d.challengeRating ?? '?';
         const desc = d.description ?? d.desc ?? '';
         const STATS: [string, any][] = [
@@ -492,13 +523,22 @@ export const DatabaseView = ({ compendium, socket, userRole }: any) => {
           ['CAR', d.charisma ?? d.cha ?? 10],
         ];
         const statMod = (v: number) => { const m = Math.floor((v - 10) / 2); return (m >= 0 ? '+' : '') + m; };
-        const actions = Array.isArray(d.actions) ? d.actions : [];
-        const traits  = Array.isArray(d.traits)  ? d.traits  : [];
+        
+        // Unificar acciones (incluyendo legendarias y reacciones del SRD)
+        const actions = [...(Array.isArray(d.actions) ? d.actions : [])];
+        if (Array.isArray(d.legendary_actions)) {
+          actions.push(...d.legendary_actions.map((a: any) => ({ ...a, actionType: 'Acción Legendaria' })));
+        }
+        if (Array.isArray(d.reactions)) {
+          actions.push(...d.reactions.map((a: any) => ({ ...a, actionType: 'Reacción' })));
+        }
+
+        const traits  = Array.isArray(d.traits) ? d.traits : (Array.isArray(d.special_abilities) ? d.special_abilities : []);
         
         // SRD normalization for tags
-        const vuln = Array.isArray(d.vulnerabilities) ? d.vulnerabilities : (typeof d.damage_vulnerabilities === 'string' ? d.damage_vulnerabilities.split(', ') : []);
-        const res  = Array.isArray(d.resistances) ? d.resistances : (typeof d.damage_resistances === 'string' ? d.damage_resistances.split(', ') : []);
-        const imm  = Array.isArray(d.immunities) ? d.immunities : (typeof d.damage_immunities === 'string' ? d.damage_immunities.split(', ') : []);
+        const vuln = Array.isArray(d.vulnerabilities) ? d.vulnerabilities : (typeof d.damage_vulnerabilities === 'string' ? (d.damage_vulnerabilities ? d.damage_vulnerabilities.split(', ') : []) : []);
+        const res  = Array.isArray(d.resistances) ? d.resistances : (typeof d.damage_resistances === 'string' ? (d.damage_resistances ? d.damage_resistances.split(', ') : []) : []);
+        const imm  = Array.isArray(d.immunities) ? d.immunities : (typeof d.damage_immunities === 'string' ? (d.damage_immunities ? d.damage_immunities.split(', ') : []) : []);
 
         return (
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '20px' }} onClick={() => setSelectedItem(null)}>
