@@ -36,14 +36,12 @@ export const startServer = async () => {
         socket.emit('auth:success', user);
         console.log(`👤 ${user.username} entró como ${user.role}`);
 
-        if (user.role !== 'admin') {
-          // Enviar datos necesarios para arrancar la interfaz
-          sendCharactersToSocket(socket);
-          const monsters = db.prepare("SELECT * FROM content_items WHERE type = 'monster'").all();
-          socket.emit('monsters:list', monsters);
-          socket.emit('token:board-list', boardTokens);
-          if (currentGridBg) socket.emit('grid:bg-update', currentGridBg);
-        }
+        // Enviar datos necesarios para arrancar la interfaz
+        sendCharactersToSocket(socket);
+        const monsters = db.prepare("SELECT * FROM content_items WHERE type = 'monster'").all();
+        socket.emit('monsters:list', monsters);
+        socket.emit('token:board-list', boardTokens);
+        if (currentGridBg) socket.emit('grid:bg-update', currentGridBg);
       } else {
         socket.emit('auth:error', 'Usuario o contraseña incorrectos.');
       }
@@ -144,7 +142,7 @@ export const startServer = async () => {
 
     // MOTOR DE TOKENS (GRID)[cite: 1]
     socket.on('token:spawn', (data) => {
-      if (socket.data.role === 'dm') {
+      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
         const newToken = {
           instanceId: `${data.type}-${data.id}-${Date.now()}`,
           originalId: data.id,
@@ -173,7 +171,7 @@ export const startServer = async () => {
     });
 
     socket.on('token:update-hp', (data: { tokenId: string; amount: number }) => {
-      if (socket.data.role === 'dm') {
+      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
         const token = boardTokens.find(t => t.instanceId === data.tokenId);
         if (token) {
           token.hp = Math.max(0, Math.min(token.hp + data.amount, token.max_hp));
@@ -183,7 +181,7 @@ export const startServer = async () => {
     });
 
     socket.on('token:update-team', (data: { tokenId: string; color: string | null }) => {
-      if (socket.data.role === 'dm') {
+      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
         const token = boardTokens.find(t => t.instanceId === data.tokenId);
         if (token) {
           token.teamColor = data.color;
@@ -193,21 +191,30 @@ export const startServer = async () => {
     });
 
     socket.on('token:remove', (instanceId) => {
-      if (socket.data.role === 'dm') {
+      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
         boardTokens = boardTokens.filter(t => t.instanceId !== instanceId);
         io.emit('token:board-list', boardTokens);
       }
     });
 
     socket.on('grid:set-bg', (imageUrl: string) => {
-      if (socket.data.role === 'dm') {
+      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
         currentGridBg = imageUrl;
         io.emit('grid:bg-update', imageUrl); // Cambia el mapa para todos los jugadores
       }
     });
 
+    socket.on('board:clear', () => {
+      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+        boardTokens = [];
+        currentGridBg = '';
+        io.emit('token:board-list', boardTokens);
+        io.emit('grid:bg-update', '');
+      }
+    });
+
     socket.on('combat:request-save', (data: { targetName: string; stat: string; statKey: string; dc: number }) => {
-      if (socket.data.role === 'dm') {
+      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
         io.emit('combat:save-notification', data);
       }
     });
@@ -230,7 +237,7 @@ export const startServer = async () => {
     });
 
     socket.on('character:delete', (id: number) => {
-      if (socket.data.role === 'dm') {
+      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
         db.prepare('DELETE FROM characters WHERE id = ?').run(id);
         refreshAllCharacters();
       }
@@ -257,7 +264,7 @@ export const startServer = async () => {
 
   // HELPERS DE SINCRONIZACIÓN[cite: 1]
   function sendCharactersToSocket(s: any) {
-    const list = s.data.role === 'dm'
+    const list = (s.data.role === 'dm' || s.data.role === 'admin')
       ? db.prepare('SELECT * FROM characters').all()
       : db.prepare('SELECT * FROM characters WHERE owner = ?').all(s.data.userName);
     s.emit('character:list', list);

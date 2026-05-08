@@ -67,7 +67,6 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
       setErrorMsg('Usuario y contraseña son requeridos.');
       return;
     }
-    // Como solo puede haber 1 Admin y 1 DM, forzamos que todos los registros nuevos sean players
     socket.emit('auth:register', { username: newUsername.trim(), password: newPassword, role: 'player', profile_image: newProfileImage });
   };
 
@@ -81,137 +80,129 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
   };
 
   const getProfileIcon = (profile: any) => {
-    if (profile.profile_image) return <img src={profile.profile_image} alt="User" style={{ width: '100%', height: '100%', borderRadius: '12px', objectFit: 'cover' }} />;
-    if (profile.role === 'admin') return <span>👑</span>;
-    if (profile.role === 'dm') return <img src="/img/dm_profile.png" alt="DM" style={{ width: '100%', height: '100%', borderRadius: '12px', objectFit: 'cover' }} />;
-    return <span>🛡️</span>;
+    if (profile.profile_image) return <img src={profile.profile_image} alt="User" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
+    if (profile.role === 'admin') return <span style={{ fontSize: '3rem' }}>🛡️</span>; // Escudo
+    if (profile.role === 'dm') return <span style={{ fontSize: '3rem' }}>🧙‍♂️</span>; // Capucha (Mago)
+    return <span style={{ fontSize: '3rem' }}>⚔️</span>; // Espada
   };
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: '100vh', backgroundColor: '#121212', color: 'white', fontFamily: 'sans-serif', padding: '40px' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '100vh', background: 'var(--bg-base)', padding: '40px' }}>
+      
+      <div style={{ textAlign: 'center', marginBottom: '60px' }}>
+        <h1 className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '4rem', margin: 0, textShadow: '0 0 20px rgba(200, 135, 42, 0.4)' }}>D&D PP</h1>
+        <p className="font-cinzel" style={{ color: 'var(--text-parchment)', fontSize: '1.2rem', letterSpacing: '3px', opacity: 0.8 }}>PARA POBRES</p>
+      </div>
 
-      <h1 style={{ color: '#a855f7', marginBottom: '10px', fontSize: '3rem' }}>Decide and Die</h1>
-      <p style={{ color: '#94a3b8', fontSize: '1.2rem', marginBottom: '40px' }}>¿Quién está jugando?</p>
-
-      {errorMsg && <div style={{ background: '#ef4444', color: 'white', padding: '10px', borderRadius: '6px', marginBottom: '15px', fontSize: '0.9rem', textAlign: 'center', maxWidth: '400px', width: '100%' }}>{errorMsg}</div>}
-      {successMsg && <div style={{ background: '#22c55e', color: 'white', padding: '10px', borderRadius: '6px', marginBottom: '15px', fontSize: '0.9rem', textAlign: 'center', maxWidth: '400px', width: '100%' }}>{successMsg}</div>}
+      {errorMsg && <div className="clipped-frame" style={{ background: 'var(--combat-red)', color: 'white', padding: '15px 30px', marginBottom: '20px', fontSize: '0.9rem', textAlign: 'center', maxWidth: '400px' }}>{errorMsg}</div>}
+      {successMsg && <div className="clipped-frame" style={{ background: 'var(--natural-green)', color: 'white', padding: '15px 30px', marginBottom: '20px', fontSize: '0.9rem', textAlign: 'center', maxWidth: '400px' }}>{successMsg}</div>}
 
       {!selectedProfile && !isRegistering && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px', justifyContent: 'center', maxWidth: '800px' }}>
+        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px', justifyContent: 'center', maxWidth: '1000px' }}>
           {profiles.map(p => (
             <div
               key={p.id}
               onClick={() => { setSelectedProfile(p); setErrorMsg(''); setSuccessMsg(''); setPassword(''); }}
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', transition: 'transform 0.2s', width: '120px' }}
-              onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-              onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+              className="clipped-frame torch-glow"
+              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', width: '160px', padding: '20px', transition: 'all 0.3s' }}
             >
-              <div style={{ width: '100px', height: '100px', borderRadius: '12px', background: p.role === 'admin' ? '#fbbf24' : p.role === 'dm' ? '#a855f7' : '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem', marginBottom: '10px', boxShadow: '0 4px 15px rgba(0,0,0,0.5)', overflow: 'hidden' }}>
+              <div style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '15px', overflow: 'hidden' }}>
                 {getProfileIcon(p)}
               </div>
-              <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#cbd5e1', textAlign: 'center' }}>{p.username}</span>
+              <span className="font-cinzel" style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-parchment)' }}>{p.username}</span>
+              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: '5px' }}>{p.role}</span>
             </div>
           ))}
 
           <div
             onClick={() => { setIsRegistering(true); setErrorMsg(''); setSuccessMsg(''); }}
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', transition: 'transform 0.2s', width: '120px' }}
-            onMouseEnter={(e) => e.currentTarget.style.transform = 'scale(1.1)'}
-            onMouseLeave={(e) => e.currentTarget.style.transform = 'scale(1)'}
+            className="clipped-frame torch-glow"
+            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', width: '160px', padding: '20px', transition: 'all 0.3s', borderStyle: 'dashed' }}
           >
-            <div style={{ width: '100px', height: '100px', borderRadius: '12px', border: '2px dashed #475569', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem', color: '#475569', marginBottom: '10px' }}>
+            <div style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem', color: 'var(--border-color)', marginBottom: '15px' }}>
               +
             </div>
-            <span style={{ fontSize: '1.1rem', fontWeight: 'bold', color: '#94a3b8', textAlign: 'center' }}>Crear Perfil</span>
+            <span className="font-cinzel" style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-secondary)' }}>NUEVO HÉROE</span>
           </div>
         </div>
       )}
 
-      {selectedProfile && (
-        <div style={{ background: '#1e293b', padding: '40px', borderRadius: '12px', width: '350px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)', border: '1px solid #334155', animation: 'fadeIn 0.3s ease-in-out' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '20px' }}>
-            <div style={{ width: '60px', height: '60px', borderRadius: '8px', background: selectedProfile.role === 'admin' ? '#fbbf24' : selectedProfile.role === 'dm' ? '#a855f7' : '#3b82f6', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2rem', overflow: 'hidden' }}>
-              {getProfileIcon(selectedProfile)}
-            </div>
-            <div>
-              <h3 style={{ margin: 0, color: 'white' }}>{selectedProfile.username}</h3>
-              <span style={{ color: '#94a3b8', fontSize: '0.9rem' }}>{selectedProfile.role.toUpperCase()}</span>
-            </div>
-          </div>
-          <form onSubmit={handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <input
-              type="password"
-              placeholder="Contraseña"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              autoFocus
-              style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: 'white', boxSizing: 'border-box', fontSize: '1rem' }}
-            />
-            <div style={{ display: 'flex', gap: '10px' }}>
-              <button
-                type="submit"
-                style={{ flex: 1, padding: '12px', background: '#a855f7', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
-              >
-                Entrar
-              </button>
-              <button
-                type="button"
-                onClick={() => setSelectedProfile(null)}
-                style={{ padding: '12px', background: '#475569', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
-              >
-                Volver
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
+      {(selectedProfile || isRegistering) && (
+        <div className="clipped-frame" style={{ padding: '40px', width: '380px', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
+          <h2 className="font-cinzel" style={{ textAlign: 'center', color: 'var(--accent-gold)', marginBottom: '30px', marginTop: 0 }}>
+            {isRegistering ? 'NUEVO AVENTURERO' : 'IDENTIFÍCATE'}
+          </h2>
+          
+          <form onSubmit={isRegistering ? handleRegister : handleLogin} style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {isRegistering ? (
+              <>
+                <input
+                  type="text"
+                  placeholder="NOMBRE DE USUARIO"
+                  className="mono"
+                  value={newUsername}
+                  onChange={(e) => setNewUsername(e.target.value)}
+                  style={{ width: '100%', padding: '12px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)', outline: 'none' }}
+                />
+                <input
+                  type="password"
+                  placeholder="CONTRASEÑA"
+                  className="mono"
+                  value={newPassword}
+                  onChange={(e) => setNewPassword(e.target.value)}
+                  style={{ width: '100%', padding: '12px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)', outline: 'none' }}
+                />
+                <div style={{ border: '1px dashed var(--border-color)', padding: '10px', textAlign: 'center', position: 'relative', overflow: 'hidden', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                  {newProfileImage ? (
+                    <img src={newProfileImage} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute' }} />
+                  ) : (
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>SUBIR FOTO DE PERFIL</span>
+                  )}
+                  <input type="file" accept="image/*" onChange={handleRegisterImage} style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
+                </div>
+              </>
+            ) : (
+              <>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px', padding: '10px', background: 'rgba(0,0,0,0.2)', borderRadius: '4px' }}>
+                  <div style={{ width: '50px', height: '50px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                    {getProfileIcon(selectedProfile)}
+                  </div>
+                  <div>
+                    <div className="font-cinzel" style={{ color: 'white', fontSize: '1.2rem' }}>{selectedProfile.username}</div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', textTransform: 'uppercase' }}>{selectedProfile.role}</div>
+                  </div>
+                </div>
+                <input
+                  type="password"
+                  placeholder="CONTRASEÑA"
+                  className="mono"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  autoFocus
+                  style={{ width: '100%', padding: '12px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)', outline: 'none' }}
+                />
+              </>
+            )}
 
-      {isRegistering && (
-        <div style={{ background: '#1e293b', padding: '40px', borderRadius: '12px', width: '350px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)', border: '1px solid #334155', animation: 'fadeIn 0.3s ease-in-out' }}>
-          <h2 style={{ textAlign: 'center', color: '#3b82f6', marginBottom: '20px', marginTop: 0 }}>Nuevo Jugador</h2>
-          <form onSubmit={handleRegister} style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-            <input
-              type="text"
-              placeholder="Nombre de Usuario"
-              value={newUsername}
-              onChange={(e) => setNewUsername(e.target.value)}
-              autoFocus
-              style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: 'white', boxSizing: 'border-box', fontSize: '1rem' }}
-            />
-            <input
-              type="password"
-              placeholder="Contraseña"
-              value={newPassword}
-              onChange={(e) => setNewPassword(e.target.value)}
-              style={{ width: '100%', padding: '12px', borderRadius: '6px', border: '1px solid #475569', background: '#0f172a', color: 'white', boxSizing: 'border-box', fontSize: '1rem' }}
-            />
-            <div style={{ border: '2px dashed #475569', borderRadius: '8px', padding: '10px', textAlign: 'center', position: 'relative', overflow: 'hidden', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-              {newProfileImage ? (
-                <img src={newProfileImage} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute' }} />
-              ) : (
-                <span style={{ color: '#94a3b8', fontSize: '0.8rem' }}>Subir Foto de Perfil</span>
-              )}
-              <input type="file" accept="image/*" onChange={handleRegisterImage} style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
-            </div>
             <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
               <button
                 type="submit"
-                style={{ flex: 1, padding: '12px', background: '#3b82f6', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+                className="torch-glow"
+                style={{ flex: 1, padding: '14px', background: 'var(--accent-gold)', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer' }}
               >
-                Crear Perfil
+                {isRegistering ? 'CREAR' : 'ENTRAR'}
               </button>
               <button
                 type="button"
-                onClick={() => setIsRegistering(false)}
-                style={{ padding: '12px', background: '#475569', color: 'white', border: 'none', borderRadius: '6px', fontWeight: 'bold', cursor: 'pointer' }}
+                onClick={() => { setSelectedProfile(null); setIsRegistering(false); }}
+                style={{ padding: '14px', background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', fontWeight: 'bold', cursor: 'pointer' }}
               >
-                Cancelar
+                VOLVER
               </button>
             </div>
           </form>
         </div>
       )}
-
     </div>
   );
 };

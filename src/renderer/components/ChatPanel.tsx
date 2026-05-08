@@ -53,9 +53,9 @@ export const ChatPanel = ({ socket, currentUser, characters }: any) => {
   if (!users.includes('Dungeon Master')) users.push('Dungeon Master');
 
   return (
-    <div style={{ background: 'transparent', display: 'flex', flexDirection: 'column', flex: 1, boxShadow: 'none' }}>
-      <div style={{ background: '#0f172a', padding: '10px 15px', borderBottom: '1px solid #333', fontWeight: 'bold', color: '#a855f7', display: 'flex', alignItems: 'center', gap: '8px' }}>
-        💬 <span style={{ marginTop: '2px' }}>Mesa de Taberna (Chat y Dados)</span>
+    <div style={{ background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', flex: 1, boxShadow: 'none', overflow: 'hidden', borderLeft: '1px solid var(--border-color)' }}>
+      <div className="font-cinzel" style={{ background: 'rgba(0,0,0,0.3)', padding: '15px 20px', borderBottom: '1px solid var(--border-color)', fontWeight: 'bold', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', letterSpacing: '1px' }}>
+        📜 <span style={{ marginTop: '2px' }}>MESA DE TABERNA</span>
       </div>
 
       <div style={{ padding: '10px', background: '#111', borderBottom: '1px solid #333' }}>
@@ -77,51 +77,38 @@ export const ChatPanel = ({ socket, currentUser, characters }: any) => {
           const isPrivate = m.to !== 'all';
 
           // Filtro para mensajes privados (solo sender y recipient los ven)
-          if (isPrivate && !isMine && m.to !== currentUser.name) return null;
-
           return (
-            <div key={m.id} style={{ alignSelf: isMine ? 'flex-end' : 'flex-start', maxWidth: '85%' }}>
-              <div style={{ fontSize: '0.7rem', color: '#94a3b8', marginBottom: '4px', textAlign: isMine ? 'right' : 'left' }}>
-                {isMine ? 'Tú' : m.sender} {isPrivate && <span style={{ color: '#fbbf24', fontWeight: 'bold' }}>(Privado a {m.to === 'Dungeon Master' ? 'DM' : m.to})</span>} <span style={{ opacity: 0.5 }}>{m.timestamp}</span>
+            <div key={m.id} style={{ marginBottom: '12px', background: 'rgba(0,0,0,0.2)', padding: '10px 14px', borderLeft: `3px solid ${m.sender === currentUser.name ? 'var(--accent-gold)' : 'var(--text-secondary)'}`, fontSize: '0.9rem' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
+                <span className="font-cinzel" style={{ fontWeight: 'bold', color: m.sender === currentUser.name ? 'var(--accent-gold)' : 'var(--text-parchment)', fontSize: '0.75rem' }}>{m.sender.toUpperCase()}</span>
+                <span className="mono" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>{m.timestamp}</span>
               </div>
-              <div style={{
-                background: isPrivate ? '#4c1d95' : (isMine ? '#3b82f6' : '#334155'),
-                padding: '10px 14px',
-                borderRadius: '8px',
-                color: 'white',
-                borderBottomRightRadius: isMine ? '2px' : '8px',
-                borderBottomLeftRadius: !isMine ? '2px' : '8px',
-                fontSize: '0.95rem',
-                lineHeight: '1.4',
-                boxShadow: '0 2px 5px rgba(0,0,0,0.2)'
-              }}>
-                {m.text}
-              </div>
+              <div style={{ color: 'var(--text-parchment)', lineHeight: '1.4' }}>{m.text}</div>
             </div>
           );
         })}
       </div>
 
-      <div style={{ padding: '12px', background: '#0f172a', borderTop: '1px solid #333', display: 'flex', gap: '10px' }}>
-        <select value={sendTo} onChange={(e) => setSendTo(e.target.value)} style={{ padding: '10px', borderRadius: '6px', border: '1px solid #444', background: '#1e293b', color: 'white', maxWidth: '110px', outline: 'none' }}>
-          <option value="all">A todos</option>
-          <optgroup label="Privado">
+      <div style={{ padding: '15px', background: 'rgba(0,0,0,0.3)', borderTop: '1px solid var(--border-color)' }}>
+        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
+          <select value={sendTo} onChange={(e) => setSendTo(e.target.value)} style={{ padding: '5px', fontSize: '0.7rem', background: 'var(--bg-base)', color: 'var(--text-parchment)', border: '1px solid var(--border-color)' }}>
+            <option value="all">Todos</option>
             {users.filter(u => u !== currentUser.name).map((u: any) => (
               <option key={u} value={u}>{u === 'Dungeon Master' ? 'DM' : u}</option>
             ))}
-          </optgroup>
-        </select>
-        <input
-          type="text"
-          value={inputValue}
-          onChange={(e) => setInputValue(e.target.value)}
-          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          placeholder="Escribe un mensaje..."
-          style={{ flex: 1, padding: '10px', borderRadius: '6px', border: '1px solid #444', background: '#1e293b', color: 'white', outline: 'none' }}
-        />
-        <button onClick={handleSend} style={{ background: '#a855f7', color: 'white', border: 'none', borderRadius: '6px', padding: '0 15px', cursor: 'pointer', fontWeight: 'bold', transition: 'background 0.2s' }} onMouseEnter={(e) => e.currentTarget.style.background = '#9333ea'} onMouseLeave={(e) => e.currentTarget.style.background = '#a855f7'}>
-          ➤
-        </button>
+          </select>
+        </div>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <input
+            className="mono"
+            style={{ flex: 1, padding: '10px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)', outline: 'none', fontSize: '0.85rem' }}
+            placeholder="Enviar mensaje..."
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+          />
+          <button onClick={handleSend} className="torch-glow" style={{ background: 'var(--accent-gold)', color: 'white', border: 'none', padding: '0 15px', cursor: 'pointer', fontWeight: 'bold' }}>➤</button>
+        </div>
       </div>
     </div>
   );

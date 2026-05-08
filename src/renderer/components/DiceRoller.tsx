@@ -19,13 +19,13 @@ export const DiceRoller = ({ socket, user }: { socket: Socket, user: any }) => {
 
   const handleCustomRoll = () => {
     if (!customFormula.trim()) return;
-    
+
     // Normalize string (remove spaces, lowercase)
     const formula = customFormula.replace(/\s+/g, '').toLowerCase();
-    
+
     // Regex for XdY or XdY+Z
     const match = formula.match(/^(\d+)d(\d+)(?:\+(\d+))?$/);
-    
+
     if (!match) {
       alert('Formato inválido. Usá algo como 2d6 o 1d20+5');
       return;
@@ -34,18 +34,18 @@ export const DiceRoller = ({ socket, user }: { socket: Socket, user: any }) => {
     const count = parseInt(match[1]);
     const faces = parseInt(match[2]);
     const modifier = match[3] ? parseInt(match[3]) : 0;
-    
+
     if (count > 50 || faces > 100) {
-       alert('Calma con los dados, aventurero.');
-       return;
+      alert('Calma con los dados, aventurero.');
+      return;
     }
 
     let total = 0;
     const rolls = [];
     for (let i = 0; i < count; i++) {
-       const roll = Math.floor(Math.random() * faces) + 1;
-       rolls.push(roll);
-       total += roll;
+      const roll = Math.floor(Math.random() * faces) + 1;
+      rolls.push(roll);
+      total += roll;
     }
     total += modifier;
 
@@ -60,24 +60,31 @@ export const DiceRoller = ({ socket, user }: { socket: Socket, user: any }) => {
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isSystem: true
     };
-    
+
     socket.emit('chat:send', sysMsg);
     setCustomFormula('');
   };
 
   return (
     <div className="dice-roller">
-      <div className="dice-buttons">
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
         {dice.map((d) => (
           <button
             key={d}
             onClick={() => rollDice(d)}
             disabled={isWaiting}
+            className="font-cinzel torch-glow"
             style={{
               opacity: isWaiting ? 0.5 : 1,
               cursor: isWaiting ? 'not-allowed' : 'pointer',
-              margin: '2px',
-              padding: '8px'
+              background: 'rgba(200, 135, 42, 0.1)',
+              color: 'var(--accent-gold)',
+              border: '1px solid var(--border-color)',
+              padding: '10px',
+              borderRadius: '2px',
+              fontSize: '0.9rem',
+              fontWeight: '700',
+              transition: 'all 0.2s'
             }}
           >
             d{d}
@@ -92,22 +99,24 @@ export const DiceRoller = ({ socket, user }: { socket: Socket, user: any }) => {
       )}
 
       {/* LANZADOR PERSONALIZADO */}
-      <div style={{ marginTop: '15px', padding: '10px', background: '#0f172a', borderRadius: '8px', border: '1px solid #334155' }}>
-        <h5 style={{ margin: '0 0 10px 0', color: '#94a3b8' }}>Tirada Manual</h5>
-        <div style={{ display: 'flex', gap: '5px' }}>
-          <input 
-            type="text" 
-            placeholder="Ej: 2d6 + 5" 
+      <div style={{ marginTop: '15px', padding: '15px', background: 'rgba(0,0,0,0.2)', border: '1px solid var(--border-color)' }}>
+        <h5 className="font-cinzel" style={{ margin: '0 0 10px 0', color: 'var(--text-secondary)', fontSize: '0.7rem', textTransform: 'uppercase', letterSpacing: '1px' }}>Tirada Manual</h5>
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <input
+            type="text"
+            placeholder="2d6+5"
+            className="mono"
             value={customFormula}
             onChange={(e) => setCustomFormula(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleCustomRoll()}
-            style={{ flex: 1, padding: '8px', borderRadius: '4px', border: '1px solid #475569', background: '#1e293b', color: 'white' }}
+            style={{ flex: 1, padding: '8px 12px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)', fontSize: '0.85rem', outline: 'none' }}
           />
-          <button 
+          <button
             onClick={handleCustomRoll}
-            style={{ background: '#3b82f6', color: 'white', border: 'none', borderRadius: '4px', padding: '0 15px', cursor: 'pointer', fontWeight: 'bold' }}
+            className="torch-glow"
+            style={{ background: 'var(--accent-gold)', color: 'white', border: 'none', padding: '0 12px', cursor: 'pointer', fontWeight: 'bold' }}
           >
-            Tirar
+            🎲
           </button>
         </div>
       </div>

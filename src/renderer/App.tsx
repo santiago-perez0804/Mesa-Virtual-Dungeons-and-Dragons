@@ -59,6 +59,9 @@ function App() {
 
   const handleLogin = (loggedUser: { name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string }) => {
     setUser(loggedUser);
+    if (loggedUser.role === 'admin') {
+      setActiveTab('database');
+    }
     socket.emit('content:request'); // Ahora TODOS pueden ver el compendio
   };
 
@@ -95,7 +98,7 @@ function App() {
   }
 
   return (
-    <div className="vtt-main" style={{ position: 'relative', minHeight: '100vh', backgroundColor: '#121212', color: 'white', fontFamily: 'sans-serif' }}>
+    <div className="vtt-main" style={{ position: 'relative', minHeight: '100vh', backgroundColor: 'var(--bg-base)', color: 'var(--text-parchment)', fontFamily: 'var(--font-body)' }}>
 
       {/* CAPA DEL DADO 2D (Imagen Animada) */}
       {currentRoll && (
@@ -118,15 +121,19 @@ function App() {
       )}
 
       {/* HEADER */}
-      <header style={{ background: '#1a1a1a', padding: '15px 25px', borderBottom: '1px solid #333', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-        <span style={{ fontSize: '1.2rem', fontWeight: 'bold', color: '#a855f7', textShadow: '0 0 10px rgba(168, 85, 247, 0.5)' }}>D&D PP (DND PARA PROBES)</span>
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px', background: '#334155', padding: '4px 12px 4px 4px', borderRadius: '25px' }}>
-            <div style={{ position: 'relative', width: '32px', height: '32px', borderRadius: '50%', overflow: 'hidden', background: '#1e293b', border: '1px solid #475569', cursor: 'pointer' }} title="Cambiar foto de perfil">
+      <header style={{ background: 'var(--bg-surface)', padding: '15px 30px', borderBottom: '2px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
+        <div style={{ display: 'flex', flexDirection: 'column' }}>
+          <span className="font-cinzel" style={{ fontSize: '1.8rem', fontWeight: '900', color: 'var(--accent-gold)', textShadow: '0 0 15px rgba(200, 135, 42, 0.4)', lineHeight: '1' }}>D&D PP</span>
+          <span className="font-cinzel" style={{ fontSize: '0.7rem', color: 'var(--text-parchment)', letterSpacing: '4px', opacity: 0.7 }}>PARA POBRES</span>
+        </div>
+        
+        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(0,0,0,0.3)', padding: '6px 16px 6px 6px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+            <div style={{ position: 'relative', width: '36px', height: '36px', overflow: 'hidden', background: 'var(--bg-base)', border: '1px solid var(--accent-gold)', cursor: 'pointer' }} title="Cambiar foto de perfil">
               {user.profile_image ? (
                 <img src={user.profile_image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
-                <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.9rem', fontWeight: 'bold', color: '#94a3b8' }}>
+                <div className="font-cinzel" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 'bold', color: 'var(--accent-gold)' }}>
                   {user.name.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -137,51 +144,52 @@ function App() {
                 style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} 
               />
             </div>
-            <span style={{ fontSize: '0.9rem', color: '#94a3b8' }}>
-              {user.role === 'dm' ? '🧙‍♂️ Master:' : '🛡️ Aventurero:'} <strong>{user.name}</strong>
-            </span>
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                {user.role === 'dm' ? 'Dungeon Master' : (user.role === 'admin' ? 'Administrador' : 'Aventurero')}
+              </span>
+              <span className="font-cinzel" style={{ fontSize: '0.95rem', color: 'var(--text-parchment)', fontWeight: 'bold' }}>{user.name}</span>
+            </div>
           </div>
           <button 
             onClick={() => setUser(null)}
-            style={{ background: 'transparent', border: '1px solid #ef4444', color: '#ef4444', padding: '6px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.85rem', fontWeight: 'bold', transition: 'all 0.2s' }}
-            onMouseEnter={(e) => { e.currentTarget.style.background = '#ef4444'; e.currentTarget.style.color = 'white'; }}
-            onMouseLeave={(e) => { e.currentTarget.style.background = 'transparent'; e.currentTarget.style.color = '#ef4444'; }}
+            className="torch-glow"
+            style={{ background: 'transparent', border: '1px solid var(--combat-red)', color: 'var(--combat-red)', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}
           >
-            🚪 Salir
+            🚪 SALIR
           </button>
         </div>
       </header>
 
       {/* TABS NAVEGACIÓN */}
-      <div style={{ display: 'flex', gap: '15px', padding: '20px 25px', background: '#0f172a', borderBottom: '2px solid #1e293b' }}>
-        <button
-          onClick={() => setActiveTab('combat')}
-          style={{ padding: '15px 25px', borderRadius: '12px', border: 'none', background: activeTab === 'combat' ? 'linear-gradient(135deg, #a855f7, #7c3aed)' : '#334155', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.1rem', flex: 1, boxShadow: activeTab === 'combat' ? '0 0 15px rgba(168, 85, 247, 0.4)' : 'none', transition: 'all 0.2s' }}
-        >
-          ⚔️ Combate y Grilla
-        </button>
-        {(user.role === 'player' || user.role === 'dm') && (
+      <div style={{ display: 'flex', gap: '2px', background: 'var(--bg-base)', padding: '0 30px' }}>
+        {[
+          { id: 'combat', label: '⚔️ COMBATE', color: 'var(--combat-red)', visible: user.role !== 'admin' },
+          { id: 'characters', label: '👤 HÉROES', color: 'var(--natural-green)', visible: user.role !== 'admin' },
+          { id: 'database', label: '📚 COMPENDIO', color: 'var(--accent-gold)', visible: true },
+          { id: 'admin', label: '👑 ADMIN', color: '#f59e0b', visible: user.role === 'admin' }
+        ].filter(t => t.visible !== false).map(tab => (
           <button
-            onClick={() => setActiveTab('characters')}
-            style={{ padding: '15px 25px', borderRadius: '12px', border: 'none', background: activeTab === 'characters' ? 'linear-gradient(135deg, #22c55e, #16a34a)' : '#334155', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.1rem', flex: 1, boxShadow: activeTab === 'characters' ? '0 0 15px rgba(34, 197, 94, 0.4)' : 'none', transition: 'all 0.2s' }}
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id as any)}
+            className="font-cinzel"
+            style={{ 
+              padding: '12px 25px', 
+              border: '1px solid var(--border-color)',
+              borderBottom: 'none',
+              background: activeTab === tab.id ? 'var(--bg-surface)' : 'transparent', 
+              color: activeTab === tab.id ? tab.color : 'var(--text-secondary)', 
+              fontWeight: 'bold', 
+              cursor: 'pointer', 
+              fontSize: '0.9rem',
+              transition: 'all 0.2s',
+              borderTop: activeTab === tab.id ? `3px solid ${tab.color}` : '1px solid var(--border-color)',
+              marginTop: activeTab === tab.id ? '0' : '5px'
+            }}
           >
-            👤 {user.role === 'dm' ? 'Gestión de Héroes' : 'Mis Personajes'}
+            {tab.label}
           </button>
-        )}
-        <button
-          onClick={() => setActiveTab('database')}
-          style={{ padding: '15px 25px', borderRadius: '12px', border: 'none', background: activeTab === 'database' ? 'linear-gradient(135deg, #3b82f6, #2563eb)' : '#334155', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.1rem', flex: 1, boxShadow: activeTab === 'database' ? '0 0 15px rgba(59, 130, 246, 0.4)' : 'none', transition: 'all 0.2s' }}
-        >
-          📚 Base de Datos (Compendio)
-        </button>
-        {user.role === 'admin' && (
-          <button
-            onClick={() => setActiveTab('admin')}
-            style={{ padding: '15px 25px', borderRadius: '12px', border: 'none', background: activeTab === 'admin' ? 'linear-gradient(135deg, #f59e0b, #d97706)' : '#334155', color: 'white', fontWeight: 'bold', cursor: 'pointer', fontSize: '1.1rem', flex: 1, boxShadow: activeTab === 'admin' ? '0 0 15px rgba(245, 158, 11, 0.4)' : 'none', transition: 'all 0.2s' }}
-          >
-            👑 Panel de Administración
-          </button>
-        )}
+        ))}
       </div>
 
       <main style={{ padding: '25px', width: '100%', boxSizing: 'border-box', margin: '0 auto' }}>
@@ -251,8 +259,8 @@ function App() {
                                 id: c.id,
                                 name: c.name,
                                 type: 'character',
-                                hp: c.hp,
-                                max_hp: c.max_hp,
+                                hp: c.max_hp || 10,
+                                max_hp: c.max_hp || 10,
                                 ac: c.ac,
                                 image: c.image || null,
                                 owner: c.owner
@@ -280,12 +288,13 @@ function App() {
         {activeTab === 'admin' && user.role === 'admin' && (
           <AdminPanel socket={socket} />
         )}
-        {activeTab === 'characters' && (user.role === 'player' || user.role === 'dm') && (
+        {activeTab === 'characters' && (user.role === 'player' || user.role === 'dm' || user.role === 'admin') && (
           <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
             <CharacterManager
               socket={socket}
               characters={characters}
               monsters={monsters}
+              compendium={compendium}
               userRole={user.role}
             />
           </div>

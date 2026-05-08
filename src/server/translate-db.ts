@@ -6,43 +6,70 @@ import translate from 'google-translate-api-x';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const dbPath = path.join(__dirname, '../../vtt_database.db');
-const db = new Database(dbPath);
+
+let db: Database.Database;
+try {
+  db = new Database(dbPath);
+} catch (error) {
+  console.error('Error al abrir la base de datos:', error);
+  process.exit(1);
+}
 
 async function translateDB() {
   console.log('Iniciando traducción de la base de datos...');
-  const items = db.prepare('SELECT * FROM content_items').all() as any[];
 
-  console.log(`Encontrados ${items.length} elementos para traducir.`);
+  let items: any[] = [];
+  try {
+    items = db.prepare('SELECT * FROM content_items').all() as any[];
+  } catch (error) {
+    console.error('Error al leer content_items:', error);
+    return;
+  }
+
+  console.log(`Encontrados ${items.length} elementos para procesar.`);
 
   const updateStmt = db.prepare('UPDATE content_items SET name = ?, data = ? WHERE id = ?');
 
   let translatedCount = 0;
+  let skippedCount = 0;
+
   for (const item of items) {
     try {
-      const data = JSON.parse(item.data);
-
-      // Chequear si ya fue traducido (usando un flag custom que le pondremos)
-      if (data._translated_to_es) {
-        console.log(`Saltando ${item.name} (ya traducido)`);
+      let data: any;
+      try {
+        data = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
+      } catch (e) {
+        console.error(`Error parseando data para item ${item.id} (${item.name}):`, e);
         continue;
       }
 
-      console.log(`Traduciendo: ${item.name} (${translatedCount}/${items.length})`);
+      // Chequear si ya fue traducido
+      if (data._translated_to_es) {
+        skippedCount++;
+        continue;
+      }
+
+      console.log(`[${translatedCount + skippedCount + 1}/${items.length}] Traduciendo: ${item.name}`);
 
       let toTranslate = [item.name];
-      if (data.desc) toTranslate.push(data.desc);
-      else if (data.description) toTranslate.push(data.description);
+      let hasDesc = false;
+      if (data.desc) {
+        toTranslate.push(data.desc);
+        hasDesc = true;
+      } else if (data.description) {
+        toTranslate.push(data.description);
+        hasDesc = true;
+      }
 
       const res = await translate(toTranslate, { to: 'es' });
-
-      // google-translate-api-x maneja array si le pasas array
-      // pero si solo hay 1 elemento, puede devolver un solo objeto.
       const texts = Array.isArray(res) ? res.map(r => r.text) : [res.text];
 
       const newName = texts[0];
 
-      if (data.desc) data.desc = texts[1];
-      else if (data.description) data.description = texts[1];
+      if (hasDesc) {
+        if (data.desc) data.desc = texts[1];
+        else if (data.description) data.description = texts[1];
+      }
 
       // Traducir el tipo (e.g., 'Medium humanoid')
       if (data.type && typeof data.type === 'string') {
@@ -56,18 +83,21 @@ async function translateDB() {
       translatedCount++;
 
       // Pausa para evitar rate limits
-      await new Promise(resolve => setTimeout(resolve, 300));
-    } catch (e) {
+      await new Promise(resolve => setTimeout(resolve, 400));
+    } catch (e: any) {
       console.error(`Error traduciendo ${item.name}:`, e);
-      // Romper el loop si hay ban de IP
-      if (e.toString().includes('TooManyRequests')) {
-        console.log("Ban de Google Translate, deteniendo...");
+      if (e.toString().includes('TooManyRequests') || e.code === 'TOO_MANY_REQUESTS') {
+        console.log("Ban de Google Translate o límite alcanzado, deteniendo...");
         break;
       }
     }
   }
 
-  console.log(`Traducción completada. Se tradujeron ${translatedCount} elementos.`);
+  console.log(`\nTraducción completada.`);
+  console.log(`- Traducidos: ${translatedCount}`);
+  console.log(`- Saltados: ${skippedCount}`);
 }
 
-translateDB().catch(console.error);
+translateDB().catch(err => {
+  console.error('Error fatal en translateDB:', err);
+});

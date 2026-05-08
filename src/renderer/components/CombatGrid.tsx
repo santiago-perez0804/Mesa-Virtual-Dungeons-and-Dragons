@@ -15,6 +15,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
   const [saveNotification, setSaveNotification] = useState<any>(null);
   const [activeTokenId, setActiveTokenId] = useState<string | null>(null);
   const [openTeamPicker, setOpenTeamPicker] = useState<string | null>(null);
+  const [viewingToken, setViewingToken] = useState<any>(null);
 
   const TEAM_COLORS = ['#ef4444', '#3b82f6', '#22c55e', '#eab308', '#f97316', '#a855f7', '#ec4899', '#06b6d4', '#84cc16', '#78350f', '#64748b', '#ffffff'];
 
@@ -171,189 +172,147 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
   };
 
   return (
-    <div style={{ position: 'relative', width: '100%', height: '100%', display: 'flex', flexDirection: 'column' }} onClick={() => setActiveTokenId(null)}>
-      
-      {/* HEADER */}
-      <div style={{ padding: '12px 24px', background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', borderBottom: '1px solid rgba(168,85,247,0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 10, boxShadow: '0 2px 20px rgba(0,0,0,0.4)' }}>
-        <div style={{ display: 'flex', gap: '24px', alignItems: 'center' }}>
-          <h2 style={{ margin: 0, background: 'linear-gradient(135deg, #a78bfa, #818cf8)', WebkitBackgroundClip: 'text', WebkitTextFillColor: 'transparent', fontSize: '1.25rem', fontWeight: '800', letterSpacing: '-0.5px' }}>⚔️ Grilla de Combate</h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px', color: '#94a3b8', fontSize: '0.8rem' }}>
-            <span style={{ background: 'rgba(168,85,247,0.15)', border: '1px solid rgba(168,85,247,0.3)', padding: '3px 10px', borderRadius: '20px', color: '#c4b5fd', fontWeight: '700', fontSize: '0.75rem' }}>{Math.round(zoom * 100)}%</span>
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-              <span style={{ color: '#64748b' }}>Grilla</span>
-              <input type="range" min="0" max="1" step="0.05" value={gridOpacity} onChange={(e) => setGridOpacity(parseFloat(e.target.value))} style={{ width: '70px', accentColor: '#a855f7' }} />
-            </div>
-          </div>
-        </div>
+    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-base)', position: 'relative' }} onClick={() => setActiveTokenId(null)}>
 
-        <div style={{ display: 'flex', gap: '8px' }}>
-          {userRole === 'dm' && (
-            <div style={{ display: 'flex', gap: '6px' }}>
-              <input placeholder="🗺️ URL del mapa..." value={bgInputUrl} onChange={e => setBgInputUrl(e.target.value)}
-                style={{ padding: '7px 12px', borderRadius: '8px', border: '1px solid rgba(168,85,247,0.3)', background: 'rgba(255,255,255,0.05)', color: 'white', fontSize: '0.8rem', width: '190px', outline: 'none' }} />
-              <button onClick={() => { if (bgInputUrl) { socket.emit('grid:set-bg', bgInputUrl); setBgInputUrl(''); } }}
-                style={{ background: 'linear-gradient(135deg, #3b82f6, #2563eb)', color: 'white', border: 'none', padding: '7px 14px', borderRadius: '8px', cursor: 'pointer', fontWeight: '700', fontSize: '0.8rem', boxShadow: '0 2px 8px rgba(59,130,246,0.4)' }}>Cargar</button>
+      {/* TOOLBAR SUPERIOR */}
+      <div style={{ padding: '12px 20px', background: 'rgba(0,0,0,0.4)', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 100 }}>
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+          <h2 className="font-cinzel" style={{ margin: 0, color: 'var(--accent-gold)', fontSize: '1.2rem', letterSpacing: '1px' }}>⚔️ COMBATE</h2>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Zoom:</span>
+            <input type="range" min="0.2" max="2" step="0.1" value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))} style={{ width: '80px', accentColor: 'var(--accent-gold)' }} />
+          </div>
+          {(userRole === 'dm' || userRole === 'admin') && (
+            <div style={{ display: 'flex', gap: '8px' }}>
+              <input
+                className="mono"
+                style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white', padding: '6px 12px', fontSize: '0.75rem', width: '200px' }}
+                placeholder="URL del Mapa..."
+                value={bgInputUrl}
+                onChange={(e) => setBgInputUrl(e.target.value)}
+              />
+              <button
+                onClick={() => { if (bgInputUrl) socket.emit('grid:set-bg', bgInputUrl); }}
+                className="torch-glow"
+                style={{ background: 'var(--accent-gold)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                APLICAR
+              </button>
+              <button onClick={() => socket.emit('board:clear')} className="torch-glow" style={{ background: 'var(--combat-red)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>Limpiar Mapa</button>
             </div>
           )}
-          <button onClick={() => setShowGridLines(!showGridLines)}
-            style={{ background: showGridLines ? 'linear-gradient(135deg,#7c3aed,#6d28d9)' : 'rgba(255,255,255,0.06)', color: 'white', border: '1px solid rgba(168,85,247,0.2)', padding: '7px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: '600' }}>
+        </div>
+
+        <div style={{ display: 'flex', gap: '10px' }}>
+          <button onClick={() => setShowGridLines(!showGridLines)} className="font-cinzel"
+            style={{ background: showGridLines ? 'var(--accent-gold)' : 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--border-color)', padding: '6px 14px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>
             {showGridLines ? '👁️ Grilla' : '🙈 Grilla'}
           </button>
-          <button onClick={() => { setPan({ x: 0, y: 0 }); setZoom(1); }}
-            style={{ background: 'rgba(255,255,255,0.06)', color: '#94a3b8', border: '1px solid rgba(255,255,255,0.08)', padding: '7px 12px', borderRadius: '8px', cursor: 'pointer', fontSize: '0.8rem' }}>🎯 Reset</button>
+          <button onClick={() => { setPan({ x: 0, y: 0 }); setZoom(1); }} className="font-cinzel"
+            style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', padding: '6px 14px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>🎯 Reset</button>
         </div>
       </div>
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        {/* PANEL LATERAL */}
-        <div style={{ width: '280px', background: 'linear-gradient(180deg, #0d1424 0%, #0f172a 100%)', borderRight: '1px solid rgba(168,85,247,0.15)', overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-          <div style={{ textAlign: 'center', marginBottom: '8px', paddingBottom: '12px', borderBottom: '1px solid rgba(168,85,247,0.2)' }}>
-            <h4 style={{ margin: 0, color: '#c4b5fd', fontSize: '0.85rem', fontWeight: '700', letterSpacing: '2px', textTransform: 'uppercase' }}>⚔️ Combatientes</h4>
+        {/* COLUMNA IZQ: COMBATIENTES */}
+        <div style={{ width: '320px', background: 'rgba(0,0,0,0.2)', borderRight: '1px solid var(--border-color)', overflowY: 'auto', padding: '16px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+          <div style={{ textAlign: 'center', marginBottom: '10px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
+            <h4 className="font-cinzel" style={{ margin: 0, color: 'var(--accent-gold)', fontSize: '1rem', letterSpacing: '2px' }}>⚔️ COMBATIENTES</h4>
           </div>
           {boardTokens.filter(canSeeInSidebar).map((t: any) => (
             <div key={t.instanceId}
-              style={{ background: activeTokenId === t.instanceId ? 'linear-gradient(135deg, rgba(124,58,237,0.25), rgba(109,40,217,0.15))' : 'rgba(255,255,255,0.03)', borderRadius: '12px', padding: '10px 12px', border: activeTokenId === t.instanceId ? '1px solid rgba(168,85,247,0.5)' : '1px solid rgba(255,255,255,0.06)', cursor: 'pointer', position: 'relative', transition: 'all 0.2s', boxShadow: activeTokenId === t.instanceId ? '0 0 15px rgba(168,85,247,0.2)' : 'none' }}
+              className={`clipped-frame torch-glow ${activeTokenId === t.instanceId ? 'active' : ''}`}
+              style={{ padding: '12px', border: activeTokenId === t.instanceId ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)', cursor: 'pointer', transition: 'all 0.2s', background: activeTokenId === t.instanceId ? 'rgba(200, 135, 42, 0.1)' : 'var(--bg-surface)' }}
               onClick={(e) => { e.stopPropagation(); setActiveTokenId(t.instanceId); }}
             >
-              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                <div
-                  onClick={(e) => { if (userRole === 'dm') { e.stopPropagation(); setOpenTeamPicker(openTeamPicker === t.instanceId ? null : t.instanceId); } }}
-                  title={userRole === 'dm' ? 'Cambiar equipo' : ''}
-                  style={{ width: '12px', height: '12px', borderRadius: '50%', background: t.teamColor || 'transparent', border: t.teamColor ? `2px solid ${t.teamColor}` : '1px dashed #475569', cursor: userRole === 'dm' ? 'pointer' : 'default', boxShadow: t.teamColor ? `0 0 8px ${t.teamColor}88` : 'none', flexShrink: 0 }}
-                />
-                {openTeamPicker === t.instanceId && (
-                  <div style={{ position: 'absolute', top: '40px', left: '10px', background: '#0d1424', border: '1px solid rgba(168,85,247,0.3)', padding: '12px', borderRadius: '12px', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '8px', zIndex: 1000, boxShadow: '0 8px 30px rgba(0,0,0,0.7), 0 0 20px rgba(168,85,247,0.15)' }}>
-                    {TEAM_COLORS.map(c => <div key={c} onClick={(e) => { e.stopPropagation(); socket.emit('token:update-team', { tokenId: t.instanceId, color: c }); setOpenTeamPicker(null); }} style={{ width: '22px', height: '22px', borderRadius: '50%', background: c, cursor: 'pointer', border: '2px solid rgba(255,255,255,0.1)', transition: 'transform 0.1s', boxShadow: `0 0 6px ${c}88` }} />)}
-                    <div onClick={(e) => { e.stopPropagation(); socket.emit('token:update-team', { tokenId: t.instanceId, color: null }); setOpenTeamPicker(null); }} style={{ gridColumn: 'span 4', fontSize: '0.7rem', color: '#64748b', textAlign: 'center', marginTop: '4px', cursor: 'pointer', borderTop: '1px solid rgba(255,255,255,0.07)', paddingTop: '6px' }}>✕ Sin equipo</div>
-                  </div>
-                )}
-                <div style={{ width: '36px', height: '36px', borderRadius: '50%', background: 'rgba(255,255,255,0.05)', overflow: 'hidden', border: `2px solid ${t.teamColor || 'rgba(255,255,255,0.1)'}`, flexShrink: 0, boxShadow: t.teamColor ? `0 0 10px ${t.teamColor}55` : 'none' }}>
-                  {t.image ? <img src={t.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '1.1rem' }}>{t.type === 'character' ? '👤' : '👾'}</span>}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                <div style={{ position: 'relative', width: '42px', height: '42px', border: `2px solid ${t.teamColor || 'var(--border-color)'}`, overflow: 'hidden', flexShrink: 0 }}>
+                  {t.image ? <img src={t.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '1.2rem' }}>{t.type === 'character' ? '👤' : '👾'}</span>}
                 </div>
                 <div style={{ flex: 1, overflow: 'hidden' }}>
-                  <div style={{ color: 'white', fontSize: '0.88rem', fontWeight: '700', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{t.name}</div>
-                  <div style={{ fontSize: '0.68rem', color: t.type === 'character' ? '#60a5fa' : '#f87171', fontWeight: '600', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{t.type === 'character' ? 'Héroe' : 'Criatura'}</div>
+                  <div className="font-cinzel" style={{ color: 'white', fontSize: '0.95rem', fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} onClick={(e) => { e.stopPropagation(); setViewingToken(t); }}>
+                    {t.name}
+                  </div>
+                  <div style={{ fontSize: '0.65rem', color: t.type === 'character' ? 'var(--accent-gold)' : 'var(--combat-red)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>{t.type === 'character' ? 'Héroe' : 'Criatura'}</div>
                 </div>
 
-                {/* Vida: DM ve todo, Jugador solo la suya */}
                 {(userRole === 'dm' || t.owner === currentUser.name) && (
-                  <div style={{ marginRight: '10px', display: 'flex', flexDirection: 'column', alignItems: 'flex-end', flexShrink: 0 }}>
-                    <div style={{ color: '#4ade80', fontSize: '0.85rem', fontWeight: '800' }}>
-                      {t.hp} <span style={{ color: '#64748b', fontSize: '0.65rem', fontWeight: '400' }}>/ {t.max_hp}</span>
-                    </div>
-                    <div style={{ width: '45px', height: '4px', background: 'rgba(255,255,255,0.1)', borderRadius: '2px', marginTop: '2px', overflow: 'hidden', border: '1px solid rgba(0,0,0,0.3)' }}>
-                      <div style={{ 
-                        width: `${Math.max(0, Math.min(100, (t.hp / t.max_hp) * 100))}%`, 
-                        height: '100%', 
-                        background: t.hp / t.max_hp > 0.5 ? '#22c55e' : (t.hp / t.max_hp > 0.2 ? '#eab308' : '#ef4444'),
-                        transition: 'width 0.3s ease'
-                      }} />
+                  <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
+                    <div className="mono" style={{ color: 'var(--natural-green)', fontSize: '0.9rem', fontWeight: 'bold' }}>{t.hp} <span style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>/ {t.max_hp}</span></div>
+                    <div style={{ width: '40px', height: '3px', background: 'rgba(0,0,0,0.4)', marginTop: '4px' }}>
+                      <div style={{ width: `${Math.min(100, (t.hp / t.max_hp) * 100)}%`, height: '100%', background: t.hp / t.max_hp > 0.5 ? 'var(--natural-green)' : 'var(--combat-red)' }} />
                     </div>
                   </div>
                 )}
-
-                {userRole === 'dm' && <button onClick={(e) => { e.stopPropagation(); socket.emit('token:remove', t.instanceId); }} style={{ background: 'transparent', border: 'none', color: '#ef444480', cursor: 'pointer', fontSize: '1rem', padding: '2px 4px', transition: 'color 0.2s' }} onMouseEnter={e => (e.currentTarget.style.color = '#ef4444')} onMouseLeave={e => (e.currentTarget.style.color = '#ef444480')}>✕</button>}
               </div>
             </div>
           ))}
-          {boardTokens.filter(canSeeInSidebar).length === 0 && <div style={{ textAlign: 'center', color: '#334155', fontSize: '0.8rem', paddingTop: '20px', fontStyle: 'italic' }}>Sin combatientes</div>}
+          {boardTokens.filter(canSeeInSidebar).length === 0 && <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem', padding: '20px' }}>Sin combatientes</div>}
         </div>
 
-        {/* VIEWPORT */}
-        <div ref={viewportRef} style={{ position: 'relative', flex: 1, overflow: 'hidden', background: '#080c14' }} onMouseDown={handleViewportMouseDown}>
-          <div 
-            ref={boardRef} 
-            style={{ 
-              position: 'absolute', 
-              top: pan.y, left: pan.x, 
-              width: BOARD_PX, height: BOARD_PX, 
-              transform: `scale(${zoom})`, 
-              transformOrigin: 'top left', 
-              backgroundImage: bgImage ? `url("${bgImage}")` : 'none', 
-              backgroundSize: 'cover', 
-              backgroundPosition: 'center' 
+        {/* COLUMNA CENTRAL: MAPA */}
+        <div ref={viewportRef} style={{ position: 'relative', flex: 1, overflow: 'hidden', background: '#000' }} onMouseDown={handleViewportMouseDown}>
+          <div
+            ref={boardRef}
+            style={{
+              position: 'absolute',
+              top: pan.y, left: pan.x,
+              width: BOARD_PX, height: BOARD_PX,
+              transform: `scale(${zoom})`,
+              transformOrigin: 'top left',
+              backgroundImage: bgImage ? `url("${bgImage}")` : 'none',
+              backgroundSize: 'cover',
+              backgroundPosition: 'center'
             }}
           >
             {showGridLines && (
-              <div style={{ 
-                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', 
-                backgroundImage: `linear-gradient(rgba(168, 85, 247, ${gridOpacity}) 1px, transparent 1px), linear-gradient(90deg, rgba(168, 85, 247, ${gridOpacity}) 1px, transparent 1px)`, 
+              <div style={{
+                position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                backgroundImage: `linear-gradient(rgba(200, 135, 42, ${gridOpacity}) 1px, transparent 1px), linear-gradient(90deg, rgba(200, 135, 42, ${gridOpacity}) 1px, transparent 1px)`,
                 backgroundSize: `${CELL_PX}px ${CELL_PX}px`,
                 pointerEvents: 'none'
               }} />
             )}
-            
-            {/* SNAP INDICATOR - controlado por ref, sin re-render */}
-            <div 
-              ref={snapRef}
-              style={{
-                display: 'none',
-                position: 'absolute',
-                width: CELL_PX, height: CELL_PX,
-                background: 'rgba(124, 58, 237, 0.2)',
-                border: '2px dashed #7c3aed',
-                borderRadius: '50%',
-                pointerEvents: 'none',
-                zIndex: 99
-              }}
-            />
 
-            {/* GHOST TOKEN - controlado por ref, sin re-render */}
-            <div
-              ref={ghostRef}
-              style={{
-                display: 'none',
-                position: 'absolute',
-                width: CELL_PX, height: CELL_PX,
-                borderRadius: '50%',
-                background: '#a855f7',
-                border: '3px solid #d946ef',
-                opacity: 0.85,
-                zIndex: 100,
-                pointerEvents: 'none',
-                boxShadow: '0 8px 25px rgba(168,85,247,0.5)',
-                transform: 'scale(1.1)',
-                overflow: 'hidden'
-              }}
-            />
+            <div ref={snapRef} style={{ display: 'none', position: 'absolute', width: CELL_PX, height: CELL_PX, background: 'rgba(200, 135, 42, 0.1)', border: '2px dashed var(--accent-gold)', borderRadius: '50%', pointerEvents: 'none', zIndex: 99 }} />
+
+            <div ref={ghostRef} style={{ display: 'none', position: 'absolute', width: CELL_PX, height: CELL_PX, borderRadius: '50%', background: 'var(--accent-gold)', border: '3px solid white', opacity: 0.85, zIndex: 100, pointerEvents: 'none', boxShadow: '0 8px 25px rgba(0,0,0,0.5)', transform: 'scale(1.1)', overflow: 'hidden' }} />
 
             {boardTokens.filter(canSeeOnGrid).map((t: any) => {
               const isDragging = drag === t.instanceId;
               const isMyTeam = (userRole === 'dm' || (t.teamColor && t.teamColor === myTeam) || t.owner === currentUser.name);
-              // Tokens de otro equipo: visibles pero atenuados, sin HP
               const tokenOpacity = isDragging ? 0 : (isMyTeam ? 1 : 0.45);
               const showHpBar = isMyTeam && !isDragging;
 
               return (
-                <div 
-                  key={t.instanceId} 
-                  onMouseDown={(e) => handleTokenMouseDown(e, t.instanceId)} 
-                  style={{ 
-                    position: 'absolute', 
-                    left: t.x * CELL_PX, 
+                <div
+                  key={t.instanceId}
+                  onMouseDown={(e) => handleTokenMouseDown(e, t.instanceId)}
+                  style={{
+                    position: 'absolute',
+                    left: t.x * CELL_PX,
                     top: t.y * CELL_PX,
-                    width: CELL_PX, height: CELL_PX, 
-                    cursor: isDragging ? 'grabbing' : 'grab', 
+                    width: CELL_PX, height: CELL_PX,
+                    cursor: isDragging ? 'grabbing' : 'grab',
                     zIndex: isDragging ? 1 : 10,
                     opacity: tokenOpacity,
                     transition: isDragging ? 'none' : 'left 0.15s ease, top 0.15s ease',
-                    filter: isMyTeam ? 'none' : 'grayscale(60%)'
                   }}
                 >
-                  <div style={{ 
-                    width: '100%', height: '100%', borderRadius: '50%', 
-                    background: t.type === 'character' ? '#3b82f6' : '#ef4444', 
-                    border: activeTokenId === t.instanceId ? '4px solid #fbbf24' : '2px solid white', 
-                    overflow: 'hidden', 
-                    boxShadow: t.teamColor ? `0 0 15px ${t.teamColor}` : '0 4px 10px rgba(0,0,0,0.5)', 
-                    transform: activeTokenId === t.instanceId ? 'scale(1.05)' : 'scale(0.9)', 
-                    transition: 'transform 0.1s' 
+                  <div style={{
+                    width: '100%', height: '100%', borderRadius: '50%',
+                    background: t.type === 'character' ? 'var(--accent-gold)' : 'var(--combat-red)',
+                    border: activeTokenId === t.instanceId ? '4px solid white' : '2px solid rgba(255,255,255,0.3)',
+                    overflow: 'hidden',
+                    boxShadow: t.teamColor ? `0 0 15px ${t.teamColor}` : '0 4px 10px rgba(0,0,0,0.5)',
+                    transform: activeTokenId === t.instanceId ? 'scale(1.1)' : 'scale(0.9)',
+                    transition: 'transform 0.1s'
                   }}>
                     {t.image ? <img src={t.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontWeight: 'bold' }}>{t.name[0]}</span>}
                   </div>
                   {showHpBar && (
-                    <div style={{ position: 'absolute', bottom: '-8px', left: '50%', transform: 'translateX(-50%)', width: '85%', height: '5px', background: '#000', borderRadius: '3px', border: '1px solid #333', overflow: 'hidden' }}>
-                      <div style={{ width: `${(t.hp / t.max_hp) * 100}%`, height: '100%', background: t.hp > 0 ? (t.hp / t.max_hp > 0.5 ? '#22c55e' : '#eab308') : '#6b7280', transition: 'width 0.3s' }} />
+                    <div style={{ position: 'absolute', bottom: '-8px', left: '50%', transform: 'translateX(-50%)', width: '85%', height: '5px', background: '#000', border: '1px solid var(--border-color)', overflow: 'hidden' }}>
+                      <div style={{ width: `${(t.hp / t.max_hp) * 100}%`, height: '100%', background: t.hp > 0 ? (t.hp / t.max_hp > 0.5 ? 'var(--natural-green)' : 'var(--combat-red)') : '#6b7280', transition: 'width 0.3s' }} />
                     </div>
                   )}
                 </div>
@@ -362,20 +321,18 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
           </div>
         </div>
 
-        <ChatPanel socket={socket} currentUser={currentUser} characters={characters} />
+        {/* COLUMNA DER: CHAT Y DADOS */}
+        <div style={{ width: '300px', display: 'flex', borderLeft: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
+          <ChatPanel socket={socket} currentUser={currentUser} characters={characters} />
+        </div>
       </div>
 
-      {/* NOTIFICACIÓN DE TS */}
       {saveNotification && (
-        <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'linear-gradient(135deg, rgba(69,10,10,0.97), rgba(120,10,10,0.95))', backdropFilter: 'blur(20px)', border: '1px solid rgba(239,68,68,0.5)', borderRadius: '24px', padding: '48px', textAlign: 'center', zIndex: 10000, boxShadow: '0 0 80px rgba(239, 68, 68, 0.4), inset 0 0 60px rgba(239,68,68,0.05)', animation: 'tsEntry 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275)' }}>
-          <div style={{ fontSize: '3rem', marginBottom: '8px' }}>⚠️</div>
-          <h2 style={{ color: 'white', fontSize: '1.8rem', marginBottom: '8px', fontWeight: '900', letterSpacing: '-1px' }}>¡TIRADA DE SALVACIÓN!</h2>
-          <p style={{ color: '#fca5a5', fontSize: '1.1rem', marginBottom: '4px' }}>El DM ha solicitado:</p>
-          <div style={{ background: 'rgba(239,68,68,0.15)', border: '1px solid rgba(239,68,68,0.3)', borderRadius: '12px', padding: '12px 32px', marginBottom: '28px', display: 'inline-block' }}>
-            <span style={{ color: '#fbbf24', fontSize: '1.8rem', fontWeight: '900', letterSpacing: '2px' }}>{saveNotification.stat.toUpperCase()}</span>
-          </div>
+        <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--bg-base)', border: '2px solid var(--combat-red)', padding: '40px', borderRadius: '4px', textAlign: 'center', zIndex: 10000, boxShadow: '0 0 50px rgba(0,0,0,0.8)' }}>
+          <h2 className="font-cinzel" style={{ color: 'var(--combat-red)', fontSize: '2rem' }}>¡TIRADA DE SALVACIÓN!</h2>
+          <p style={{ color: 'var(--text-parchment)' }}>El DM solicita una tirada de {saveNotification.stat.toUpperCase()}</p>
           {(currentUser.name === saveNotification.targetName || userRole === 'dm') && (
-            <button 
+            <button
               onClick={() => {
                 const myChar = characters.find((c: any) => c.name === saveNotification.targetName);
                 if (!myChar) return;
@@ -385,80 +342,126 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                 const total = roll + mod;
                 const pass = total >= saveNotification.dc;
                 socket.emit('dice:roll', { die: 20 });
-                socket.emit('chat:send', { user: currentUser.name, text: `🎲 **${saveNotification.targetName}** lanzó **${saveNotification.stat}**: d20(${roll}) + ${mod} = **${total}**. ${pass ? '✅ **SUPERADO**' : '❌ **FALLADO**'} (CD Secreta)`, timestamp: Date.now() });
+                socket.emit('chat:send', { user: currentUser.name, text: `🎲 **${saveNotification.targetName}** lanzó **${saveNotification.stat}**: d20(${roll}) + ${mod} = **${total}**. ${pass ? '✅ **SUPERADO**' : '❌ **FALLADO**'}`, timestamp: Date.now() });
                 setSaveNotification(null);
               }}
-              style={{ display: 'block', background: 'linear-gradient(135deg, #22c55e, #16a34a)', color: 'white', border: 'none', padding: '16px 48px', borderRadius: '14px', fontSize: '1.2rem', fontWeight: '800', cursor: 'pointer', boxShadow: '0 4px 20px rgba(34,197,94,0.4)', letterSpacing: '0.5px', margin: '0 auto' }}
+              className="font-cinzel"
+              style={{ background: 'var(--accent-gold)', color: '#000', border: 'none', padding: '10px 20px', marginTop: '20px', cursor: 'pointer', fontWeight: 'bold' }}
             >
-              🎲 LANZAR DADO
+              LANZAR DADO
             </button>
           )}
         </div>
       )}
 
-      {/* BOTONES DE ACCIÓN */}
-      {(() => {
-        const selectedToken = boardTokens.find((t: any) => t.instanceId === activeTokenId);
-        const myToken = boardTokens.find((t: any) => t.type === 'character' && t.owner === currentUser.name);
-        const activeToken = (userRole === 'dm' && selectedToken) ? selectedToken : myToken;
-        if (!activeToken) return null;
+      {/* MODAL DETALLE DE COMBATIENTE */}
+      {viewingToken && (() => {
+        const item = boardTokens.find(t => t.instanceId === viewingToken.instanceId) || viewingToken;
+        const isChar = item.type === 'character';
+        let inventory: any = null;
+        let stats: any = {};
+        let description: any = "";
+        let classes = "";
+        let race = "";
+        let type = "";
 
-        const isChar = activeToken.type === 'character';
-        const source = isChar ? characters : monsters;
-        let item = source.find((i: any) => i.id === activeToken.originalId || i.name === activeToken.name) || (isChar ? monsters : characters).find((i: any) => i.id === activeToken.originalId || i.name === activeToken.name);
-        if (!item) return null;
-
-        let charStats: any = {};
-        if (isChar) charStats = typeof item.stats === 'string' ? JSON.parse(item.stats) : item.stats;
-        else {
-          const mData = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
-          charStats = { fue: mData.strength || 10, dex: mData.dexterity || 10, con: mData.constitution || 10, int: mData.intelligence || 10, sab: mData.wisdom || 10, car: mData.charisma || 10 };
-        }
-
-        const handleRoll = (statKey: string, label: string) => {
-          const isPlayer = activeToken.type === 'character' || activeToken.owner;
-          if (userRole === 'dm' && isPlayer) {
-            const dcStr = prompt(`CD para la Tirada de Salvación de ${activeToken.name}:`, "10");
-            if (dcStr) socket.emit('combat:request-save', { targetName: activeToken.name, stat: label, statKey, dc: parseInt(dcStr) || 10 });
-          } else {
-            const mod = Math.floor(((charStats[statKey] || 10) - 10) / 2);
-            const roll = Math.floor(Math.random() * 20) + 1;
-            socket.emit('dice:roll', { die: 20 });
-            socket.emit('chat:send', { user: currentUser.name, text: `🎲 **${activeToken.name}** tiró **${label}**: d20(${roll}) + ${mod} = **${roll + mod}**`, timestamp: Date.now() });
-          }
-          setOpenMenu(null);
+        const safeParse = (val: any) => {
+          if (typeof val !== 'string') return val;
+          try {
+            const p = JSON.parse(val);
+            if (typeof p === 'string') return safeParse(p);
+            return p;
+          } catch { return val; }
         };
 
-        const SAVES = [{ n: 'FUE', k: 'fue' }, { n: 'DES', k: 'dex' }, { n: 'CON', k: 'con' }, { n: 'INT', k: 'int' }, { n: 'SAB', k: 'sab' }, { n: 'CAR', k: 'car' }];
-        const isDMRequest = userRole === 'dm' && (activeToken.type === 'character' || activeToken.owner);
-        const calcMod = (key: string) => Math.floor(((charStats[key] || 10) - 10) / 2);
+        if (isChar) {
+          const charSource = characters.find((c: any) => c.id === item.originalId);
+          stats = safeParse(charSource?.stats || {});
+          description = charSource?.description || "Sin descripción.";
+          race = charSource?.race || "Humano";
+          inventory = safeParse(charSource?.inventory) || null;
+          try {
+            const parsedCls = safeParse(charSource?.class);
+            classes = Object.entries(parsedCls).map(([c, l]) => `${c} ${l}`).join(' / ');
+          } catch {
+            classes = charSource?.class || "Guerrero";
+          }
+        } else {
+          const mSource = monsters.find((m: any) => m.id === item.originalId);
+          const mData = safeParse(mSource?.data || {});
+          stats = { fue: mData.strength || 10, dex: mData.dexterity || 10, con: mData.constitution || 10, int: mData.intelligence || 10, sab: mData.wisdom || 10, car: mData.charisma || 10 };
+          description = mData.description || mData.desc || "Sin descripción.";
+          type = mData.type || "Monstruo";
+        }
+
+        const statMod = (v: number) => {
+          const mod = Math.floor((v - 10) / 2);
+          return (mod >= 0 ? '+' : '') + mod;
+        };
 
         return (
-          <div style={{ position: 'absolute', bottom: '24px', left: '50%', transform: 'translateX(-50%)', display: 'flex', gap: '10px', zIndex: 100, alignItems: 'flex-end' }}>
-            {openMenu === 'TS' && (
-              <div style={{ position: 'absolute', bottom: '64px', left: '50%', transform: 'translateX(-50%)', background: 'rgba(13,20,36,0.97)', backdropFilter: 'blur(20px)', padding: '14px', borderRadius: '16px', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', width: '280px', boxShadow: '0 -8px 32px rgba(0,0,0,0.6), 0 0 0 1px rgba(168,85,247,0.2)', border: '1px solid rgba(168,85,247,0.15)' }}>
-                <div style={{ gridColumn: 'span 3', textAlign: 'center', color: '#94a3b8', fontSize: '0.7rem', fontWeight: '700', letterSpacing: '1.5px', textTransform: 'uppercase', marginBottom: '4px' }}>{isDMRequest ? 'SOLICITAR SALVACIÓN' : 'TIRADA DE SALVACIÓN'}</div>
-                {SAVES.map(s => {
-                  const mod = calcMod(s.k);
-                  return (
-                    <button key={s.k} onClick={() => handleRoll(s.k, s.n)}
-                      style={{ background: 'rgba(168,85,247,0.1)', color: 'white', border: '1px solid rgba(168,85,247,0.2)', padding: '10px 6px', borderRadius: '10px', cursor: 'pointer', fontSize: '0.82rem', fontWeight: '700', display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px', transition: 'all 0.15s' }}
-                      onMouseEnter={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.3)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.6)'; }}
-                      onMouseLeave={e => { e.currentTarget.style.background = 'rgba(168,85,247,0.1)'; e.currentTarget.style.borderColor = 'rgba(168,85,247,0.2)'; }}
-                    >
-                      <span style={{ color: '#c4b5fd' }}>{s.n}</span>
-                      <span style={{ color: mod >= 0 ? '#4ade80' : '#f87171', fontSize: '0.9rem' }}>{mod >= 0 ? `+${mod}` : mod}</span>
-                    </button>
-                  );
-                })}
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} onClick={() => setViewingToken(null)}>
+            <div className="clipped-frame" style={{ width: '100%', maxWidth: '900px', maxHeight: '85vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 0 50px rgba(0,0,0,0.9)' }} onClick={e => e.stopPropagation()}>
+              {/* MODAL HEADER */}
+              <div style={{ padding: '25px 30px', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '20px', alignItems: 'center', background: 'rgba(0,0,0,0.2)' }}>
+                <div style={{ width: '80px', height: '80px', border: '2px solid var(--accent-gold)', overflow: 'hidden', flexShrink: 0 }}>
+                  {item.image ? <img src={item.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '2.5rem' }}>{isChar ? '👤' : '👾'}</span>}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <h2 className="font-cinzel" style={{ margin: 0, fontSize: '2rem', color: 'var(--accent-gold)' }}>{item.name}</h2>
+                  <p className="font-cinzel" style={{ margin: '4px 0 0 0', color: 'var(--text-parchment)', fontSize: '0.85rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    {isChar ? `${race} • ${classes}` : type}
+                  </p>
+                </div>
               </div>
-            )}
-            <button
-              onClick={() => setOpenMenu(openMenu === 'TS' ? null : 'TS')}
-              style={{ padding: '12px 22px', background: openMenu === 'TS' ? 'linear-gradient(135deg, #fbbf24, #f59e0b)' : 'linear-gradient(135deg, #f59e0b, #d97706)', color: openMenu === 'TS' ? '#1c1917' : 'white', border: 'none', borderRadius: '12px', fontWeight: '800', cursor: 'pointer', boxShadow: '0 4px 15px rgba(245,158,11,0.35)', fontSize: '0.9rem', letterSpacing: '0.3px', whiteSpace: 'nowrap' }}
-            >
-              🎲 {isDMRequest ? 'Solicitar TS' : 'Salvación'}
-            </button>
+
+              {/* MODAL BODY */}
+              <div style={{ padding: '30px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '30px' }}>
+
+                {/* Atributos */}
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '15px' }}>
+                  {Object.entries(stats).map(([key, val]: [string, any]) => (
+                    <div key={key} style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', padding: '12px', textAlign: 'center' }}>
+                      <div className="font-cinzel" style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', fontWeight: 'bold', textTransform: 'uppercase' }}>{key}</div>
+                      <div className="mono" style={{ fontSize: '1.4rem', color: 'white', fontWeight: 'bold' }}>{val}</div>
+                      <div className="mono" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{statMod(val)}</div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Descripción */}
+                <div>
+                  <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', marginBottom: '12px' }}>📜 DESCRIPCIÓN</h4>
+                  <div style={{ color: 'var(--text-parchment)', lineHeight: '1.6', fontSize: '1rem', whiteSpace: 'pre-wrap' }}>
+                    {Array.isArray(description) ? description.join('\n') : description}
+                  </div>
+                </div>
+
+                {/* Inventario (solo héroes) */}
+                {isChar && inventory && (
+                  <div>
+                    <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', marginBottom: '12px' }}>⚔️ INVENTARIO</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
+                      {Object.entries(inventory).map(([cat, items]: [string, any]) => (
+                        items && items.length > 0 && (
+                          <div key={cat} style={{ background: 'rgba(0,0,0,0.2)', padding: '15px', border: '1px solid var(--border-color)' }}>
+                            <h5 className="font-cinzel" style={{ margin: '0 0 10px 0', fontSize: '0.8rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>{cat}</h5>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                              {items.map((it: any, idx: number) => (
+                                <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '4px' }}>
+                                  <span style={{ fontSize: '0.9rem', color: 'white' }}>{it.name}</span>
+                                  {it.damage && <span className="mono" style={{ fontSize: '0.8rem', color: 'var(--combat-red)' }}>{it.damage}</span>}
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
           </div>
         );
       })()}
