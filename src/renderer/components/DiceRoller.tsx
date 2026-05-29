@@ -14,7 +14,7 @@ export const DiceRoller = ({ socket, user }: { socket: Socket, user: any }) => {
 
     setTimeout(() => {
       setIsWaiting(false);
-    }, 2000);
+    }, 5300);
   };
 
   const handleCustomRoll = () => {

@@ -1,13 +1,379 @@
+import 'dotenv/config';
+import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
 import { db, initDB, updateCompendiumItem } from './db.js';
 import { runFullImport } from './seeder.js';
+import { initAI, startAISession, sendChatMessageToAI, sendDiceRollToAI, endAISession, isAISessionActive } from './ai-dm.js';
+import { initImageAI, generateItemImage } from './ai-image.js';
+
+// Helpers de Parseo Seguro de JSON para prevenir double-serialization o spreads corruptos
+function safeParseJSON(field: any, defaultVal: any): any {
+  if (!field) return defaultVal;
+  let parsed = field;
+  try {
+    while (typeof parsed === 'string') {
+      const nextParsed = JSON.parse(parsed);
+      if (nextParsed === parsed) break;
+      parsed = nextParsed;
+    }
+  } catch (e) {}
+  
+  if (parsed && typeof parsed === 'object') {
+    if (parsed["0"] !== undefined && parsed["1"] !== undefined) {
+      try {
+        let reconstructedStr = "";
+        let idx = 0;
+        while (parsed[idx] !== undefined) {
+          reconstructedStr += parsed[idx];
+          idx++;
+        }
+        let recovered = JSON.parse(reconstructedStr);
+        while (typeof recovered === 'string') {
+          recovered = JSON.parse(recovered);
+        }
+        if (recovered && typeof recovered === 'object') {
+          parsed = recovered;
+        }
+      } catch (e) {
+        console.error("Error recovering corrupted spread JSON:", e);
+      }
+    }
+  }
+
+  if (!parsed || typeof parsed !== 'object') {
+    return defaultVal;
+  }
+  return parsed;
+}
+
+function safeParseInventory(inventoryField: any): any {
+  const defaultInventory = { armas: [], armaduras: [], consumibles: [], artefactos: [], coins: { pc: 0, pl: 0, el: 0, po: 0, pt: 0 }, slots: {} };
+  const parsed = safeParseJSON(inventoryField, defaultInventory);
+  return {
+    armas: Array.isArray(parsed.armas) ? parsed.armas : [],
+    armaduras: Array.isArray(parsed.armaduras) ? parsed.armaduras : [],
+    consumibles: Array.isArray(parsed.consumibles) ? parsed.consumibles : [],
+    artefactos: Array.isArray(parsed.artefactos) ? parsed.artefactos : [],
+    coins: parsed.coins && typeof parsed.coins === 'object' ? parsed.coins : defaultInventory.coins,
+    slots: parsed.slots && typeof parsed.slots === 'object' ? parsed.slots : {}
+  };
+}
+
+function safeParseStats(statsField: any): any {
+  const defaultStats = { fue: 10, dex: 10, con: 10, int: 10, sab: 10, car: 10 };
+  const parsed = safeParseJSON(statsField, defaultStats);
+  return {
+    fue: typeof parsed.fue === 'number' ? parsed.fue : 10,
+    dex: typeof parsed.dex === 'number' ? parsed.dex : 10,
+    con: typeof parsed.con === 'number' ? parsed.con : 10,
+    int: typeof parsed.int === 'number' ? parsed.int : 10,
+    sab: typeof parsed.sab === 'number' ? parsed.sab : 10,
+    car: typeof parsed.car === 'number' ? parsed.car : 10
+  };
+}
 
 // Estado volátil del tablero: se sincroniza en tiempo real entre todos los clientes[cite: 1]
 let boardTokens: any[] = [];
 let currentGridBg: string = '';
 
-const httpServer = createServer();
+const app = express();
+app.use(express.json());
+
+// Middleware de CORS para que el frontend (Vite en puerto 5173) pueda consumir la API
+app.use((req, res, next) => {
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+  if (req.method === 'OPTIONS') {
+    res.sendStatus(200);
+    return;
+  }
+  next();
+});
+
+// Helper Functions for Two-Way Sync between Class Traits and class_features Table
+function syncClassTraitsToFeaturesTable(className: string, data: any) {
+  try {
+    const traits = data?.traits || [];
+    
+    // 1. Fetch current features for this class in DB
+    const dbFeatures = db.prepare("SELECT id, feature_name, level_acquired FROM class_features WHERE LOWER(class_name) = LOWER(?)")
+      .all(className) as { id: number, feature_name: string, level_acquired: number }[];
+
+    // 2. Delete any DB features that are NOT in the new traits list
+    for (const dbFeat of dbFeatures) {
+      const existsInTraits = traits.some((t: any) => t.name.toLowerCase() === dbFeat.feature_name.toLowerCase() && parseInt(t.level) === dbFeat.level_acquired);
+      if (!existsInTraits) {
+        db.prepare("DELETE FROM class_features WHERE id = ?").run(dbFeat.id);
+      }
+    }
+
+    // 3. Insert or update traits in the DB
+    for (const trait of traits) {
+      const existing = db.prepare("SELECT id FROM class_features WHERE LOWER(class_name) = LOWER(?) AND LOWER(feature_name) = LOWER(?) AND level_acquired = ?")
+        .get(className, trait.name, parseInt(trait.level)) as { id: number } | undefined;
+
+      if (existing) {
+        db.prepare("UPDATE class_features SET description = ?, short_description = ? WHERE id = ?")
+          .run(trait.desc || trait.description, trait.short_description || '', existing.id);
+      } else {
+        db.prepare("INSERT INTO class_features (class_name, feature_name, level_acquired, description, short_description) VALUES (?, ?, ?, ?, ?)")
+          .run(className, trait.name, parseInt(trait.level), trait.desc || trait.description, trait.short_description || '');
+      }
+    }
+  } catch (err: any) {
+    console.error("Error syncing class traits to features table:", err.message);
+  }
+}
+
+function syncFeatureToClassContentItem(
+  className: string,
+  featureName: string,
+  level: number,
+  description: string,
+  shortDescription: string,
+  oldClassName?: string,
+  oldFeatureName?: string,
+  oldLevel?: number
+) {
+  try {
+    if (oldClassName && oldClassName.toLowerCase() !== className.toLowerCase()) {
+      deleteFeatureFromClassContentItem(oldClassName, oldFeatureName || featureName, oldLevel);
+    }
+
+    const classRow = db.prepare("SELECT id, data FROM content_items WHERE type = 'class' AND LOWER(name) = LOWER(?)")
+      .get(className) as { id: number, data: string } | undefined;
+
+    if (!classRow) return;
+
+    let data: any = {};
+    try {
+      data = JSON.parse(classRow.data);
+    } catch {
+      data = {};
+    }
+
+    if (!data.traits) data.traits = [];
+
+    const targetName = oldFeatureName || featureName;
+    const targetLevel = oldLevel !== undefined ? oldLevel : level;
+    const existingIndex = data.traits.findIndex((t: any) => t.name.toLowerCase() === targetName.toLowerCase() && parseInt(t.level) === targetLevel);
+
+    const newTrait = {
+      level,
+      name: featureName,
+      type: (existingIndex >= 0 ? data.traits[existingIndex]?.type : null) || 'Pasivo',
+      desc: description,
+      short_description: shortDescription
+    };
+
+    if (existingIndex >= 0) {
+      data.traits[existingIndex] = newTrait;
+    } else {
+      data.traits.push(newTrait);
+    }
+
+    data.traits.sort((a: any, b: any) => a.level - b.level);
+
+    if (oldFeatureName && oldFeatureName !== featureName && data.table) {
+      data.table = data.table.replace(new RegExp(escapeRegExp(oldFeatureName), 'g'), featureName);
+    }
+
+    db.prepare("UPDATE content_items SET data = ? WHERE id = ?")
+      .run(JSON.stringify(data), classRow.id);
+
+    if (io) {
+      io.emit('content:list', db.prepare("SELECT * FROM content_items").all());
+    }
+  } catch (err: any) {
+    console.error("Error in syncFeatureToClassContentItem:", err.message);
+  }
+}
+
+function deleteFeatureFromClassContentItem(className: string, featureName: string, level?: number) {
+  try {
+    const classRow = db.prepare("SELECT id, data FROM content_items WHERE type = 'class' AND LOWER(name) = LOWER(?)")
+      .get(className) as { id: number, data: string } | undefined;
+
+    if (!classRow) return;
+
+    let data: any = {};
+    try {
+      data = JSON.parse(classRow.data);
+    } catch {
+      data = {};
+    }
+
+    if (!data.traits) return;
+
+    if (level !== undefined) {
+      data.traits = data.traits.filter((t: any) => !(t.name.toLowerCase() === featureName.toLowerCase() && parseInt(t.level) === level));
+    } else {
+      data.traits = data.traits.filter((t: any) => t.name.toLowerCase() !== featureName.toLowerCase());
+    }
+
+    if (data.table) {
+      let table = data.table;
+      table = table.replace(new RegExp(`,\\s*${escapeRegExp(featureName)}`, 'gi'), '');
+      table = table.replace(new RegExp(`${escapeRegExp(featureName)}\\s*,?`, 'gi'), '');
+      data.table = table;
+    }
+
+    db.prepare("UPDATE content_items SET data = ? WHERE id = ?")
+      .run(JSON.stringify(data), classRow.id);
+
+    if (io) {
+      io.emit('content:list', db.prepare("SELECT * FROM content_items").all());
+    }
+  } catch (err: any) {
+    console.error("Error in deleteFeatureFromClassContentItem:", err.message);
+  }
+}
+
+function escapeRegExp(str: string) {
+  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Endpoint REST para TODOS los rasgos de clases
+app.get('/api/class-features', (_req, res) => {
+  try {
+    const features = db.prepare("SELECT id, class_name, feature_name, level_acquired, description, short_description FROM class_features ORDER BY class_name ASC, level_acquired ASC").all();
+    const mapped = features.map((f: any) => ({
+      id: String(f.id),
+      name: f.feature_name,
+      class: f.class_name,
+      level: f.level_acquired,
+      description: f.description,
+      short_description: f.short_description || ''
+    }));
+    res.json(mapped);
+  } catch (err: any) {
+    console.error("Error en API /api/class-features (all):", err.message);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// Crear un nuevo rasgo
+app.post('/api/class-features', (req, res) => {
+  try {
+    const { class_name, feature_name, level_acquired, description, short_description } = req.body;
+    if (!class_name || !feature_name || !level_acquired || !description) {
+      res.status(400).json({ error: "Faltan campos requeridos" });
+      return;
+    }
+    const result = db.prepare("INSERT INTO class_features (class_name, feature_name, level_acquired, description, short_description) VALUES (?, ?, ?, ?, ?)")
+      .run(class_name, feature_name, parseInt(level_acquired), description, short_description || '');
+    
+    const newId = String(result.lastInsertRowid);
+    syncFeatureToClassContentItem(class_name, feature_name, parseInt(level_acquired), description, short_description || '');
+
+    res.json({ id: newId, class_name, feature_name, level_acquired, description, short_description });
+  } catch (err: any) {
+    console.error("Error en POST /api/class-features:", err.message);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// Editar un rasgo existente
+app.put('/api/class-features/:id', (req, res) => {
+  try {
+    const id = req.params.id;
+    const { class_name, feature_name, level_acquired, description, short_description } = req.body;
+    if (!class_name || !feature_name || !level_acquired || !description) {
+      res.status(400).json({ error: "Faltan campos requeridos" });
+      return;
+    }
+
+    const oldFeature = db.prepare("SELECT class_name, feature_name, level_acquired FROM class_features WHERE id = ?").get(id) as { class_name: string, feature_name: string, level_acquired: number } | undefined;
+
+    db.prepare("UPDATE class_features SET class_name = ?, feature_name = ?, level_acquired = ?, description = ?, short_description = ? WHERE id = ?")
+      .run(class_name, feature_name, parseInt(level_acquired), description, short_description || '', id);
+    
+    if (oldFeature) {
+      syncFeatureToClassContentItem(
+        class_name,
+        feature_name,
+        parseInt(level_acquired),
+        description,
+        short_description || '',
+        oldFeature.class_name,
+        oldFeature.feature_name,
+        oldFeature.level_acquired
+      );
+    }
+
+    res.json({ id, class_name, feature_name, level_acquired, description, short_description });
+  } catch (err: any) {
+    console.error("Error en PUT /api/class-features:", err.message);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// Eliminar un rasgo
+app.delete('/api/class-features/:id', (req, res) => {
+  try {
+    const id = req.params.id;
+    const oldFeature = db.prepare("SELECT class_name, feature_name, level_acquired FROM class_features WHERE id = ?").get(id) as { class_name: string, feature_name: string, level_acquired: number } | undefined;
+
+    db.prepare("DELETE FROM class_features WHERE id = ?").run(id);
+
+    if (oldFeature) {
+      deleteFeatureFromClassContentItem(oldFeature.class_name, oldFeature.feature_name, oldFeature.level_acquired);
+    }
+
+    res.json({ success: true, id });
+  } catch (err: any) {
+    console.error("Error en DELETE /api/class-features:", err.message);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+// Endpoint REST para rasgos de una clase específica (bilingüe y tolerante)
+app.get('/api/class-features/:className', (req, res) => {
+  try {
+    const rawClassName = req.params.className;
+    
+    const nameMap: Record<string, string> = {
+      'bárbaro': 'barbarian',
+      'barbarian': 'bárbaro',
+      'guerrero': 'fighter',
+      'fighter': 'guerrero',
+      'pícaro': 'rogue',
+      'rogue': 'pícaro',
+      'mago': 'wizard',
+      'wizard': 'mago',
+      'clérigo': 'cleric',
+      'cleric': 'clérigo',
+      'paladín': 'paladin',
+      'paladin': 'paladín',
+      'bardo': 'bard',
+      'bard': 'bardo',
+      'druida': 'druid',
+      'druid': 'druida',
+      'monje': 'monk',
+      'monk': 'monje',
+      'explorador': 'ranger',
+      'ranger': 'explorador',
+      'hechicero': 'sorcerer',
+      'sorcerer': 'hechicero',
+      'brujo': 'warlock',
+      'warlock': 'brujo'
+    };
+
+    const cleanName = rawClassName.toLowerCase();
+    const mappedName = (nameMap[cleanName] || cleanName).toLowerCase();
+    
+    const features = db.prepare("SELECT feature_name, level_acquired, description FROM class_features WHERE LOWER(class_name) = ? OR LOWER(class_name) = ? ORDER BY level_acquired ASC").all(cleanName, mappedName);
+    
+    res.json(features);
+  } catch (err: any) {
+    console.error("Error en API /api/class-features spec:", err.message);
+    res.status(500).json({ error: "Error interno del servidor" });
+  }
+});
+
+const httpServer = createServer(app);
 const io = new Server(httpServer, {
   cors: { origin: "*" } // Clave para permitir conexiones remotas vía ngrok[cite: 1]
 });
@@ -16,6 +382,10 @@ export const startServer = async () => {
   // 1. Inicialización de persistencia y datos del SRD[cite: 1]
   initDB();
   await runFullImport();
+  initAI();
+  initImageAI();
+
+  let activeAiCampaignId: number | null = null;
 
   // 2. Gestión de Sockets
   io.on('connection', (socket) => {
@@ -111,21 +481,54 @@ export const startServer = async () => {
       socket.emit('content:list', allContent);
     });
 
-    socket.on('content:create', (payload) => {
-      if (socket.data.role === 'admin') {
-        const { name, type, data } = payload;
-        db.prepare("INSERT INTO content_items (name, type, data, source) VALUES (?, ?, ?, 'homebrew')")
-          .run(name, type, JSON.stringify(data));
+    socket.on('content:create', async (payload) => {
+      if (socket.data.role === 'admin' || socket.data.role === 'dm') {
+        const { name, type, data, source } = payload;
+        const result = db.prepare("INSERT INTO content_items (name, type, data, source) VALUES (?, ?, ?, ?)")
+          .run(name, type, JSON.stringify(data), source || 'homebrew');
+
+        if (type === 'class') {
+          syncClassTraitsToFeaturesTable(name, data);
+        }
 
         const allContent = db.prepare("SELECT * FROM content_items").all();
-        io.emit('content:list', allContent); 
+        io.emit('content:list', allContent);
+
+        // Generar imagen con IA en background para monstruos e ítems
+        if ((type === 'monster' || type === 'item') && !data.image) {
+          const newId = result.lastInsertRowid as number;
+          io.emit('content:generating_image', { id: newId, name });
+          console.log(`🎨 Generando imagen IA para: ${name} (${type})...`);
+
+          generateItemImage(type, name, data.description || data.desc || '')
+            .then((imageUrl) => {
+              if (imageUrl) {
+                const updatedData = { ...data, image: imageUrl };
+                updateCompendiumItem(newId, name, type, updatedData);
+                const refreshed = db.prepare("SELECT * FROM content_items").all();
+                io.emit('content:list', refreshed);
+                io.emit('content:image_ready', { id: newId, name });
+                console.log(`✅ Imagen generada para: ${name}`);
+              } else {
+                io.emit('content:image_failed', { id: newId, name });
+              }
+            })
+            .catch((e) => {
+              console.error(`❌ Error generando imagen para ${name}:`, e.message);
+              io.emit('content:image_failed', { id: newId, name });
+            });
+        }
       }
     });
 
     socket.on('content:update', (payload) => {
-      if (socket.data.role === 'admin') {
+      if (socket.data.role === 'admin' || socket.data.role === 'dm') {
         const { id, name, type, data } = payload;
         updateCompendiumItem(id, name, type, data);
+
+        if (type === 'class') {
+          syncClassTraitsToFeaturesTable(name, data);
+        }
 
         const allContent = db.prepare("SELECT * FROM content_items").all();
         io.emit('content:list', allContent);
@@ -133,7 +536,7 @@ export const startServer = async () => {
     });
 
     socket.on('content:delete', (id) => {
-      if (socket.data.role === 'admin') {
+      if (socket.data.role === 'admin' || socket.data.role === 'dm') {
         db.prepare("DELETE FROM content_items WHERE id = ?").run(id);
         const allContent = db.prepare("SELECT * FROM content_items").all();
         io.emit('content:list', allContent);
@@ -220,19 +623,29 @@ export const startServer = async () => {
     });
 
     // GESTIÓN DE PERSONAJES (CRUD)
-    socket.on('character:create', (charData) => {
-      const { name, charClass, description, stats, race, image, inventory, level, max_hp, current_hp } = charData;
+    socket.on('character:create', (charData: any) => {
+      const { name, charClass, class: charClassAlt, description, stats, race, image, inventory, level, max_hp, current_hp } = charData;
+      const finalClass = charClass || charClassAlt;
       const owner = socket.data.userName || 'Anónimo';
+      
+      const statsStr = JSON.stringify(safeParseStats(stats));
+      const invStr = JSON.stringify(safeParseInventory(inventory));
+
       db.prepare('INSERT INTO characters (name, class, description, stats, owner, race, image, inventory, level, max_hp, current_hp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-        .run(name, charClass, description, JSON.stringify(stats), owner, race || 'Humano', image || null, JSON.stringify(inventory || { armas: [], armaduras: [], consumibles: [], artefactos: [] }), level || 1, max_hp || 10, current_hp || 10);
+        .run(name, finalClass, description, statsStr, owner, race || 'Humano', image || null, invStr, level || 1, max_hp || 10, current_hp || 10);
       refreshAllCharacters();
     });
 
     socket.on('character:update', (data: any) => {
       // Permitimos que DM o el dueño edite (simplificado asumiendo confianza en los players o verificando owner)
-      const { id, name, charClass, description, stats, race, image, inventory, level, max_hp, current_hp } = data;
+      const { id, name, charClass, class: charClassAlt, description, stats, race, image, inventory, level, max_hp, current_hp } = data;
+      const finalClass = charClass || charClassAlt;
+      
+      const statsStr = JSON.stringify(safeParseStats(stats));
+      const invStr = JSON.stringify(safeParseInventory(inventory));
+
       db.prepare('UPDATE characters SET name = ?, class = ?, description = ?, stats = ?, race = ?, image = ?, inventory = ?, level = ?, max_hp = ?, current_hp = ? WHERE id = ?')
-        .run(name, charClass, description, JSON.stringify(stats), race || 'Humano', image || null, JSON.stringify(inventory || { armas: [], armaduras: [], consumibles: [], artefactos: [] }), level || 1, max_hp || 10, current_hp || 10, id);
+        .run(name, finalClass, description, statsStr, race || 'Humano', image || null, invStr, level || 1, max_hp || 10, current_hp || 10, id);
       refreshAllCharacters();
     });
 
@@ -244,19 +657,163 @@ export const startServer = async () => {
     });
 
     // ACCIONES DE JUEGO[cite: 1]
-    socket.on('dice:roll', (data: { die: number }) => {
+    socket.on('dice:roll', async (data: { die: number }) => {
       const roll = Math.floor(Math.random() * data.die) + 1;
-      io.emit('dice:result', {
+      const resultObj = {
         user: socket.data.userName,
         die: `d${data.die}`,
         value: roll,
         timestamp: Date.now()
-      });
+      };
+      io.emit('dice:result', resultObj);
+
+      // Notificar a la IA si hay una sesión activa
+      if (activeAiCampaignId !== null && isAISessionActive(activeAiCampaignId)) {
+        const aiResponse = await sendDiceRollToAI(activeAiCampaignId, socket.data.userName, roll, `d${data.die}`);
+        if (aiResponse) {
+          io.emit('chat:message', { sender: 'DM IA', text: aiResponse, timestamp: Date.now(), isAI: true });
+        }
+      }
     });
 
     // CHAT DEL GRUPO
-    socket.on('chat:send', (msg) => {
+    socket.on('chat:send', async (msg) => {
       io.emit('chat:message', msg);
+      
+      // Notificar a la IA si hay una sesión activa
+      if (activeAiCampaignId !== null && isAISessionActive(activeAiCampaignId) && msg.sender !== 'DM IA') {
+        const aiResponse = await sendChatMessageToAI(activeAiCampaignId, msg.sender, msg.text);
+        if (aiResponse) {
+          io.emit('chat:message', { sender: 'DM IA', text: aiResponse, timestamp: Date.now(), isAI: true });
+        }
+      }
+    });
+
+    // GESTIÓN DE CAMPAÑAS
+    socket.on('campaign:request', () => {
+      const campaigns = db.prepare("SELECT * FROM campaigns").all();
+      socket.emit('campaign:list', campaigns);
+    });
+
+    socket.on('campaign:create', (data: any) => {
+      if (socket.data.role === 'dm') {
+        const { name, description, image, active_heroes, is_ai_dm } = data;
+        db.prepare('INSERT INTO campaigns (name, description, image, active_heroes, is_ai_dm) VALUES (?, ?, ?, ?, ?)')
+          .run(name, description || null, image || null, JSON.stringify(active_heroes || []), is_ai_dm ? 1 : 0);
+        const allCampaigns = db.prepare("SELECT * FROM campaigns").all();
+        io.emit('campaign:list', allCampaigns);
+      }
+    });
+
+    socket.on('campaign:update', (data: any) => {
+      if (socket.data.role === 'dm') {
+        const { id, name, description, image, active_heroes, is_ai_dm } = data;
+        db.prepare('UPDATE campaigns SET name = ?, description = ?, image = ?, active_heroes = ?, is_ai_dm = ? WHERE id = ?')
+          .run(name, description || null, image || null, JSON.stringify(active_heroes || []), is_ai_dm ? 1 : 0, id);
+        const allCampaigns = db.prepare("SELECT * FROM campaigns").all();
+        io.emit('campaign:list', allCampaigns);
+      }
+    });
+
+    socket.on('campaign:set_active', (id: number) => {
+      if (socket.data.role === 'dm' || socket.data.role === 'admin' || socket.data.role === 'player') {
+        db.prepare('UPDATE campaigns SET is_active = 0').run();
+        db.prepare('UPDATE campaigns SET is_active = 1 WHERE id = ?').run(id);
+        const allCampaigns = db.prepare("SELECT * FROM campaigns").all();
+        io.emit('campaign:list', allCampaigns);
+
+        // Auto-login AI si la campaña lo tiene
+        const campaign: any = db.prepare("SELECT * FROM campaigns WHERE id = ?").get(id);
+        if (campaign && campaign.is_ai_dm) {
+          handleStartAiSession(id);
+        } else if (activeAiCampaignId !== null) {
+          handleEndAiSession(activeAiCampaignId);
+        }
+      }
+    });
+
+    socket.on('campaign:delete', (id: number) => {
+      if (socket.data.role === 'dm') {
+        db.prepare('DELETE FROM campaigns WHERE id = ?').run(id);
+        db.prepare('DELETE FROM campaign_diary WHERE campaign_id = ?').run(id);
+        const allCampaigns = db.prepare("SELECT * FROM campaigns").all();
+        io.emit('campaign:list', allCampaigns);
+      }
+    });
+
+    socket.on('campaign:diary:request', (campaign_id: number) => {
+      const diary = db.prepare("SELECT * FROM campaign_diary WHERE campaign_id = ? ORDER BY created_at ASC").all(campaign_id);
+      socket.emit('campaign:diary:list', { campaign_id, diary });
+    });
+
+    socket.on('campaign:diary:add', (data: any) => {
+      const { campaign_id, content, image } = data;
+      const author = socket.data.userName || 'Anónimo';
+      db.prepare('INSERT INTO campaign_diary (campaign_id, author, content, image) VALUES (?, ?, ?, ?)')
+        .run(campaign_id, author, content, image || null);
+      
+      const diary = db.prepare("SELECT * FROM campaign_diary WHERE campaign_id = ? ORDER BY created_at ASC").all(campaign_id);
+      io.emit('campaign:diary:list', { campaign_id, diary });
+    });
+
+    function handleStartAiSession(campaignId: number) {
+      const campaign: any = db.prepare("SELECT * FROM campaigns WHERE id = ?").get(campaignId);
+      if (campaign && campaign.is_ai_dm) {
+        activeAiCampaignId = campaignId;
+        
+        const spawnMonsterCb = (monsterName: string, count: number) => {
+          const m = db.prepare("SELECT * FROM content_items WHERE type = 'monster' AND name LIKE ? LIMIT 1").get(`%${monsterName}%`) as any;
+          if (m) {
+            const mData = JSON.parse(m.data);
+            for (let i=0; i<count; i++) {
+              const hpText = mData.hit_points || mData.hp || '10';
+              const hp = parseInt(String(hpText).split('d')[0]) || 10;
+              
+              const newToken = {
+                instanceId: `monster-${m.id}-${Date.now()}-${i}`,
+                originalId: m.id,
+                name: m.name + (count > 1 ? ` ${i+1}` : ''),
+                type: 'monster',
+                hp: hp,
+                max_hp: hp,
+                ac: mData.armor_class || 10,
+                image: mData.image || null,
+                owner: null,
+                x: 0,
+                y: 0
+              };
+              boardTokens.push(newToken);
+            }
+            io.emit('token:board-list', boardTokens);
+          }
+        };
+
+        const started = startAISession(campaignId, campaign.name, campaign.description, spawnMonsterCb);
+        if (started) {
+          io.emit('chat:message', { sender: 'DM IA', text: `¡Saludos aventureros! Soy el DM IA. La campaña "${campaign.name}" ha comenzado.`, timestamp: Date.now(), isAI: true });
+          io.emit('ai:session_status', { campaignId, active: true });
+        }
+      }
+    }
+
+    function handleEndAiSession(campaignId: number) {
+      if (activeAiCampaignId === campaignId) {
+        endAISession(campaignId);
+        activeAiCampaignId = null;
+        io.emit('chat:message', { sender: 'DM IA', text: `La sesión de IA ha finalizado. Hasta la próxima aventura.`, timestamp: Date.now(), isAI: true });
+        io.emit('ai:session_status', { campaignId, active: false });
+      }
+    }
+
+    // IA DM SESSION
+    socket.on('ai:start_session', (campaignId: number) => {
+      if (socket.data.role === 'dm' || socket.data.role === 'player') {
+        handleStartAiSession(campaignId);
+      }
+    });
+
+    socket.on('ai:end_session', (campaignId: number) => {
+      handleEndAiSession(campaignId);
     });
 
     socket.on('disconnect', () => console.log('❌ Jugador desconectado'));

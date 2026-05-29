@@ -7,10 +7,13 @@
   "scripts": {
     "dev:frontend": "vite --host --port 5173",
     "dev:electron": "wait-on http://localhost:5173 && cross-env NODE_OPTIONS=--import=tsx electron .",
-    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:electron\""
+    "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:electron\"",
+    "postinstall": "electron-rebuild -f -w better-sqlite3"
   },
   "dependencies": {
+    "@google/genai": "^2.3.0",
     "better-sqlite3": "^12.9.0",
+    "dotenv": "^17.4.2",
     "express": "^5.2.1",
     "google-translate-api-x": "^10.7.2",
     "react": "^19.2.5",

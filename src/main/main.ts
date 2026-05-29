@@ -1,5 +1,5 @@
 import { app, BrowserWindow } from 'electron';
-import path from 'node:path'; // Usamos el prefijo node: para evitar el error de exportación
+// Eliminado: import path from 'node:path';
 import { startServer } from '../server/index.js'; // El .js es obligatorio en ESM aunque sea un .ts
 
 function createWindow() {

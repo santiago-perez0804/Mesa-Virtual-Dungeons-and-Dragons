@@ -5,19 +5,17 @@ const CELL_PX = 50;
 const GRID_SIZE = 30;
 const BOARD_PX = GRID_SIZE * CELL_PX;
 
-export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, characters, monsters }: any) => {
+export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, characters, monsters, chatMessages }: any) => {
   const [bgImage, setBgImage] = useState<string | null>(null);
   const [bgInputUrl, setBgInputUrl] = useState('');
   const [zoom, setZoom] = useState(1);
   const [showGridLines, setShowGridLines] = useState(true);
-  const [gridOpacity, setGridOpacity] = useState(0.2);
-  const [openMenu, setOpenMenu] = useState<'TS' | 'PH' | null>(null);
+  const [gridOpacity] = useState(0.2);
   const [saveNotification, setSaveNotification] = useState<any>(null);
   const [activeTokenId, setActiveTokenId] = useState<string | null>(null);
-  const [openTeamPicker, setOpenTeamPicker] = useState<string | null>(null);
   const [viewingToken, setViewingToken] = useState<any>(null);
 
-  const TEAM_COLORS = ['#ef4444', '#3b82f6', '#22c55e', '#eab308', '#f97316', '#a855f7', '#ec4899', '#06b6d4', '#84cc16', '#78350f', '#64748b', '#ffffff'];
+
 
   const [pan, setPan] = useState({ x: 0, y: 0 });
 
@@ -323,7 +321,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
 
         {/* COLUMNA DER: CHAT Y DADOS */}
         <div style={{ width: '300px', display: 'flex', borderLeft: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
-          <ChatPanel socket={socket} currentUser={currentUser} characters={characters} />
+          <ChatPanel socket={socket} currentUser={currentUser} characters={characters} messages={chatMessages} />
         </div>
       </div>
 
@@ -356,7 +354,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
 
       {/* MODAL DETALLE DE COMBATIENTE */}
       {viewingToken && (() => {
-        const item = boardTokens.find(t => t.instanceId === viewingToken.instanceId) || viewingToken;
+        const item = boardTokens.find((t: any) => t.instanceId === viewingToken.instanceId) || viewingToken;
         const isChar = item.type === 'character';
         let inventory: any = null;
         let stats: any = {};

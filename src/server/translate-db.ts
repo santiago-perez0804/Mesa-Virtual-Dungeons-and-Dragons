@@ -61,7 +61,7 @@ async function translateDB() {
         hasDesc = true;
       }
 
-      const res = await translate(toTranslate, { to: 'es' });
+      const res: any = await translate(toTranslate, { to: 'es' });
       const texts = Array.isArray(res) ? res.map(r => r.text) : [res.text];
 
       const newName = texts[0];
@@ -73,7 +73,7 @@ async function translateDB() {
 
       // Traducir el tipo (e.g., 'Medium humanoid')
       if (data.type && typeof data.type === 'string') {
-        const typeRes = await translate(data.type, { to: 'es' });
+        const typeRes: any = await translate(data.type, { to: 'es' });
         data.type = typeRes.text;
       }
 
