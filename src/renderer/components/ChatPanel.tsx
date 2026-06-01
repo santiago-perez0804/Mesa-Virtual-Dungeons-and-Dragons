@@ -36,28 +36,45 @@ export const ChatPanel = ({ socket, currentUser, characters, messages }: any) =>
       </div>
 
       <div style={{ padding: '10px', background: '#111', borderBottom: '1px solid #333' }}>
-        <DiceRoller socket={socket} user={currentUser} />
+        <DiceRoller socket={socket} user={currentUser} sendTo={sendTo} />
       </div>
 
       <div ref={chatContainerRef} style={{ flex: 1, padding: '15px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {messages.map((m: any) => {
+          const isSender = (m.sender || m.user) === currentUser.name;
+          const isRecipient = m.to === currentUser.name || (m.to === 'Dungeon Master' && currentUser.role === 'dm');
+          const isPublic = !m.to || m.to === 'all';
+
+          if (!isPublic && !isSender && !isRecipient) {
+            return null; // Ocultar mensaje privado
+          }
+
           if (m.isSystem) {
+            const isPrivate = !isPublic;
             return (
-              <div key={m.id} style={{ alignSelf: 'center', margin: '5px 0', background: '#1e293b', border: '1px solid #334155', color: '#cbd5e1', padding: '6px 12px', borderRadius: '12px', fontSize: '0.85rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <div key={m.id} style={{ alignSelf: 'center', margin: '5px 0', background: isPrivate ? 'rgba(168, 85, 247, 0.1)' : '#1e293b', border: `1px solid ${isPrivate ? '#a855f7' : '#334155'}`, color: isPrivate ? '#c084fc' : '#cbd5e1', padding: '6px 12px', borderRadius: '12px', fontSize: '0.85rem', display: 'flex', gap: '8px', alignItems: 'center' }}>
                 <span style={{ opacity: 0.5 }}>{m.timestamp}</span>
-                <span>{m.text}</span>
+                <span>{isPrivate && '🔒 '}{m.text}</span>
               </div>
             );
           }
 
-          // const isMine = m.sender === currentUser.name;
-          // const isPrivate = m.to !== 'all';
+          const isPrivate = !isPublic;
+          let privateLabel = '';
+          if (isPrivate) {
+            if (m.to === 'Dungeon Master') {
+              privateLabel = isSender ? '🔒 [Privado para DM]' : '🔒 [Privado para Ti (DM)]';
+            } else {
+              privateLabel = isSender ? `🔒 [Privado para ${m.to}]` : '🔒 [Privado para Ti]';
+            }
+          }
 
-          // Filtro para mensajes privados (solo sender y recipient los ven)
           return (
-            <div key={m.id} style={{ marginBottom: '12px', background: 'rgba(0,0,0,0.2)', padding: '10px 14px', borderLeft: `3px solid ${(m.sender || m.user) === currentUser.name ? 'var(--accent-gold)' : 'var(--text-secondary)'}`, fontSize: '0.9rem' }}>
+            <div key={m.id} style={{ marginBottom: '12px', background: isPrivate ? 'rgba(168, 85, 247, 0.1)' : 'rgba(0,0,0,0.2)', padding: '10px 14px', borderLeft: `3px solid ${isPrivate ? '#a855f7' : ((m.sender || m.user) === currentUser.name ? 'var(--accent-gold)' : 'var(--text-secondary)')}`, fontSize: '0.9rem', borderRadius: '4px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <span className="font-cinzel" style={{ fontWeight: 'bold', color: (m.sender || m.user) === currentUser.name ? 'var(--accent-gold)' : 'var(--text-parchment)', fontSize: '0.75rem' }}>{(m.sender || m.user || 'Desconocido').toUpperCase()}</span>
+                <span className="font-cinzel" style={{ fontWeight: 'bold', color: isPrivate ? '#c084fc' : ((m.sender || m.user) === currentUser.name ? 'var(--accent-gold)' : 'var(--text-parchment)'), fontSize: '0.75rem' }}>
+                  {(m.sender || m.user || 'Desconocido').toUpperCase()} {privateLabel && <span style={{ fontSize: '0.65rem', marginLeft: '6px', color: '#c084fc', textTransform: 'none' }}>{privateLabel}</span>}
+                </span>
                 <span className="mono" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>{m.timestamp}</span>
               </div>
               <div style={{ color: 'var(--text-parchment)', lineHeight: '1.4' }}>{m.text}</div>

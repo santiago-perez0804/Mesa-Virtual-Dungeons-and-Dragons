@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Socket } from 'socket.io-client';
 
-export const DiceRoller = ({ socket, user }: { socket: Socket, user: any }) => {
+export const DiceRoller = ({ socket, user, sendTo = 'all' }: { socket: Socket, user: any, sendTo?: string }) => {
   const [isWaiting, setIsWaiting] = useState(false);
   const [customFormula, setCustomFormula] = useState('');
   const dice = [4, 6, 8, 10, 12, 20];
@@ -10,7 +10,7 @@ export const DiceRoller = ({ socket, user }: { socket: Socket, user: any }) => {
     if (isWaiting) return;
 
     setIsWaiting(true);
-    socket.emit('dice:roll', { die: d });
+    socket.emit('dice:roll', { die: d, to: sendTo });
 
     setTimeout(() => {
       setIsWaiting(false);
@@ -55,7 +55,7 @@ export const DiceRoller = ({ socket, user }: { socket: Socket, user: any }) => {
     const sysMsg = {
       id: Date.now() + Math.random(),
       sender: 'Sistema',
-      to: 'all',
+      to: sendTo,
       text: `🎲 ${user?.name || 'Alguien'} tiró ${customFormula}: ${total} ${details}`,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
       isSystem: true

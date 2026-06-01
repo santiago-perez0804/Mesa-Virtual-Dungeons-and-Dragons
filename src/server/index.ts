@@ -556,10 +556,25 @@ export const startServer = async () => {
           ac: data.ac,
           image: data.image || null,
           owner: data.owner || null, // Guardamos el dueño para los personajes
-          x: 0,
-          y: 0
+          x: data.x !== undefined ? data.x : 0,
+          y: data.y !== undefined ? data.y : 0,
+          chestData: data.chestData || null,
+          itemData: data.itemData || null,
+          noteData: data.noteData || null,
+          imageData: data.imageData || null
         };
         boardTokens.push(newToken);
+        io.emit('token:board-list', boardTokens);
+      }
+    });
+
+    socket.on('token:update-chest', (data: { tokenId: string; chestData: any; name?: string }) => {
+      const token = boardTokens.find(t => t.instanceId === data.tokenId);
+      if (token && token.type === 'chest') {
+        token.chestData = { ...token.chestData, ...data.chestData };
+        if (data.name) {
+          token.name = data.name;
+        }
         io.emit('token:board-list', boardTokens);
       }
     });
@@ -657,12 +672,13 @@ export const startServer = async () => {
     });
 
     // ACCIONES DE JUEGO[cite: 1]
-    socket.on('dice:roll', async (data: { die: number }) => {
+    socket.on('dice:roll', async (data: { die: number; to?: string }) => {
       const roll = Math.floor(Math.random() * data.die) + 1;
       const resultObj = {
         user: socket.data.userName,
         die: `d${data.die}`,
         value: roll,
+        to: data.to || 'all',
         timestamp: Date.now()
       };
       io.emit('dice:result', resultObj);

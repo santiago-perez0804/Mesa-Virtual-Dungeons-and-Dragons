@@ -16,6 +16,10 @@ const socket = io(window.location.hostname === 'localhost' ? 'http://localhost:3
 
 function App() {
   const [user, setUser] = useState<{ name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string } | null>(null);
+  const userRef = useRef(user);
+  useEffect(() => {
+    userRef.current = user;
+  }, [user]);
   const [currentRoll, setCurrentRoll] = useState<{ value: number; die: DiceType } | null>(null);
   const [characters, setCharacters] = useState<any[]>([]);
   const [monsters, setMonsters] = useState<any[]>([]);
@@ -60,15 +64,23 @@ function App() {
     });
 
     socket.on('dice:result', (data: any) => {
-      setCurrentRoll({ value: data.value, die: data.die as DiceType });
-      setChatMessages(prev => [...prev, {
-        id: Date.now() + Math.random(),
-        sender: 'Sistema',
-        to: 'all',
-        text: `🎲 ${data.user} tiró un ${data.die}: ${data.value}`,
-        timestamp: new Date(data.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isSystem: true
-      }]);
+      const currentUser = userRef.current;
+      const rollTo = data.to || 'all';
+      const isSender = data.user === currentUser?.name;
+      const isRecipient = rollTo === currentUser?.name || (rollTo === 'Dungeon Master' && currentUser?.role === 'dm');
+      const isPublic = rollTo === 'all';
+
+      if (isPublic || isSender || isRecipient) {
+        setCurrentRoll({ value: data.value, die: data.die as DiceType });
+        setChatMessages(prev => [...prev, {
+          id: Date.now() + Math.random(),
+          sender: 'Sistema',
+          to: rollTo,
+          text: `🎲 ${data.user} tiró un ${data.die}: ${data.value}`,
+          timestamp: new Date(data.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isSystem: true
+        }]);
+      }
     });
 
     socket.on('token:board-list', (tokens: any[]) => {
@@ -314,6 +326,7 @@ function App() {
                   currentUser={user}
                   boardTokens={boardTokens}
                   chatMessages={chatMessages}
+                  compendium={compendium}
                 />
               </section>
 
