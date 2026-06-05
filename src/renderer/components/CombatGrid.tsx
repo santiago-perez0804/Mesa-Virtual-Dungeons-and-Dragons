@@ -609,14 +609,26 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
     setContextMenu(null);
   };
 
-  const handleImageFileChange = (e: any) => {
+  const handleImageFileChange = async (e: any) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        setImageUrlInput(ev.target?.result as string);
-      };
-      reader.readAsDataURL(file);
+      const formData = new FormData();
+      formData.append('file', file);
+      const backendUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+      const uploadUrl = `${backendUrl}/api/upload?folder=misc`;
+      
+      try {
+        const res = await fetch(uploadUrl, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          setImageUrlInput(data.url);
+        } else {
+          alert('Error al subir imagen: ' + data.error);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error de conexión al subir la imagen');
+      }
     }
   };
 

@@ -78,12 +78,26 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
     };
   }, [socket, selectedCampaign]);
 
-  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
+  const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
     const file = e.target.files?.[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => setter(ev.target?.result as string);
-      reader.readAsDataURL(file);
+      const formData = new FormData();
+      formData.append('file', file);
+      const backendUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+      const uploadUrl = `${backendUrl}/api/upload?folder=misc`;
+      
+      try {
+        const res = await fetch(uploadUrl, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          setter(data.url);
+        } else {
+          alert('Error al subir imagen: ' + data.error);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error de conexión al subir la imagen');
+      }
     }
   };
 
