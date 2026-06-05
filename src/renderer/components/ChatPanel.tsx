@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
 import { DiceRoller } from './DiceRoller';
 
-export const ChatPanel = ({ socket, currentUser, characters, messages }: any) => {
+export const ChatPanel = ({ socket, currentUser, characters, messages, blockRolls = false }: any) => {
   const [inputValue, setInputValue] = useState('');
   const [sendTo, setSendTo] = useState('all');
   const chatContainerRef = useRef<HTMLDivElement>(null);
@@ -32,11 +32,11 @@ export const ChatPanel = ({ socket, currentUser, characters, messages }: any) =>
   return (
     <div style={{ background: 'var(--bg-surface)', display: 'flex', flexDirection: 'column', flex: 1, boxShadow: 'none', overflow: 'hidden', borderLeft: '1px solid var(--border-color)' }}>
       <div className="font-cinzel" style={{ background: 'rgba(0,0,0,0.3)', padding: '15px 20px', borderBottom: '1px solid var(--border-color)', fontWeight: 'bold', color: 'var(--accent-gold)', display: 'flex', alignItems: 'center', gap: '8px', fontSize: '0.9rem', letterSpacing: '1px' }}>
-        📜 <span style={{ marginTop: '2px' }}>MESA DE TABERNA</span>
+        <span style={{ marginTop: '2px' }}>MESA DE TABERNA</span>
       </div>
 
       <div style={{ padding: '10px', background: '#111', borderBottom: '1px solid #333' }}>
-        <DiceRoller socket={socket} user={currentUser} sendTo={sendTo} />
+        <DiceRoller socket={socket} user={currentUser} sendTo={sendTo} blockRolls={blockRolls} />
       </div>
 
       <div ref={chatContainerRef} style={{ flex: 1, padding: '15px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>

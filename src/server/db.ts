@@ -86,6 +86,7 @@ export const initDB = () => {
       owner TEXT NOT NULL, 
       race TEXT DEFAULT 'Humano',
       image TEXT,
+      full_body_image TEXT,
       inventory TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
@@ -94,6 +95,7 @@ export const initDB = () => {
   // Migración para añadir nuevas columnas a db existentes
   try { db.exec("ALTER TABLE characters ADD COLUMN race TEXT DEFAULT 'Humano'"); } catch (e) { /* Columna ya existe */ }
   try { db.exec("ALTER TABLE characters ADD COLUMN image TEXT"); } catch (e) { /* Columna ya existe */ }
+  try { db.exec("ALTER TABLE characters ADD COLUMN full_body_image TEXT"); } catch (e) { /* Columna ya existe */ }
   try { db.exec("ALTER TABLE characters ADD COLUMN inventory TEXT"); } catch (e) { /* Columna ya existe */ }
   try { db.exec("ALTER TABLE characters ADD COLUMN level INTEGER DEFAULT 1"); } catch (e) { /* Columna ya existe */ }
   try { db.exec("ALTER TABLE characters ADD COLUMN max_hp INTEGER DEFAULT 10"); } catch (e) { /* Columna ya existe */ }

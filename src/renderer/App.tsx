@@ -30,6 +30,9 @@ function App() {
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [imageToast, setImageToast] = useState<{ id: number; name: string; status: 'generating' | 'ready' | 'failed' } | null>(null);
 
+  const [overlayCharacterId, setOverlayCharacterId] = useState<number | null>(null);
+  const [overlayMonsterId, setOverlayMonsterId] = useState<string | null>(null);
+
   const onRollCompleteRef = useRef<(() => void) | null>(null);
 
   const triggerDiceRoll = (die: DiceType, value: number, onComplete?: () => void) => {
@@ -283,11 +286,11 @@ function App() {
       {/* TABS NAVEGACIÓN */}
       <div style={{ display: 'flex', gap: '2px', background: 'var(--bg-base)', padding: '0 30px' }}>
         {[
-          { id: 'combat', label: '⚔️ COMBATE', color: 'var(--combat-red)', visible: user.role !== 'admin' },
-          { id: 'characters', label: '👤 HÉROES', color: 'var(--natural-green)', visible: user.role !== 'admin' },
-          { id: 'campaigns', label: '🏕️ CAMPAÑAS', color: 'var(--accent-gold)', visible: true },
-          { id: 'database', label: '📚 COMPENDIO', color: 'var(--accent-gold)', visible: true },
-          { id: 'admin', label: '👑 ADMIN', color: '#f59e0b', visible: user.role === 'admin' }
+          { id: 'combat', label: 'COMBATE', color: 'var(--combat-red)', visible: user.role !== 'admin' },
+          { id: 'characters', label: 'HÉROES', color: 'var(--natural-green)', visible: user.role !== 'admin' },
+          { id: 'campaigns', label: 'CAMPAÑAS', color: 'var(--accent-gold)', visible: true },
+          { id: 'database', label: 'COMPENDIO', color: 'var(--accent-gold)', visible: true },
+          { id: 'admin', label: 'ADMIN', color: '#f59e0b', visible: user.role === 'admin' }
         ].filter(t => t.visible !== false).map(tab => (
           <button
             key={tab.id}
@@ -322,11 +325,14 @@ function App() {
                   socket={socket}
                   characters={characters}
                   monsters={monsters}
+                  compendium={compendium}
                   userRole={user.role}
                   currentUser={user}
+                  activeTab={activeTab}
+                  onOpenCharacterSheet={setOverlayCharacterId}
+                  onOpenMonsterSheet={setOverlayMonsterId}
                   boardTokens={boardTokens}
                   chatMessages={chatMessages}
-                  compendium={compendium}
                 />
               </section>
 
@@ -334,7 +340,7 @@ function App() {
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
                   {/* BESTIARIO */}
                   <section style={{ background: '#111', borderRadius: '12px', padding: '20px', border: '1px solid #444', height: '350px', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 15px rgba(0,0,0,0.5)' }}>
-                    <h3 style={{ color: '#ef4444', marginTop: 0, borderBottom: '1px solid #333', paddingBottom: '10px' }}>👾 Bestiario Rápido</h3>
+                    <h3 style={{ color: '#ef4444', marginTop: 0, borderBottom: '1px solid #333', paddingBottom: '10px' }}>Bestiario Rápido</h3>
                     <input
                       style={{ padding: '12px', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', color: 'white', width: '100%', marginBottom: '15px', boxSizing: 'border-box' }}
                       placeholder="🔍 Buscar monstruo..."
@@ -360,7 +366,7 @@ function App() {
 
                   {/* HEROES DE RESERVA */}
                   <section style={{ background: '#111', borderRadius: '12px', padding: '20px', border: '1px solid #444', height: '350px', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 15px rgba(0,0,0,0.5)' }}>
-                    <h3 style={{ color: '#3b82f6', marginTop: 0, borderBottom: '1px solid #333', paddingBottom: '10px' }}>🛡️ Héroes de Reserva</h3>
+                    <h3 style={{ color: '#3b82f6', marginTop: 0, borderBottom: '1px solid #333', paddingBottom: '10px' }}>Héroes de Reserva</h3>
                     <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '5px' }}>
                       {characters.map((c: any) => (
                         <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: '#1c1c1c', borderRadius: '8px', border: '1px solid #333' }}>
@@ -402,6 +408,30 @@ function App() {
                 </div>
               )}
             </div>
+
+            {overlayCharacterId && (
+              <CharacterManager 
+                socket={socket} 
+                characters={characters} 
+                compendium={compendium} 
+                userRole={user.role} 
+                triggerDiceRoll={triggerDiceRoll} 
+                isOverlay={true}
+                forceOpenId={overlayCharacterId}
+                onCloseOverlay={() => setOverlayCharacterId(null)}
+              />
+            )}
+
+            {overlayMonsterId && (
+              <DatabaseView 
+                compendium={compendium}
+                socket={socket}
+                userRole={user.role} 
+                isOverlay={true}
+                forceOpenId={overlayMonsterId}
+                onCloseOverlay={() => setOverlayMonsterId(null)}
+              />
+            )}
           </div>
         )}
         {activeTab === 'database' && (

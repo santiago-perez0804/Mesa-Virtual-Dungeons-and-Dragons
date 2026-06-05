@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { formatDescription } from '../utils/format';
 import pcCoin from '../assets/pc_coin_icon.png';
 import plCoin from '../assets/pl_coin_icon.png';
@@ -68,6 +68,14 @@ const getModStr = (val: number) => {
   return mod >= 0 ? `+${mod}` : `${mod}`;
 };
 
+const getProficiencyBonus = (level: number) => {
+  if (level <= 4) return 2;
+  if (level <= 8) return 3;
+  if (level <= 12) return 4;
+  if (level <= 16) return 5;
+  return 6;
+};
+
 const skillList = [
   "Acrobacias", "Atletismo", "Arcanos", "Engaño", "Historia",
   "Intuición", "Intimidación", "Investigación", "Medicina",
@@ -135,7 +143,7 @@ function safeParseJSON(field: any, defaultVal: any): any {
 }
 
 function safeParseInventory(inventoryField: any): any {
-  const defaultInventory = { armas: [], armaduras: [], consumibles: [], artefactos: [], coins: { pc: 0, pl: 0, el: 0, po: 0, pt: 0 }, slots: {} };
+  const defaultInventory = { armas: [], armaduras: [], consumibles: [], artefactos: [], coins: { pc: 0, pl: 0, el: 0, po: 0, pt: 0 }, slots: {}, habilidades: [], salvaciones: [] };
   const parsed = safeParseJSON(inventoryField, defaultInventory);
   return {
     armas: Array.isArray(parsed.armas) ? parsed.armas : [],
@@ -143,7 +151,9 @@ function safeParseInventory(inventoryField: any): any {
     consumibles: Array.isArray(parsed.consumibles) ? parsed.consumibles : [],
     artefactos: Array.isArray(parsed.artefactos) ? parsed.artefactos : [],
     coins: parsed.coins && typeof parsed.coins === 'object' ? parsed.coins : defaultInventory.coins,
-    slots: parsed.slots && typeof parsed.slots === 'object' ? parsed.slots : {}
+    slots: parsed.slots && typeof parsed.slots === 'object' ? parsed.slots : {},
+    habilidades: Array.isArray(parsed.habilidades) ? parsed.habilidades : [],
+    salvaciones: Array.isArray(parsed.salvaciones) ? parsed.salvaciones : []
   };
 }
 
@@ -160,7 +170,7 @@ function safeParseStats(statsField: any): any {
   };
 }
 
-export const CharacterManager = ({ socket, characters, compendium, userRole, triggerDiceRoll }: any) => {
+export const CharacterManager = ({ socket, characters, compendium, userRole, triggerDiceRoll, isOverlay, forceOpenId, onCloseOverlay }: any) => {
   // --- ESTADOS DEL FORMULARIO DE CREACIÓN ---
   const [name, setName] = useState('');
   const [charClass, setCharClass] = useState('Guerrero');
@@ -168,6 +178,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [subrace, setSubrace] = useState('Estándar');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState('');
+  const [fullBodyImage, setFullBodyImage] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
   const [stats, setStats] = useState({
     fue: 8, dex: 8, con: 8,
@@ -175,6 +186,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   });
 
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [selectedSavingThrows, setSelectedSavingThrows] = useState<string[]>([]);
   const [backgroundItems, setBackgroundItems] = useState<string[]>(['', '']);
   const [skillQuery, setSkillQuery] = useState('');
   const [skillDropdownOpen, setSkillDropdownOpen] = useState(false);
@@ -203,6 +215,8 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [viewingItemDetail, setViewingItemDetail] = useState<any>(null);
   const [unequippingSlotIndex, setUnequippingSlotIndex] = useState<number | null>(null);
   const [unequipQuantity, setUnequipQuantity] = useState<number>(1);
+
+
   const [isLevelingUp, setIsLevelingUp] = useState(false);
 
   // --- TABS DE LA FICHA DE PERSONAJE ---
@@ -226,6 +240,31 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     }
     setFeaturesLoading(false);
   };
+
+  const openCharacterSheet = (c: any) => {
+    setSelectedCharacter(c);
+    setCharDetailTab('hoja');
+    try {
+      const parsed = JSON.parse(c.class);
+      const primaryClass = Object.keys(parsed)[0] || c.class;
+      setActiveFeaturesClass(primaryClass);
+      fetchClassFeatures(primaryClass);
+    } catch {
+      const primaryClass = c.class || 'Guerrero';
+      setActiveFeaturesClass(primaryClass);
+      fetchClassFeatures(primaryClass);
+    }
+  };
+
+  // EFECTO PARA OVERLAY
+  useEffect(() => {
+    if (isOverlay && forceOpenId) {
+      const char = characters.find((c: any) => c.id === forceOpenId);
+      if (char) {
+        openCharacterSheet(char);
+      }
+    }
+  }, [isOverlay, forceOpenId, characters]);
 
 
 
@@ -276,10 +315,12 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
       description,
       stats: finalStats,
       image,
+      full_body_image: fullBodyImage,
       inventory: JSON.stringify({
         ...inventory,
         trasfondo: backgroundItems.filter(i => i.trim() !== ''),
-        habilidades: selectedSkills
+        habilidades: selectedSkills,
+        salvaciones: selectedSavingThrows
       }),
       level: payloadLevel,
       max_hp: payloadMaxHp,
@@ -311,13 +352,18 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     setName('');
     setDescription('');
     setImage('');
+    setFullBodyImage('');
     setCharClass('Guerrero');
     setRace('Humano');
     setSubrace('Estándar');
     setInventory(defaultInventory);
     setStats({ fue: 8, dex: 8, con: 8, int: 8, sab: 8, car: 8 });
     setSelectedSkills([]);
+    setSelectedSavingThrows([]);
     setBackgroundItems(['', '']);
+    if (isOverlay && onCloseOverlay) {
+      onCloseOverlay();
+    }
   };
 
   const startEdit = (c: any) => {
@@ -333,8 +379,12 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     setRace(c.race || 'Humano');
     setDescription(c.description);
     setImage(c.image || '');
+    setFullBodyImage(c.full_body_image || '');
     setStats(safeParseStats(c.stats));
-    setInventory(safeParseInventory(c.inventory));
+    const parsedInv = safeParseInventory(c.inventory);
+    setInventory(parsedInv);
+    setSelectedSkills(parsedInv.habilidades || []);
+    setSelectedSavingThrows(parsedInv.salvaciones || []);
     setSelectedCharacter(null);
   };
 
@@ -465,7 +515,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
 
   return (
     <div style={styles.container}>
-      <section>
+      <section style={{ display: isOverlay ? 'none' : 'block' }}>
         <div style={{ display: 'flex', gap: '20px', alignItems: 'center', marginBottom: '40px', background: 'var(--bg-surface)', padding: '25px', border: '1px solid var(--border-color)' }} className="clipped-frame">
           <div style={{ flex: 1, position: 'relative' }}>
             <input
@@ -492,21 +542,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
             return (
               <div
                 key={c.id}
-                onClick={() => {
-                  setSelectedCharacter(c);
-                  setCharDetailTab('hoja');
-                  // Fetch features for primary class
-                  try {
-                    const parsed = JSON.parse(c.class);
-                    const primaryClass = Object.keys(parsed)[0] || c.class;
-                    setActiveFeaturesClass(primaryClass);
-                    fetchClassFeatures(primaryClass);
-                  } catch {
-                    const primaryClass = c.class || 'Guerrero';
-                    setActiveFeaturesClass(primaryClass);
-                    fetchClassFeatures(primaryClass);
-                  }
-                }}
+                onClick={() => openCharacterSheet(c)}
                 className="clipped-frame torch-glow"
                 style={{ background: 'var(--bg-surface)', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', transition: 'all 0.3s' }}
               >
@@ -947,6 +983,55 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
                     </div>
                   </section>
 
+                  {/* Sección A2 — Competencias en Tiradas de Salvación */}
+                  <section style={{ marginBottom: '25px' }}>
+                    <h3 className="font-cinzel" style={{ color: 'var(--accent-gold)', marginBottom: '10px', fontSize: '1.1rem' }}>🛡️ TIRADAS DE SALVACIÓN COMPETENTES</h3>
+                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '15px' }}>Selecciona hasta 2 atributos para tus tiradas de salvación competentes.</p>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
+                      {[
+                        { key: 'fue', label: 'Fuerza (FUE)' },
+                        { key: 'dex', label: 'Destreza (DEX)' },
+                        { key: 'con', label: 'Constitución (CON)' },
+                        { key: 'int', label: 'Inteligencia (INT)' },
+                        { key: 'sab', label: 'Sabiduría (SAB)' },
+                        { key: 'car', label: 'Carisma (CAR)' }
+                      ].map((item) => {
+                        const isSelected = selectedSavingThrows.includes(item.key);
+                        return (
+                          <button
+                            key={item.key}
+                            type="button"
+                            className="font-cinzel"
+                            onClick={() => {
+                              if (isSelected) {
+                                setSelectedSavingThrows(selectedSavingThrows.filter(s => s !== item.key));
+                              } else {
+                                if (selectedSavingThrows.length < 2) {
+                                  setSelectedSavingThrows([...selectedSavingThrows, item.key]);
+                                } else {
+                                  alert("Solo puedes seleccionar hasta 2 tiradas de salvación competentes.");
+                                }
+                              }
+                            }}
+                            style={{
+                              padding: '12px',
+                              background: isSelected ? 'rgba(200, 135, 42, 0.15)' : 'var(--bg-base)',
+                              border: isSelected ? '2px solid var(--accent-gold)' : '1px solid var(--border-color)',
+                              color: isSelected ? 'var(--accent-gold)' : 'var(--text-parchment)',
+                              cursor: 'pointer',
+                              fontWeight: 'bold',
+                              textAlign: 'center',
+                              borderRadius: '4px',
+                              transition: 'all 0.2s'
+                            }}
+                          >
+                            {isSelected ? '✦ ' : ''}{item.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </section>
+
                   {/* Sección B — Equipo de Trasfondo */}
                   <section style={{ marginBottom: '10px' }}>
                     <h3 className="font-cinzel" style={{ color: 'var(--accent-gold)', marginBottom: '10px', fontSize: '1.1rem' }}>🎒 EQUIPO DE TRASFONDO</h3>
@@ -1284,12 +1369,10 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
         const parsedClasses = parseClasses(selectedCharacter.class);
         const classesDisplay = Object.entries(parsedClasses).map(([cls, lvl]) => `${cls} ${lvl}`).join(' / ');
 
-
-
         return (
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '40px', boxSizing: 'border-box' }} onClick={() => setSelectedCharacter(null)}>
-            <div className="clipped-frame" style={{ ...styles.card, width: '100%', maxWidth: '1150px', maxHeight: '90vh', overflowY: 'auto', position: 'relative', display: 'flex', flexDirection: 'column', gap: '30px', boxShadow: '0 0 100px rgba(0,0,0,1)' }} onClick={e => e.stopPropagation()}>
-              <button onClick={() => setSelectedCharacter(null)} style={{ position: 'absolute', top: '15px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '2.5rem', cursor: 'pointer', zIndex: 10 }}>✕</button>
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '40px', boxSizing: 'border-box' }} onClick={() => { setSelectedCharacter(null); if(onCloseOverlay) onCloseOverlay(); }}>
+            <div className="clipped-frame" style={{ ...styles.card, width: '100%', maxWidth: '1250px', maxHeight: '90vh', overflowY: 'auto', position: 'relative', display: 'flex', flexDirection: 'column', gap: '30px', boxShadow: '0 0 100px rgba(0,0,0,1)' }} onClick={e => e.stopPropagation()}>
+              <button onClick={() => { setSelectedCharacter(null); if(onCloseOverlay) onCloseOverlay(); }} style={{ position: 'absolute', top: '15px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '2.5rem', cursor: 'pointer', zIndex: 10 }}>✕</button>
 
               <div style={{ display: 'flex', gap: '30px', alignItems: 'flex-start', flexWrap: 'wrap', borderBottom: '2px solid var(--border-color)', paddingBottom: '30px' }}>
                 <div style={{ width: '150px', height: '150px', border: '2px solid var(--accent-gold)', background: 'var(--bg-base)', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
@@ -1299,6 +1382,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
                   <h1 className="font-cinzel" style={{ margin: '0 0 10px 0', color: 'var(--accent-gold)', fontSize: '2.5rem' }}>
                     {selectedCharacter.name}
                     <span className="mono" style={{ fontSize: '1rem', color: 'white', background: 'var(--border-color)', padding: '5px 12px', marginLeft: '20px', verticalAlign: 'middle' }}>NV {selectedCharacter.level || 1}</span>
+                    <span className="mono" style={{ fontSize: '1rem', color: 'black', background: 'var(--accent-gold)', padding: '5px 12px', marginLeft: '10px', verticalAlign: 'middle', fontWeight: 'bold' }}>COMPETENCIA: +{getProficiencyBonus(selectedCharacter.level || 1)}</span>
 
                     <button
                       onClick={() => {
@@ -1362,7 +1446,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
                 {/* Column for EDITAR/BORRAR buttons underneath the absolute close button */}
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: '150px', alignSelf: 'flex-start', marginTop: '40px' }}>
                   <button className="font-cinzel torch-glow" onClick={() => startEdit(selectedCharacter)} style={{ background: 'var(--accent-gold)', color: 'white', border: 'none', padding: '12px', fontWeight: 'bold', cursor: 'pointer' }}>EDITAR</button>
-                  {(userRole === 'dm' || userRole === 'admin') && <button className="font-cinzel" onClick={() => { handleDelete(selectedCharacter.id); setSelectedCharacter(null); }} style={{ background: 'transparent', color: 'var(--combat-red)', border: '1px solid var(--combat-red)', padding: '12px', fontWeight: 'bold', cursor: 'pointer' }}>BORRAR</button>}
+                  {(userRole === 'dm' || userRole === 'admin') && <button className="font-cinzel" onClick={() => { handleDelete(selectedCharacter.id); setSelectedCharacter(null); if(onCloseOverlay) onCloseOverlay(); }} style={{ background: 'transparent', color: 'var(--combat-red)', border: '1px solid var(--combat-red)', padding: '12px', fontWeight: 'bold', cursor: 'pointer' }}>BORRAR</button>}
                 </div>
               </div> {/* Closes Header <div style={{ display: 'flex', gap: '30px', ... }}> */}
 
@@ -1517,31 +1601,210 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
                               {['fue', 'dex', 'con', 'int', 'sab', 'car'].map((key) => {
                                 const value = charStats[key] || 10;
+                                const mod = calcMod(value);
+                                const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
                                 return (
-                                  <div key={key} style={{ background: 'var(--bg-base)', padding: '15px 10px', border: '1px solid var(--border-color)', textAlign: 'center' }}>
-                                    <div style={{ fontSize: '0.65rem', color: 'var(--accent-gold)', fontWeight: 'bold', marginBottom: '8px', letterSpacing: '1px' }}>{key.toUpperCase()}</div>
-                                    <div className="mono" style={{ fontSize: '1.8rem', fontWeight: 'bold', color: 'white' }}>{value}</div>
-                                    <div className="mono" style={{ fontSize: '1rem', color: 'var(--natural-green)', marginTop: '5px' }}>{getModStr(value)}</div>
+                                  <div key={key} style={{ background: 'var(--bg-base)', padding: '12px 8px', border: '1px solid var(--border-color)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '110px' }} className="clipped-frame">
+                                    <div style={{ fontSize: '0.65rem', color: 'var(--accent-gold)', fontWeight: 'bold', marginBottom: '4px', letterSpacing: '1.2px' }}>{key.toUpperCase()}</div>
+                                    <div className="mono" style={{ fontSize: '2.2rem', fontWeight: 'bold', color: 'white', lineHeight: '1.1' }}>{modStr}</div>
+                                    <div style={{ marginTop: '8px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', padding: '2px 8px', borderRadius: '3px', fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'inline-block' }}>
+                                      <span className="mono">{value}</span>
+                                    </div>
                                   </div>
                                 );
                               })}
                             </div>
+
+                            {(() => {
+                              const parsedInv = typeof selectedCharacter.inventory === 'string' ? JSON.parse(selectedCharacter.inventory || '{}') : (selectedCharacter.inventory || {});
+                              const selectedSkills = parsedInv.habilidades || [];
+                              const charLevel = selectedCharacter.level || 1;
+                              const pb = getProficiencyBonus(charLevel);
+                              
+                              const phList = [
+                                { label: 'Atletismo', key: 'fue' },
+                                { label: 'Acrobacias', key: 'dex' }, { label: 'Juego de Manos', key: 'dex' }, { label: 'Sigilo', key: 'dex' },
+                                { label: 'Arcanos', key: 'int' }, { label: 'Historia', key: 'int' }, { label: 'Investigación', key: 'int' }, { label: 'Naturaleza', key: 'int' }, { label: 'Religión', key: 'int' },
+                                { label: 'Trato con Animales', key: 'sab' }, { label: 'Perspicacia', key: 'sab' }, { label: 'Medicina', key: 'sab' }, { label: 'Percepción', key: 'sab' }, { label: 'Supervivencia', key: 'sab' },
+                                { label: 'Engaño', key: 'car' }, { label: 'Intimidación', key: 'car' }, { label: 'Interpretación', key: 'car' }, { label: 'Persuasión', key: 'car' }
+                              ];
+
+                              const tsList = [
+                                { label: 'Fuerza', key: 'fue' },
+                                { label: 'Destreza', key: 'dex' },
+                                { label: 'Constitución', key: 'con' },
+                                { label: 'Inteligencia', key: 'int' },
+                                { label: 'Sabiduría', key: 'sab' },
+                                { label: 'Carisma', key: 'car' }
+                              ];
+
+                              return (
+                                <>
+                                  {/* HABILIDADES */}
+                                  <div style={{ marginTop: '20px' }}>
+                                    <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '10px' }}>🎲 HABILIDADES</h4>
+                                    <div style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--border-color)', background: 'var(--bg-base)' }}>
+                                      {phList.map((s, index) => {
+                                        const baseMod = calcMod(charStats[s.key] || 10);
+                                        const isProficient = selectedSkills.includes(s.label);
+                                        const totalMod = baseMod + (isProficient ? pb : 0);
+                                        const modStr = totalMod >= 0 ? `+${totalMod}` : `${totalMod}`;
+                                        const rowStyle: React.CSSProperties = {
+                                          display: 'flex',
+                                          justifyContent: 'space-between',
+                                          alignItems: 'center',
+                                          padding: '6px 12px',
+                                          borderBottom: index === phList.length - 1 ? 'none' : '1px solid rgba(255, 255, 255, 0.05)',
+                                          background: isProficient ? 'rgba(200, 135, 42, 0.04)' : 'transparent',
+                                        };
+                                        const textStyle: React.CSSProperties = isProficient ? {
+                                          color: '#ffd700',
+                                          textShadow: '0 0 8px rgba(255, 215, 0, 0.6)',
+                                          fontWeight: 'bold',
+                                          fontSize: '0.82rem'
+                                        } : {
+                                          color: 'var(--text-parchment)',
+                                          fontSize: '0.82rem'
+                                        };
+                                        return (
+                                          <div key={s.label} style={rowStyle}>
+                                            <span className="font-cinzel" style={textStyle}>
+                                              {isProficient ? '✦ ' : ''}{s.label} ({s.key.toUpperCase()})
+                                            </span>
+                                            <span className="mono" style={{ ...textStyle, fontSize: '0.9rem' }}>{modStr}</span>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+
+                                  {/* TIRADAS DE SALVACIÓN */}
+                                  <div style={{ marginTop: '20px' }}>
+                                    <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '10px' }}>🛡️ TIRADAS DE SALVACIÓN</h4>
+                                    <div style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--border-color)', background: 'var(--bg-base)' }}>
+                                      {tsList.map((s, index) => {
+                                        const baseMod = calcMod(charStats[s.key] || 10);
+                                        const isProficient = (parsedInv.salvaciones || []).includes(s.key);
+                                        const totalMod = baseMod + (isProficient ? pb : 0);
+                                        const modStr = totalMod >= 0 ? `+${totalMod}` : `${totalMod}`;
+                                        const rowStyle: React.CSSProperties = {
+                                          display: 'flex',
+                                          justifyContent: 'space-between',
+                                          alignItems: 'center',
+                                          padding: '6px 12px',
+                                          borderBottom: index === tsList.length - 1 ? 'none' : '1px solid rgba(255, 255, 255, 0.05)',
+                                          background: isProficient ? 'rgba(200, 135, 42, 0.04)' : 'transparent',
+                                        };
+                                        const textStyle: React.CSSProperties = isProficient ? {
+                                          color: '#ffd700',
+                                          textShadow: '0 0 8px rgba(255, 215, 0, 0.6)',
+                                          fontWeight: 'bold',
+                                          fontSize: '0.82rem'
+                                        } : {
+                                          color: 'var(--text-parchment)',
+                                          fontSize: '0.82rem'
+                                        };
+                                        return (
+                                          <div key={s.label} style={rowStyle}>
+                                            <span className="font-cinzel" style={textStyle}>
+                                              {isProficient ? '✦ ' : ''}{s.label} ({s.key.toUpperCase()})
+                                            </span>
+                                            <span className="mono" style={{ ...textStyle, fontSize: '0.9rem' }}>{modStr}</span>
+                                          </div>
+                                        );
+                                      })}
+                                    </div>
+                                  </div>
+                                </>
+                              );
+                            })()}
+                          </section>
+                        </div>
+
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+
+                          {/* FOTO DE CUERPO COMPLETO (2:3) */}
+                          <section>
+                            <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '15px' }}>📸 FOTO DE CUERPO COMPLETO</h4>
+                            <div style={{ 
+                              width: '100%', 
+                              maxWidth: '350px',
+                              aspectRatio: '2/3', 
+                              border: '1px dashed var(--accent-gold)', 
+                              background: 'var(--bg-base)', 
+                              display: 'flex', 
+                              flexDirection: 'column', 
+                              alignItems: 'center', 
+                              justifyContent: 'center', 
+                              position: 'relative', 
+                              overflow: 'hidden',
+                              cursor: 'pointer'
+                            }} className="clipped-frame torch-glow">
+                              {selectedCharacter.full_body_image ? (
+                                <img src={selectedCharacter.full_body_image} alt="Cuerpo Completo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                              ) : (
+                                <div style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
+                                  <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>👤</div>
+                                  <div>Subir Foto (2:3)</div>
+                                </div>
+                              )}
+                              <input 
+                                type="file" 
+                                accept="image/*" 
+                                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                                onChange={(e: any) => {
+                                  const file = e.target.files[0];
+                                  if (file) {
+                                    const reader = new FileReader();
+                                    reader.onload = (ev) => {
+                                      const newImg = ev.target?.result as string;
+                                      socket.emit('character:update', { ...selectedCharacter, full_body_image: newImg });
+                                      setSelectedCharacter({ ...selectedCharacter, full_body_image: newImg });
+                                    };
+                                    reader.readAsDataURL(file);
+                                  }
+                                }}
+                              />
+                            </div>
                           </section>
 
+                          {/* LEYENDA (DESCRIPCIÓN) */}
                           <section>
                             <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '15px' }}>📜 LEYENDA</h4>
-                            <div style={{ background: 'rgba(0,0,0,0.2)', padding: '20px', border: '1px solid var(--border-color)' }}>
+                            <div style={{ background: 'rgba(0,0,0,0.2)', padding: '20px', border: '1px solid var(--border-color)' }} className="clipped-frame">
                               <p
                                 style={{ margin: 0, color: 'var(--text-parchment)', lineHeight: '1.8', fontSize: '1rem', fontStyle: selectedCharacter.description ? 'normal' : 'italic' }}
                                 dangerouslySetInnerHTML={{ __html: formatDescription(selectedCharacter.description || "Esta leyenda aún no ha sido escrita...") }}
                               />
                             </div>
                           </section>
-                        </div>
 
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+                          {/* INVENTARIO */}
                           <section>
-                            <h3 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '15px' }}>INVENTARIO VISUAL</h3>
+                            {(() => {
+                              const fue = charStats.fue || 10;
+                              const maxWeight = fue * 6.8;
+                              const slots = charInv.slots || {};
+                              let currentWeight = 0;
+                              Object.values(slots).forEach((item: any) => {
+                                currentWeight += (item.weight || 0) * (item.quantity || 1);
+                              });
+                              const coins = charInv.coins || { pc: 0, pl: 0, el: 0, po: 0, pt: 0 };
+                              const totalCoins = coins.pc + coins.pl + coins.el + coins.po + coins.pt;
+                              currentWeight += (totalCoins / 100) * 0.9;
+                              const overEncumbered = currentWeight >= maxWeight * 0.9;
+
+                              return (
+                                <h3 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                                  <span>INVENTARIO ({currentWeight.toFixed(1)} / {maxWeight.toFixed(1)} kg)</span>
+                                  {overEncumbered && (
+                                    <span style={{ color: 'white', background: 'var(--combat-red)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                      ⚠️ DESVENTAJA
+                                    </span>
+                                  )}
+                                </h3>
+                              );
+                            })()}
                             
                             {/* Contenedor Flex para la cuadrícula y el indicador lateral */}
                             <div style={{ display: 'flex', gap: '15px', alignItems: 'center', marginBottom: '15px' }}>
@@ -1730,9 +1993,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
                                         <div
                                           className="clipped-frame torch-glow"
                                           onClick={() => {
-                                            setActiveSlotIndex(index);
-                                            setSlotSearchQuery('');
-                                            setSlotQuantity(currentSlotItem.quantity || 1);
+                                            setViewingItemDetail(currentSlotItem);
                                           }}
                                           style={{
                                             width: '65px',

@@ -76,6 +76,16 @@ function safeParseStats(statsField: any): any {
 // Estado volátil del tablero: se sincroniza en tiempo real entre todos los clientes[cite: 1]
 let boardTokens: any[] = [];
 let currentGridBg: string = '';
+let solidCells: string[] = []; // Track solid grid cells
+let isNightMode: boolean = false; // Track day/night mode
+
+// Estado del combate: Iniciativas y turnos
+let combatState = {
+  turnModeActive: false,
+  initiativeOrder: [] as { tokenId: string; value: number }[],
+  currentTurnIndex: 0
+};
+
 
 const app = express();
 app.use(express.json());
@@ -412,6 +422,10 @@ export const startServer = async () => {
         socket.emit('monsters:list', monsters);
         socket.emit('token:board-list', boardTokens);
         if (currentGridBg) socket.emit('grid:bg-update', currentGridBg);
+        socket.emit('grid:solid-update', solidCells);
+        socket.emit('grid:night-update', isNightMode);
+        socket.emit('combat:state-update', combatState);
+
       } else {
         socket.emit('auth:error', 'Usuario o contraseña incorrectos.');
       }
@@ -561,7 +575,10 @@ export const startServer = async () => {
           chestData: data.chestData || null,
           itemData: data.itemData || null,
           noteData: data.noteData || null,
-          imageData: data.imageData || null
+          imageData: data.imageData || null,
+          aoeData: data.aoeData || null,
+          rotation: data.rotation || 0,
+          teamColor: data.teamColor || null,
         };
         boardTokens.push(newToken);
         io.emit('token:board-list', boardTokens);
@@ -575,6 +592,14 @@ export const startServer = async () => {
         if (data.name) {
           token.name = data.name;
         }
+        io.emit('token:board-list', boardTokens);
+      }
+    });
+
+    socket.on('token:update-aoe', (data: { tokenId: string; aoeData: any }) => {
+      const token = boardTokens.find(t => t.instanceId === data.tokenId);
+      if (token && token.type === 'aoe') {
+        token.aoeData = { ...token.aoeData, ...data.aoeData };
         io.emit('token:board-list', boardTokens);
       }
     });
@@ -593,6 +618,19 @@ export const startServer = async () => {
         const token = boardTokens.find(t => t.instanceId === data.tokenId);
         if (token) {
           token.hp = Math.max(0, Math.min(token.hp + data.amount, token.max_hp));
+          io.emit('token:board-list', boardTokens);
+        }
+      }
+    });
+
+    socket.on('token:update-combat-state', (data: { tokenId: string; hp?: number; max_hp?: number; tempHp?: number; condition?: string | null }) => {
+      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+        const token = boardTokens.find(t => t.instanceId === data.tokenId);
+        if (token) {
+          if (data.hp !== undefined) token.hp = data.hp;
+          if (data.max_hp !== undefined) token.max_hp = data.max_hp;
+          if (data.tempHp !== undefined) token.tempHp = data.tempHp;
+          if (data.condition !== undefined) token.condition = data.condition;
           io.emit('token:board-list', boardTokens);
         }
       }
@@ -622,12 +660,96 @@ export const startServer = async () => {
       }
     });
 
+    socket.on('grid:update-solid', (cells: string[]) => {
+      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+        solidCells = cells;
+        io.emit('grid:solid-update', solidCells);
+      }
+    });
+
+    socket.on('grid:set-night', (isNight: boolean) => {
+      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+        isNightMode = isNight;
+        io.emit('grid:night-update', isNightMode);
+      }
+    });
+
     socket.on('board:clear', () => {
       if (socket.data.role === 'dm' || socket.data.role === 'admin') {
         boardTokens = [];
         currentGridBg = '';
+        solidCells = [];
+        isNightMode = false;
         io.emit('token:board-list', boardTokens);
         io.emit('grid:bg-update', '');
+        io.emit('grid:solid-update', []);
+        io.emit('grid:night-update', false);
+        combatState = { turnModeActive: false, initiativeOrder: [], currentTurnIndex: 0 };
+        io.emit('combat:state-update', combatState);
+      }
+    });
+
+    // --- EVENTOS DE COMBATE Y TURNOS ---
+    socket.on('combat:roll-initiative', (data: { tokenId: string; value: number }) => {
+      // Remover si ya existe
+      combatState.initiativeOrder = combatState.initiativeOrder.filter(i => i.tokenId !== data.tokenId);
+      // Agregar y ordenar descendente
+      combatState.initiativeOrder.push(data);
+      combatState.initiativeOrder.sort((a, b) => b.value - a.value);
+      io.emit('combat:state-update', combatState);
+      
+      const token = boardTokens.find(t => t.instanceId === data.tokenId);
+      if (token) {
+        io.emit('chat:send', {
+          id: Date.now() + Math.random(),
+          sender: 'Sistema',
+          to: 'all',
+          text: `🎲 **${token.name}** tiró Iniciativa y sacó **${data.value}**.`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isSystem: true
+        });
+      }
+    });
+
+    socket.on('combat:reorder-initiative', (newOrder: { tokenId: string; value: number }[]) => {
+      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+        combatState.initiativeOrder = newOrder;
+        io.emit('combat:state-update', combatState);
+      }
+    });
+
+    socket.on('combat:toggle-turn-mode', (isActive: boolean) => {
+      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+        combatState.turnModeActive = isActive;
+        if (!isActive) {
+          combatState.currentTurnIndex = 0;
+        }
+        io.emit('combat:state-update', combatState);
+        
+        io.emit('chat:send', {
+          id: Date.now() + Math.random(),
+          sender: 'Sistema',
+          to: 'all',
+          text: isActive ? `⚔️ **¡EL COMBATE HA COMENZADO!** (Modo Turnos activado)` : `🕊️ **El combate ha terminado.** (Modo Turnos desactivado)`,
+          timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          isSystem: true
+        });
+      }
+    });
+
+    socket.on('combat:next-turn', () => {
+      // The DM or the player whose turn it is can pass the turn
+      // We will trust the client validation for now, or we can check here.
+      if (combatState.turnModeActive && combatState.initiativeOrder.length > 0) {
+        combatState.currentTurnIndex = (combatState.currentTurnIndex + 1) % combatState.initiativeOrder.length;
+        io.emit('combat:state-update', combatState);
+      }
+    });
+
+    socket.on('combat:reset', () => {
+      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+        combatState = { turnModeActive: false, initiativeOrder: [], currentTurnIndex: 0 };
+        io.emit('combat:state-update', combatState);
       }
     });
 
@@ -639,28 +761,28 @@ export const startServer = async () => {
 
     // GESTIÓN DE PERSONAJES (CRUD)
     socket.on('character:create', (charData: any) => {
-      const { name, charClass, class: charClassAlt, description, stats, race, image, inventory, level, max_hp, current_hp } = charData;
+      const { name, charClass, class: charClassAlt, description, stats, race, image, full_body_image, inventory, level, max_hp, current_hp } = charData;
       const finalClass = charClass || charClassAlt;
       const owner = socket.data.userName || 'Anónimo';
       
       const statsStr = JSON.stringify(safeParseStats(stats));
       const invStr = JSON.stringify(safeParseInventory(inventory));
 
-      db.prepare('INSERT INTO characters (name, class, description, stats, owner, race, image, inventory, level, max_hp, current_hp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-        .run(name, finalClass, description, statsStr, owner, race || 'Humano', image || null, invStr, level || 1, max_hp || 10, current_hp || 10);
+      db.prepare('INSERT INTO characters (name, class, description, stats, owner, race, image, full_body_image, inventory, level, max_hp, current_hp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(name, finalClass, description, statsStr, owner, race || 'Humano', image || null, full_body_image || null, invStr, level || 1, max_hp || 10, current_hp || 10);
       refreshAllCharacters();
     });
 
     socket.on('character:update', (data: any) => {
       // Permitimos que DM o el dueño edite (simplificado asumiendo confianza en los players o verificando owner)
-      const { id, name, charClass, class: charClassAlt, description, stats, race, image, inventory, level, max_hp, current_hp } = data;
+      const { id, name, charClass, class: charClassAlt, description, stats, race, image, full_body_image, inventory, level, max_hp, current_hp } = data;
       const finalClass = charClass || charClassAlt;
       
       const statsStr = JSON.stringify(safeParseStats(stats));
       const invStr = JSON.stringify(safeParseInventory(inventory));
 
-      db.prepare('UPDATE characters SET name = ?, class = ?, description = ?, stats = ?, race = ?, image = ?, inventory = ?, level = ?, max_hp = ?, current_hp = ? WHERE id = ?')
-        .run(name, finalClass, description, statsStr, race || 'Humano', image || null, invStr, level || 1, max_hp || 10, current_hp || 10, id);
+      db.prepare('UPDATE characters SET name = ?, class = ?, description = ?, stats = ?, race = ?, image = ?, full_body_image = ?, inventory = ?, level = ?, max_hp = ?, current_hp = ? WHERE id = ?')
+        .run(name, finalClass, description, statsStr, race || 'Humano', image || null, full_body_image || null, invStr, level || 1, max_hp || 10, current_hp || 10, id);
       refreshAllCharacters();
     });
 

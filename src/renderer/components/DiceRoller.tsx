@@ -1,13 +1,17 @@
 import { useState } from 'react';
 import { Socket } from 'socket.io-client';
 
-export const DiceRoller = ({ socket, user, sendTo = 'all' }: { socket: Socket, user: any, sendTo?: string }) => {
+export const DiceRoller = ({ socket, user, sendTo = 'all', blockRolls = false }: { socket: Socket, user: any, sendTo?: string, blockRolls?: boolean }) => {
   const [isWaiting, setIsWaiting] = useState(false);
   const [customFormula, setCustomFormula] = useState('');
   const dice = [4, 6, 8, 10, 12, 20];
 
   const rollDice = (d: number) => {
     if (isWaiting) return;
+    if (blockRolls) {
+      alert("No puedes tirar dados fuera de tu turno!");
+      return;
+    }
 
     setIsWaiting(true);
     socket.emit('dice:roll', { die: d, to: sendTo });
@@ -19,6 +23,10 @@ export const DiceRoller = ({ socket, user, sendTo = 'all' }: { socket: Socket, u
 
   const handleCustomRoll = () => {
     if (!customFormula.trim()) return;
+    if (blockRolls) {
+      alert("No puedes tirar dados fuera de tu turno!");
+      return;
+    }
 
     // Normalize string (remove spaces, lowercase)
     const formula = customFormula.replace(/\s+/g, '').toLowerCase();

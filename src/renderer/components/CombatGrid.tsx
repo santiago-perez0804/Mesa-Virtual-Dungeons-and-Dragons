@@ -94,13 +94,44 @@ const ItemDropIcon = ({ rarity }: { rarity: string }) => {
   );
 };
 
-export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, characters, monsters, chatMessages, compendium = [] }: any) => {
+const getLineCells = (x0: number, y0: number, x1: number, y1: number) => {
+  const cells: [number, number][] = [];
+  let dx = Math.abs(x1 - x0);
+  let dy = Math.abs(y1 - y0);
+  let sx = (x0 < x1) ? 1 : -1;
+  let sy = (y0 < y1) ? 1 : -1;
+  let err = dx - dy;
+
+  while (true) {
+    cells.push([x0, y0]);
+    if (x0 === x1 && y0 === y1) break;
+    let e2 = 2 * err;
+    if (e2 > -dy) { err -= dy; x0 += sx; }
+    if (e2 < dx) { err += dx; y0 += sy; }
+  }
+  return cells;
+};
+
+export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, characters, monsters, chatMessages, compendium = [], onOpenCharacterSheet, onOpenMonsterSheet }: any) => {
   const [bgImage, setBgImage] = useState<string | null>(null);
   const [bgInputUrl, setBgInputUrl] = useState('');
   const [zoom, setZoom] = useState(1);
   const [showGridLines, setShowGridLines] = useState(true);
   const [gridOpacity] = useState(0.2);
   const [saveNotification, setSaveNotification] = useState<any>(null);
+
+  // Estado del combate
+  const [combatState, setCombatState] = useState<{ turnModeActive: boolean, initiativeOrder: {tokenId: string, value: number}[], currentTurnIndex: number }>({
+    turnModeActive: false,
+    initiativeOrder: [],
+    currentTurnIndex: 0
+  });
+
+  const currentTurnTokenId = combatState.initiativeOrder[combatState.currentTurnIndex]?.tokenId;
+  const currentToken = boardTokens.find((t: any) => t.instanceId === currentTurnTokenId);
+  const isMyTurn = currentToken && currentToken.owner === currentUser?.name;
+  const blockRolls = userRole !== 'dm' && userRole !== 'admin' && combatState.turnModeActive && !isMyTurn;
+
   const [activeTokenId, setActiveTokenId] = useState<string | null>(null);
   const [viewingToken, setViewingToken] = useState<any>(null);
   const [sidebarTab, setSidebarTab] = useState<'combatants' | 'objects'>('combatants');
@@ -124,15 +155,46 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
   const [selectedNoteToken, setSelectedNoteToken] = useState<any>(null);
   const [selectedImageToken, setSelectedImageToken] = useState<any>(null);
 
+  // Estados para Áreas de Efecto
+  const [isCreatingAoe, setIsCreatingAoe] = useState(false);
+  const [aoeForm, setAoeForm] = useState({ shape: 'circle', size1: 3, size2: 1, color: '#ef4444' });
+  const [selectedAoeToken, setSelectedAoeToken] = useState<any>(null);
+  const [activeActionMenu, setActiveActionMenu] = useState<'PH' | 'TS' | null>(null);
 
+  useEffect(() => {
+    setActiveActionMenu(null);
+  }, [activeTokenId]);
+
+  // Estados para Salud y Condiciones
+  const [healthModalToken, setHealthModalToken] = useState<any>(null);
+  const [healthInput, setHealthInput] = useState<string>('');
+  const [conditionInput, setConditionInput] = useState<string>('');
 
   const [pan, setPan] = useState({ x: 0, y: 0 });
+
+  // Estados para Fog of War y Edición de Mapa
+  const [isEditingSurface, setIsEditingSurface] = useState(false);
+  const [solidCells, setSolidCells] = useState<Set<string>>(new Set());
+  const [isNightMode, setIsNightMode] = useState(false);
+
+  
+  const isEditingSurfaceRef = useRef(isEditingSurface);
+  const solidCellsRef = useRef(solidCells);
+  const isPaintingWallRef = useRef(false);
+  const paintModeRef = useRef<'add' | 'remove'>('add');
+  const zoomRef = useRef(zoom);
+  const fowCanvasRef = useRef<HTMLCanvasElement>(null);
+
+  useEffect(() => { isEditingSurfaceRef.current = isEditingSurface; }, [isEditingSurface]);
+  useEffect(() => { solidCellsRef.current = solidCells; }, [solidCells]);
+  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
 
   const viewportRef = useRef<HTMLDivElement>(null);
   const boardRef = useRef<HTMLDivElement>(null);
 
   // Drag con refs para evitar re-renders en cada mousemove
   const dragRef = useRef<any>(null);          // datos del drag activo
+  const wasDraggingRef = useRef(false);       // previene click después de soltar drag
   const ghostRef = useRef<HTMLDivElement>(null); // elemento visual flotante
   const snapRef = useRef<HTMLDivElement>(null);  // indicador de casilla destino
   const panRef = useRef({ x: 0, y: 0 });        // pan sin re-render
@@ -558,13 +620,56 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
     }
   };
 
+  const handleSpawnAoe = (e: React.FormEvent) => {
+    e.preventDefault();
+    let cellX = Math.floor(GRID_SIZE / 2);
+    let cellY = Math.floor(GRID_SIZE / 2);
+    
+    if (viewportRef.current) {
+      const vRect = viewportRef.current.getBoundingClientRect();
+      const centerX = vRect.width / 2;
+      const centerY = vRect.height / 2;
+      const localX = (centerX - panRef.current.x) / zoom;
+      const localY = (centerY - panRef.current.y) / zoom;
+      cellX = Math.max(0, Math.min(Math.floor(localX / CELL_PX), GRID_SIZE - 1));
+      cellY = Math.max(0, Math.min(Math.floor(localY / CELL_PX), GRID_SIZE - 1));
+    }
+    
+    socket.emit('token:spawn', {
+      id: `aoe_${Date.now()}`,
+      name: `Área de Efecto`,
+      type: 'aoe',
+      hp: 1,
+      max_hp: 1,
+      ac: 10,
+      x: cellX,
+      y: cellY,
+      aoeData: {
+        shape: aoeForm.shape,
+        size1: aoeForm.size1,
+        size2: aoeForm.size2,
+        color: aoeForm.color,
+        rotation: 0
+      }
+    });
+    
+    setIsCreatingAoe(false);
+  };
+
   useEffect(() => {
     socket.on('grid:bg-update', (img: string) => setBgImage(img));
     socket.on('combat:save-notification', (data: any) => setSaveNotification(data));
+    socket.on('grid:solid-update', (cells: string[]) => setSolidCells(new Set(cells)));
+    socket.on('grid:night-update', (isNight: boolean) => setIsNightMode(isNight));
+    socket.on('combat:state-update', (state: any) => setCombatState(state));
     return () => {
       socket.off('grid:bg-update');
       socket.off('combat:save-notification');
+      socket.off('grid:solid-update');
+      socket.off('grid:night-update');
+      socket.off('combat:state-update');
     };
+
   }, [socket]);
 
   useEffect(() => {
@@ -582,6 +687,31 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
   }, []);
 
   const handleViewportMouseDown = (e: React.MouseEvent) => {
+    if (isEditingSurfaceRef.current && e.button === 0) {
+      // Comenzar a pintar/borrar paredes
+      const bRect = boardRef.current?.getBoundingClientRect();
+      if (!bRect) return;
+      const localX = (e.clientX - bRect.left) / zoom;
+      const localY = (e.clientY - bRect.top) / zoom;
+      const cellX = Math.floor(localX / CELL_PX);
+      const cellY = Math.floor(localY / CELL_PX);
+      if (cellX >= 0 && cellX < GRID_SIZE && cellY >= 0 && cellY < GRID_SIZE) {
+        const cellKey = `${cellX},${cellY}`;
+        const newSet = new Set(solidCellsRef.current);
+        if (newSet.has(cellKey)) {
+          paintModeRef.current = 'remove';
+          newSet.delete(cellKey);
+        } else {
+          paintModeRef.current = 'add';
+          newSet.add(cellKey);
+        }
+        isPaintingWallRef.current = true;
+        setSolidCells(newSet);
+        socket.emit('grid:update-solid', Array.from(newSet));
+      }
+      return;
+    }
+
     if (e.button === 1 || (e.button === 0 && !dragRef.current)) {
       isPanningRef.current = true;
       startPanPosRef.current = { x: e.clientX - panRef.current.x, y: e.clientY - panRef.current.y };
@@ -591,6 +721,30 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
   // Registrar listeners UNA vez; todo usa refs para no re-registrar
   useEffect(() => {
     const handleMouseMove = (e: MouseEvent) => {
+      if (isPaintingWallRef.current && isEditingSurfaceRef.current && boardRef.current) {
+        const bRect = boardRef.current.getBoundingClientRect();
+        const localX = (e.clientX - bRect.left) / zoomRef.current;
+        const localY = (e.clientY - bRect.top) / zoomRef.current;
+        const cellX = Math.floor(localX / CELL_PX);
+        const cellY = Math.floor(localY / CELL_PX);
+        if (cellX >= 0 && cellX < GRID_SIZE && cellY >= 0 && cellY < GRID_SIZE) {
+          const cellKey = `${cellX},${cellY}`;
+          const currentSet = solidCellsRef.current;
+          
+          if (paintModeRef.current === 'add' && !currentSet.has(cellKey)) {
+            const newSet = new Set(currentSet);
+            newSet.add(cellKey);
+            socket.emit('grid:update-solid', Array.from(newSet));
+            // No podemos usar setSolidCells aquí de forma fiable sin causar re-renders excesivos
+            // así que el broadcast del server nos actualizará, pero podemos emitirlo frecuentemente
+          } else if (paintModeRef.current === 'remove' && currentSet.has(cellKey)) {
+            const newSet = new Set(currentSet);
+            newSet.delete(cellKey);
+            socket.emit('grid:update-solid', Array.from(newSet));
+          }
+        }
+        return;
+      }
       // PAN
       if (isPanningRef.current && boardRef.current) {
         const nx = e.clientX - startPanPosRef.current.x;
@@ -611,6 +765,9 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
         // Mover ghost flotante con el cursor (libre, sin snap)
         const freeX = d.tokenStartX + (e.clientX - d.startX) / zoomNow;
         const freeY = d.tokenStartY + (e.clientY - d.startY) / zoomNow;
+        
+        d.hasMoved = true;
+
         if (ghostRef.current) {
           ghostRef.current.style.left = freeX + 'px';
           ghostRef.current.style.top = freeY + 'px';
@@ -618,10 +775,30 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
         // Snap indicator
         let cellX = Math.max(0, Math.min(Math.floor(localX / CELL_PX), GRID_SIZE - 1));
         let cellY = Math.max(0, Math.min(Math.floor(localY / CELL_PX), GRID_SIZE - 1));
+
+        if (d.type === 'aoe') {
+          cellX = freeX / CELL_PX;
+          cellY = freeY / CELL_PX;
+
+          if (ghostRef.current) ghostRef.current.style.display = 'none';
+
+          const el = document.getElementById(`token-${d.tokenId}`);
+          if (el) {
+            const dx = (e.clientX - d.startX) / zoomNow;
+            const dy = (e.clientY - d.startY) / zoomNow;
+            el.style.left = (d.initialLeft + dx) + 'px';
+            el.style.top = (d.initialTop + dy) + 'px';
+          }
+        }
+
         if (snapRef.current) {
           snapRef.current.style.left = (cellX * CELL_PX) + 'px';
           snapRef.current.style.top = (cellY * CELL_PX) + 'px';
-          snapRef.current.style.display = 'block';
+          if (d.type === 'aoe') {
+            snapRef.current.style.display = 'none';
+          } else {
+            snapRef.current.style.display = 'block';
+          }
         }
         dragRef.current.snapX = cellX;
         dragRef.current.snapY = cellY;
@@ -629,8 +806,16 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
     };
 
     const handleMouseUp = () => {
+      if (isPaintingWallRef.current) {
+        isPaintingWallRef.current = false;
+        // La actualización final ya se envió durante mousemove
+      }
       isPanningRef.current = false;
       if (dragRef.current) {
+        if (dragRef.current.hasMoved) {
+          wasDraggingRef.current = true;
+          setTimeout(() => { wasDraggingRef.current = false; }, 50);
+        }
         const { tokenId, snapX, snapY } = dragRef.current;
         socket.emit('token:move', { tokenId, x: snapX, y: snapY });
         dragRef.current = null;
@@ -652,17 +837,25 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
 
   const handleTokenMouseDown = (e: React.MouseEvent, tokenId: string) => {
     if (e.button !== 0) return;
+    e.preventDefault();
     e.stopPropagation();
     const token = boardTokens.find((t: any) => t.instanceId === tokenId);
     if (!token) return;
     setActiveTokenId(tokenId);
     if (userRole !== 'dm' && (token.type !== 'character' || token.owner !== currentUser?.name)) return;
+
+    const el = document.getElementById(`token-${tokenId}`);
+    const initialLeft = el ? parseFloat(el.style.left || '0') : token.x * CELL_PX;
+    const initialTop = el ? parseFloat(el.style.top || '0') : token.y * CELL_PX;
+
     dragRef.current = {
       tokenId,
       startX: e.clientX,
       startY: e.clientY,
       tokenStartX: token.x * CELL_PX,
       tokenStartY: token.y * CELL_PX,
+      initialLeft,
+      initialTop,
       snapX: token.x,
       snapY: token.y,
       zoom,
@@ -681,14 +874,120 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
   const myCharToken = boardTokens.find((t: any) => t.type === 'character' && t.owner === currentUser?.name);
   const myTeam = myCharToken?.teamColor || null;
 
+  // Fog of War (Visible Cells Computation)
+  const visibleCells = React.useMemo(() => {
+    const vis = new Set<string>();
+    const RADIUS = isNightMode ? 6 : 12; // 30ft vision (6 squares) at night, 60ft (12 squares) during day
+
+    const myTokens = boardTokens.filter((t: any) => t.type === 'character' && (t.teamColor === myTeam || t.owner === currentUser?.name));
+    const sourceTokens = (userRole === 'dm' || userRole === 'admin') 
+      ? boardTokens.filter((t: any) => t.type === 'character' || t.type === 'monster') 
+      : myTokens;
+
+    sourceTokens.forEach((t: any) => {
+      const tx = Math.floor(t.x);
+      const ty = Math.floor(t.y);
+      vis.add(`${tx},${ty}`);
+
+      for (let x = tx - RADIUS; x <= tx + RADIUS; x++) {
+        for (let y = ty - RADIUS; y <= ty + RADIUS; y++) {
+          if (x === tx - RADIUS || x === tx + RADIUS || y === ty - RADIUS || y === ty + RADIUS) {
+            const line = getLineCells(tx, ty, x, y);
+            for (const [cx, cy] of line) {
+              if (Math.hypot(cx - tx, cy - ty) > RADIUS) break;
+              vis.add(`${cx},${cy}`);
+              if (solidCells.has(`${cx},${cy}`)) break; // bloqueado por pared
+            }
+          }
+        }
+      }
+    });
+    return vis;
+  }, [boardTokens, solidCells, myTeam, currentUser, userRole, isNightMode]);
+
+
+  useEffect(() => {
+    const canvas = fowCanvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    // 1. Classify visible cells into innerVisible (100% visible) and boundary (75% visible)
+    const cellVisMap = new Map<string, number>();
+    visibleCells.forEach(cellKey => {
+      const [cx, cy] = cellKey.split(',').map(Number);
+      let isBoundary = false;
+      for (let dx = -1; dx <= 1; dx++) {
+        for (let dy = -1; dy <= 1; dy++) {
+          if (dx === 0 && dy === 0) continue;
+          const nx = cx + dx;
+          const ny = cy + dy;
+          if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
+            if (!visibleCells.has(`${nx},${ny}`)) {
+              isBoundary = true;
+              break;
+            }
+          }
+        }
+        if (isBoundary) break;
+      }
+      cellVisMap.set(cellKey, isBoundary ? 0.75 : 1.0);
+    });
+
+    // 2. Create offscreen mask canvas
+    const tempCanvas = document.createElement('canvas');
+    tempCanvas.width = BOARD_PX;
+    tempCanvas.height = BOARD_PX;
+    const tempCtx = tempCanvas.getContext('2d');
+    if (tempCtx) {
+      // Fill the mask with solid black (100% fog)
+      tempCtx.fillStyle = '#000000';
+      tempCtx.fillRect(0, 0, BOARD_PX, BOARD_PX);
+
+      // destination-out to carve out the fog
+      tempCtx.globalCompositeOperation = 'destination-out';
+
+      // Draw boundary cells at 0.75 opacity (leaves 25% fog/black -> 75% visible)
+      tempCtx.fillStyle = 'rgba(255, 255, 255, 0.75)';
+      cellVisMap.forEach((vis, cellKey) => {
+        if (vis === 0.75) {
+          const [cx, cy] = cellKey.split(',').map(Number);
+          tempCtx.fillRect(cx * CELL_PX, cy * CELL_PX, CELL_PX, CELL_PX);
+        }
+      });
+
+      // Draw inner cells at 1.0 opacity (leaves 0% fog/black -> 100% visible)
+      tempCtx.fillStyle = 'rgba(255, 255, 255, 1.0)';
+      cellVisMap.forEach((vis, cellKey) => {
+        if (vis === 1.0) {
+          const [cx, cy] = cellKey.split(',').map(Number);
+          tempCtx.fillRect(cx * CELL_PX, cy * CELL_PX, CELL_PX, CELL_PX);
+        }
+      });
+    }
+
+    // 3. Clear main canvas and draw mask with filter blur
+    ctx.clearRect(0, 0, BOARD_PX, BOARD_PX);
+    ctx.filter = 'blur(10px)';
+    ctx.drawImage(tempCanvas, 0, 0);
+    ctx.filter = 'none';
+  }, [visibleCells]);
+
+
   // Visibilidad en la Grilla (Mapa)
-  const canSeeOnGrid = (_t: any) => {
-    return true; // En el mapa todos pueden ver a todos
+  const canSeeOnGrid = (t: any) => {
+    if (userRole === 'dm' || userRole === 'admin') return true; // El DM siempre ve todos los tokens
+    if (t.owner === currentUser?.name || (myTeam && t.teamColor === myTeam)) return true; // Veo a mis aliados siempre
+    if (t.type === 'aoe') return true; // Por ahora las áreas son siempre visibles
+    
+    const tx = Math.floor(t.x);
+    const ty = Math.floor(t.y);
+    return visibleCells.has(`${tx},${ty}`);
   };
 
   // Visibilidad en el Panel de Combatientes (Sidebar)
   const canSeeInSidebar = (t: any) => {
-    if (t.type === 'chest' || t.type === 'item' || t.type === 'note' || t.type === 'image') return false; // Excluir objetos, notas e imágenes de la sección de combatientes
+    if (t.type === 'chest' || t.type === 'item' || t.type === 'note' || t.type === 'image' || t.type === 'aoe') return false; // Excluir objetos, notas, imágenes y áreas de la sección de combatientes
     if (userRole === 'dm' || userRole === 'admin') return true; // El DM/Admin ve todos
     
     // Si es un jugador, debe tener un personaje con color asignado
@@ -699,17 +998,22 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
     return t.teamColor === myTeam;
   };
 
+  // Derived state for Turns
+  const allCombatantsRolled = React.useMemo(() => {
+    const combatTokens = boardTokens.filter((t: any) => t.type === 'character' || t.type === 'monster');
+    if (combatTokens.length === 0) return false;
+    return combatTokens.every((t: any) => combatState.initiativeOrder.some(i => i.tokenId === t.instanceId));
+  }, [boardTokens, combatState.initiativeOrder]);
+
   return (
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-base)', position: 'relative' }} onClick={() => { setActiveTokenId(null); setContextMenu(null); }}>
 
       {/* TOOLBAR SUPERIOR */}
       <div style={{ padding: '12px 20px', background: 'rgba(0,0,0,0.4)', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 100 }}>
+        
+        {/* LADO IZQUIERDO: COMBATE, URL, APLICAR, LIMPIAR, EDITAR */}
         <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
-          <h2 className="font-cinzel" style={{ margin: 0, color: 'var(--accent-gold)', fontSize: '1.2rem', letterSpacing: '1px' }}>⚔️ COMBATE</h2>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
-            <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Zoom:</span>
-            <input type="range" min="0.2" max="2" step="0.1" value={zoom} onChange={(e) => setZoom(parseFloat(e.target.value))} style={{ width: '80px', accentColor: 'var(--accent-gold)' }} />
-          </div>
+          <h2 className="font-cinzel" style={{ margin: 0, color: 'var(--accent-gold)', fontSize: '1.2rem', letterSpacing: '1px' }}>COMBATE</h2>
           {(userRole === 'dm' || userRole === 'admin') && (
             <div style={{ display: 'flex', gap: '8px' }}>
               <input
@@ -727,17 +1031,137 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                 APLICAR
               </button>
               <button onClick={() => socket.emit('board:clear')} className="torch-glow" style={{ background: 'var(--combat-red)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>Limpiar Mapa</button>
+              <button 
+                onClick={() => setIsEditingSurface(!isEditingSurface)} 
+                className="torch-glow" 
+                style={{ background: isEditingSurface ? 'var(--accent-gold)' : 'transparent', color: isEditingSurface ? '#000' : 'white', border: '1px solid var(--accent-gold)', padding: '6px 12px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}
+              >
+                {isEditingSurface ? 'Terminar Edición' : 'Editar Superficie'}
+              </button>
             </div>
           )}
         </div>
 
-        <div style={{ display: 'flex', gap: '10px' }}>
-          <button onClick={() => setShowGridLines(!showGridLines)} className="font-cinzel"
-            style={{ background: showGridLines ? 'var(--accent-gold)' : 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--border-color)', padding: '6px 14px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>
-            {showGridLines ? '👁️ Grilla' : '🙈 Grilla'}
-          </button>
-          <button onClick={() => { setPan({ x: 0, y: 0 }); setZoom(1); }} className="font-cinzel"
-            style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', padding: '6px 14px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>🎯 Reset</button>
+        {/* LADO DERECHO: TURNOS, DIA/NOCHE, GRILLA, RESET */}
+        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+          
+          {/* TURNOS */}
+          {(userRole === 'dm' || userRole === 'admin') && (
+            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+              <button
+                onClick={() => {
+                  if (combatState.turnModeActive) {
+                    socket.emit('combat:toggle-turn-mode', false);
+                  } else {
+                    if (allCombatantsRolled) {
+                      socket.emit('combat:toggle-turn-mode', true);
+                    }
+                  }
+                }}
+                disabled={!combatState.turnModeActive && !allCombatantsRolled}
+                className="font-cinzel torch-glow"
+                style={{
+                  background: combatState.turnModeActive ? 'var(--combat-red)' : 'var(--accent-gold)',
+                  color: 'white',
+                  border: 'none',
+                  padding: '6px 14px',
+                  borderRadius: '4px',
+                  cursor: (!combatState.turnModeActive && !allCombatantsRolled) ? 'not-allowed' : 'pointer',
+                  opacity: (!combatState.turnModeActive && !allCombatantsRolled) ? 0.5 : 1,
+                  fontSize: '0.75rem',
+                  fontWeight: 'bold'
+                }}
+              >
+                {combatState.turnModeActive ? 'Terminar Combate' : 'Modo Turnos'}
+              </button>
+              
+              {combatState.turnModeActive && (
+                <button
+                  onClick={() => socket.emit('combat:next-turn')}
+                  className="font-cinzel torch-glow"
+                  style={{ background: 'var(--natural-green)', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
+                >
+                  Siguiente ➡️
+                </button>
+              )}
+            </div>
+          )}
+
+          {/* Pasar Turno para Jugadores */}
+          {(userRole !== 'dm' && userRole !== 'admin') && combatState.turnModeActive && (() => {
+            const currentTurnTokenId = combatState.initiativeOrder[combatState.currentTurnIndex]?.tokenId;
+            const currentToken = boardTokens.find((t: any) => t.instanceId === currentTurnTokenId);
+            const isMyTurn = currentToken && currentToken.owner === currentUser?.name;
+            
+            // Para jugadores que no es su turno, igual renderizamos un botón deshabilitado o invisible para que sepan de quién es el turno
+            // Pero según el requerimiento: "a los jugadores en ese lugar les aparecerá un boton con forma de flecha que no hará nada al tocarse, se usará mas adelante"
+            return (
+              <button
+                onClick={() => {
+                  if (isMyTurn) socket.emit('combat:next-turn');
+                }}
+                disabled={!isMyTurn}
+                className="font-cinzel torch-glow"
+                style={{ 
+                  background: isMyTurn ? 'var(--natural-green)' : 'rgba(255,255,255,0.1)', 
+                  color: isMyTurn ? 'white' : 'var(--text-secondary)', 
+                  border: '1px solid ' + (isMyTurn ? 'var(--natural-green)' : 'var(--border-color)'), 
+                  padding: '6px 14px', 
+                  borderRadius: '4px', 
+                  cursor: isMyTurn ? 'pointer' : 'default', 
+                  fontSize: '0.75rem', 
+                  fontWeight: 'bold', 
+                  animation: isMyTurn ? 'pulse 2s infinite' : 'none' 
+                }}
+              >
+                {isMyTurn ? 'Terminar mi Turno ➡️' : 'Turno de otro ➡️'}
+              </button>
+            );
+          })()}
+
+          <div style={{ width: '1px', height: '24px', background: 'var(--border-color)' }} />
+
+          {/* DIA / NOCHE */}
+          {(userRole === 'dm' || userRole === 'admin') && (
+            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', userSelect: 'none' }}>
+              <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Día</span>
+              <button
+                onClick={() => socket.emit('grid:set-night', !isNightMode)}
+                style={{
+                  position: 'relative', width: '46px', height: '24px', borderRadius: '12px',
+                  background: isNightMode ? '#1e293b' : '#f59e0b',
+                  border: '1px solid ' + (isNightMode ? '#334155' : '#fbbf24'),
+                  cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: isNightMode ? 'inset 0 2px 4px rgba(0,0,0,0.6)' : 'inset 0 2px 4px rgba(255,255,255,0.3)',
+                  overflow: 'hidden'
+                }}
+                title={isNightMode ? 'Modo Noche activo' : 'Modo Día activo'}
+              >
+                <div style={{
+                  position: 'absolute', left: isNightMode ? '24px' : '2px', width: '18px', height: '18px',
+                  borderRadius: '50%', background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                  fontSize: '10px', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                }}>
+                  {isNightMode ? '🌙' : '☀️'}
+                </div>
+              </button>
+              <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Noche</span>
+            </div>
+          )}
+
+          <div style={{ width: '1px', height: '24px', background: 'var(--border-color)', display: (userRole === 'dm' || userRole === 'admin') ? 'block' : 'none' }} />
+
+          {/* GRILLA, RESET */}
+          <div style={{ display: 'flex', gap: '10px' }}>
+            <button onClick={() => setShowGridLines(!showGridLines)} className="font-cinzel"
+              style={{ background: showGridLines ? 'var(--accent-gold)' : 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--border-color)', padding: '6px 14px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>
+              {showGridLines ? '👁️ Grilla' : '🙈 Grilla'}
+            </button>
+            <button onClick={() => { setPan({ x: 0, y: 0 }); setZoom(1); }} className="font-cinzel"
+              style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', padding: '6px 14px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>🎯 Reset</button>
+          </div>
         </div>
       </div>
 
@@ -782,11 +1206,6 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                   textTransform: 'uppercase'
                 }}
               >
-                <span style={{
-                  fontSize: '1rem',
-                  filter: sidebarTab === 'combatants' ? 'drop-shadow(0 0 4px rgba(200,135,42,0.9))' : 'none',
-                  transition: 'filter 0.25s ease'
-                }}>⚔️</span>
                 Combatientes
               </button>
 
@@ -811,11 +1230,6 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                   textTransform: 'uppercase'
                 }}
               >
-                <span style={{
-                  fontSize: '1rem',
-                  filter: sidebarTab === 'objects' ? 'drop-shadow(0 0 4px rgba(200,135,42,0.9))' : 'none',
-                  transition: 'filter 0.25s ease'
-                }}>🎒</span>
                 Objetos
               </button>
             </div>
@@ -838,41 +1252,179 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
               pointerEvents: sidebarTab === 'combatants' ? 'auto' : 'none',
               visibility: sidebarTab === 'combatants' || (isTabTransitioning && prevSidebarTab === 'combatants') ? 'visible' : 'hidden'
             }}>
-              {boardTokens.filter(canSeeInSidebar).map((t: any, idx: number) => (
-                <div key={t.instanceId}
-                  className={`clipped-frame torch-glow ${activeTokenId === t.instanceId ? 'active' : ''}`}
-                  style={{
-                    padding: '12px',
-                    border: activeTokenId === t.instanceId ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
-                    cursor: 'pointer',
-                    transition: 'border-color 0.2s, background 0.2s',
-                    background: activeTokenId === t.instanceId ? 'rgba(200, 135, 42, 0.1)' : 'var(--bg-surface)',
-                    animation: `sidebarItemIn 0.3s ease both`,
-                    animationDelay: `${idx * 40}ms`
-                  }}
-                  onClick={(e) => { e.stopPropagation(); setActiveTokenId(t.instanceId); }}
-                >
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
-                    <div style={{ position: 'relative', width: '42px', height: '42px', border: `2px solid ${t.teamColor || 'var(--border-color)'}`, overflow: 'hidden', flexShrink: 0 }}>
-                      {t.image ? <img src={t.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '1.2rem' }}>{t.type === 'character' ? '👤' : '👾'}</span>}
+              {(() => {
+                const sortedCombatants = [...boardTokens].filter(canSeeInSidebar).sort((a: any, b: any) => {
+                  const aInit = combatState.initiativeOrder.findIndex(i => i.tokenId === a.instanceId);
+                  const bInit = combatState.initiativeOrder.findIndex(i => i.tokenId === b.instanceId);
+                  if (aInit !== -1 && bInit !== -1) return aInit - bInit;
+                  if (aInit !== -1) return -1;
+                  if (bInit !== -1) return 1;
+                  return 0;
+                });
+
+                return sortedCombatants.map((t: any, idx: number) => {
+                  const isChar = t.type === 'character';
+                  const charSource = isChar ? characters.find((c: any) => c.id === t.originalId) : null;
+                  let parsedInv: any = {};
+                  if (charSource && charSource.inventory) {
+                    try {
+                      let temp = charSource.inventory;
+                      if (typeof temp === 'string') temp = JSON.parse(temp);
+                      if (typeof temp === 'string') temp = JSON.parse(temp);
+                      parsedInv = temp || {};
+                    } catch(e) {}
+                  }
+                  const spellSlots = parsedInv?.slots || null;
+
+                  const initIndex = combatState.initiativeOrder.findIndex(i => i.tokenId === t.instanceId);
+                  const isTheirTurn = combatState.turnModeActive && initIndex !== -1 && combatState.currentTurnIndex === initIndex;
+
+                  return (
+                  <div key={t.instanceId}
+                    className={`clipped-frame torch-glow ${activeTokenId === t.instanceId ? 'active' : ''}`}
+                    draggable={userRole === 'dm' || userRole === 'admin'}
+                    onDragStart={(e) => { e.dataTransfer.setData('text/plain', t.instanceId); }}
+                    onDragOver={(e) => { e.preventDefault(); }}
+                    onDrop={(e) => {
+                      e.preventDefault();
+                      const draggedId = e.dataTransfer.getData('text/plain');
+                      if (draggedId !== t.instanceId && (userRole === 'dm' || userRole === 'admin')) {
+                        const newOrder = [...combatState.initiativeOrder];
+                        const draggedIndex = newOrder.findIndex(i => i.tokenId === draggedId);
+                        const dropIndex = newOrder.findIndex(i => i.tokenId === t.instanceId);
+                        if (draggedIndex !== -1 && dropIndex !== -1) {
+                          const [draggedItem] = newOrder.splice(draggedIndex, 1);
+                          newOrder.splice(dropIndex, 0, draggedItem);
+                          socket.emit('combat:reorder-initiative', newOrder);
+                        }
+                      }
+                    }}
+                    style={{
+                      padding: '12px',
+                      border: isTheirTurn ? '1px solid var(--natural-green)' : (activeTokenId === t.instanceId ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)'),
+                      cursor: 'pointer',
+                      transition: 'border-color 0.2s, background 0.2s',
+                      background: isTheirTurn ? 'rgba(34, 197, 94, 0.15)' : (activeTokenId === t.instanceId ? 'rgba(200, 135, 42, 0.1)' : 'var(--bg-surface)'),
+                      animation: `sidebarItemIn 0.3s ease both`,
+                      animationDelay: `${idx * 40}ms`,
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '8px',
+                      position: 'relative'
+                    }}
+                    onClick={(e) => { e.stopPropagation(); setActiveTokenId(t.instanceId); }}
+                  >
+                    {(() => {
+                      if (initIndex !== -1) {
+                        return (
+                          <div style={{ position: 'absolute', top: '-6px', right: '-6px', width: '22px', height: '22px', background: isTheirTurn ? 'var(--natural-green)' : 'var(--accent-gold)', borderRadius: '50%', color: isTheirTurn ? 'white' : 'black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold', zIndex: 5, boxShadow: '0 0 5px rgba(0,0,0,0.5)' }}>
+                            {initIndex + 1}
+                          </div>
+                        );
+                      } else {
+                        let dexMod = 0;
+                        if (t.type === 'character') {
+                           const c = characters.find((ch: any) => ch.id === t.originalId);
+                           if (c && c.stats && c.stats.DEX) dexMod = Math.floor((c.stats.DEX - 10) / 2);
+                        } else {
+                           const m = monsters.find((mo: any) => mo.name === t.name);
+                           if (m && m.stats && m.stats.DEX) dexMod = Math.floor((m.stats.DEX - 10) / 2);
+                        }
+                        const modStr = dexMod >= 0 ? `+${dexMod}` : `${dexMod}`;
+                        return (
+                          <div 
+                            title="Iniciativa"
+                            onClick={(e) => {
+                              e.stopPropagation(); e.preventDefault();
+                              const roll = Math.floor(Math.random() * 20) + 1;
+                              const total = roll + dexMod;
+                              socket.emit('combat:roll-initiative', { tokenId: t.instanceId, value: total });
+                            }}
+                            onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.1)'; }}
+                            onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
+                            style={{ position: 'absolute', top: '-6px', right: '-6px', width: '22px', height: '22px', background: 'var(--bg-surface)', border: '1px solid var(--accent-gold)', borderRadius: '50%', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold', zIndex: 5, boxShadow: '0 0 5px rgba(0,0,0,0.5)', cursor: 'pointer', transition: 'transform 0.1s' }}
+                          >
+                            {modStr}
+                          </div>
+                        );
+                      }
+                    })()}
+                    
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
+                      <div style={{ position: 'relative', width: '42px', height: '42px', border: `2px solid ${t.teamColor || 'var(--border-color)'}`, overflow: 'hidden', flexShrink: 0, borderRadius: '4px' }}>
+                        {t.image ? <img src={t.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '1.2rem' }}>{isChar ? '👤' : '👾'}</span>}
+                      {t.condition && (
+                        <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', background: 'rgba(0,0,0,0.8)', borderRadius: '50%', fontSize: '0.8rem', padding: '2px', border: '1px solid var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                          {t.condition}
+                        </div>
+                      )}
                     </div>
                     <div style={{ flex: 1, overflow: 'hidden' }}>
-                      <div className="font-cinzel" style={{ color: 'white', fontSize: '0.95rem', fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }} onClick={(e) => { e.stopPropagation(); setViewingToken(t); }}>
+                      <div className="font-cinzel" style={{ color: 'white', fontSize: '0.95rem', fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', cursor: 'pointer' }} onClick={(e) => { 
+                        e.stopPropagation(); 
+                        if (isChar) {
+                          if (onOpenCharacterSheet) onOpenCharacterSheet(t.originalId || t.instanceId);
+                        } else {
+                          if (onOpenMonsterSheet) onOpenMonsterSheet(t.originalId || t.name);
+                        }
+                      }}>
                         {t.name}
                       </div>
-                      <div style={{ fontSize: '0.65rem', color: t.type === 'character' ? 'var(--accent-gold)' : 'var(--combat-red)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>{t.type === 'character' ? 'Héroe' : 'Criatura'}</div>
+                      <div style={{ fontSize: '0.65rem', color: isChar ? 'var(--accent-gold)' : 'var(--combat-red)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>{isChar ? 'Héroe' : 'Criatura'}</div>
                     </div>
-                    {(userRole === 'dm' || t.owner === currentUser.name) && (
-                      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-end' }}>
-                        <div className="mono" style={{ color: 'var(--natural-green)', fontSize: '0.9rem', fontWeight: 'bold' }}>{t.hp} <span style={{ color: 'var(--text-secondary)', fontSize: '0.7rem' }}>/ {t.max_hp}</span></div>
-                        <div style={{ width: '40px', height: '3px', background: 'rgba(0,0,0,0.4)', marginTop: '4px' }}>
-                          <div style={{ width: `${Math.min(100, (t.hp / t.max_hp) * 100)}%`, height: '100%', background: t.hp / t.max_hp > 0.5 ? 'var(--natural-green)' : 'var(--combat-red)', transition: 'width 0.4s ease' }} />
-                        </div>
-                      </div>
-                    )}
                   </div>
-                  {activeTokenId === t.instanceId && (userRole === 'dm' || userRole === 'admin') && (
-                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '10px', paddingTop: '8px', borderTop: '1px solid rgba(255,255,255,0.05)' }} onClick={e => e.stopPropagation()}>
+
+                  {/* spell slots quick-view removed — visible only in health modal */}
+
+                  {(userRole === 'dm' || t.owner === currentUser.name) && (
+                    <div 
+                       onClick={(e) => { 
+                         e.stopPropagation();
+                         if (userRole === 'dm') {
+                           setHealthModalToken(t);
+                           setHealthInput('');
+                           setConditionInput(t.condition || '');
+                         }
+                       }}
+                       style={{ 
+                         width: '100%', 
+                         height: '22px', 
+                         background: 'rgba(0,0,0,0.5)', 
+                         position: 'relative', 
+                         borderRadius: '4px',
+                         overflow: 'hidden',
+                         border: '1px solid var(--border-color)',
+                         cursor: userRole === 'dm' ? 'pointer' : 'default',
+                         marginTop: '4px'
+                       }}
+                    >
+                      <div style={{ 
+                        width: `${Math.min(100, (t.hp / Math.max(1, t.max_hp)) * 100)}%`, 
+                        height: '100%', 
+                        background: t.hp / Math.max(1, t.max_hp) > 0.5 ? 'var(--natural-green)' : 'var(--combat-red)', 
+                        transition: 'width 0.4s ease' 
+                      }} />
+                      {(t.tempHp || 0) > 0 && (
+                        <div style={{
+                          position: 'absolute', top: 0, right: 0, height: '100%',
+                          background: 'rgba(59, 130, 246, 0.6)', 
+                          width: `${Math.min(100, ((t.tempHp || 0) / Math.max(1, t.max_hp)) * 100)}%`,
+                          transition: 'width 0.4s ease'
+                        }} />
+                      )}
+                      <div className="mono" style={{ 
+                        position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', 
+                        display: 'flex', alignItems: 'center', justifyContent: 'center',
+                        color: 'white', fontSize: '0.8rem', fontWeight: 'bold',
+                        textShadow: '1px 1px 2px black'
+                      }}>
+                        {t.hp}{(t.tempHp || 0) > 0 ? ` (+${t.tempHp})` : ''} / {t.max_hp}
+                      </div>
+                    </div>
+                  )}
+
+                  {(userRole === 'dm' || userRole === 'admin') && (
+                    <div style={{ display: 'flex', gap: '8px', alignItems: 'center', marginTop: '6px', paddingTop: '6px', borderTop: '1px solid rgba(255,255,255,0.05)' }} onClick={e => e.stopPropagation()}>
                       <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginRight: '4px' }}>Equipo:</span>
                       {[
                         { name: 'Ninguno', color: null },
@@ -899,7 +1451,9 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                     </div>
                   )}
                 </div>
-              ))}
+              );
+            });
+          })()}
               {boardTokens.filter(canSeeInSidebar).length === 0 && (
                 <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem', padding: '30px 20px', opacity: 0.6 }}>
                   <div style={{ fontSize: '2rem', marginBottom: '8px' }}>⚔️</div>
@@ -1005,6 +1559,187 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
 
         {/* COLUMNA CENTRAL: MAPA */}
         <div ref={viewportRef} style={{ position: 'relative', flex: 1, overflow: 'hidden', background: '#000' }} onMouseDown={handleViewportMouseDown}>
+          
+          {/* BOTONES FLOTANTES DE ACCIÓN (PH / TS) */}
+          {(() => {
+            if (!activeTokenId) return null;
+            const t = boardTokens.find((t: any) => t.instanceId === activeTokenId);
+            if (!t || t.type !== 'character') return null;
+            const isOwner = userRole === 'dm' || userRole === 'admin' || t.owner === currentUser?.name;
+            if (!isOwner) return null;
+
+            const charSource = characters.find((c: any) => c.id === t.originalId);
+            if (!charSource) return null;
+            
+            const stats = typeof charSource.stats === 'string' ? JSON.parse(charSource.stats) : (charSource.stats || {});
+            const safeParse = (val: any) => {
+              if (typeof val !== 'string') return val;
+              try {
+                const p = JSON.parse(val);
+                if (typeof p === 'string') return safeParse(p);
+                return p;
+              } catch { return val; }
+            };
+            const parsedInv = safeParse(charSource.inventory) || {};
+            const selectedSkills = parsedInv.habilidades || [];
+            const selectedSavingThrows = parsedInv.salvaciones || [];
+            const level = charSource.level || 1;
+            
+            const getProficiencyBonus = (lvl: number) => {
+              if (lvl <= 4) return 2;
+              if (lvl <= 8) return 3;
+              if (lvl <= 12) return 4;
+              if (lvl <= 16) return 5;
+              return 6;
+            };
+            const pb = getProficiencyBonus(level);
+
+            const getMod = (stat: string) => Math.floor(((stats[stat] || 10) - 10) / 2);
+
+            const performRoll = (name: string, statKey: string, isSkill: boolean) => {
+              const isSavingThrow = !isSkill;
+              if (blockRolls && !isSavingThrow) {
+                alert("No puedes tirar dados fuera de tu turno!");
+                return;
+              }
+              let mod = getMod(statKey);
+              if (isSkill && selectedSkills.includes(name)) {
+                mod += pb;
+              } else if (isSavingThrow && selectedSavingThrows.includes(statKey)) {
+                mod += pb;
+              }
+              const roll = Math.floor(Math.random() * 20) + 1;
+              const total = roll + mod;
+              socket.emit('dice:roll', { die: 20 });
+              socket.emit('chat:send', { 
+                user: currentUser?.name, 
+                text: `🎲 **${t.name}** lanzó **${name}**: d20(${roll}) ${mod >= 0 ? '+' : '-'} ${Math.abs(mod)} = **${total}**`, 
+                timestamp: Date.now() 
+              });
+              setActiveActionMenu(null);
+            };
+
+            const tsList = [
+              { label: 'FUE', key: 'fue' }, { label: 'DES', key: 'dex' }, { label: 'CON', key: 'con' },
+              { label: 'INT', key: 'int' }, { label: 'SAB', key: 'sab' }, { label: 'CAR', key: 'car' }
+            ];
+
+            const phList = [
+              { label: 'Atletismo', key: 'fue' },
+              { label: 'Acrobacias', key: 'dex' }, { label: 'Juego de Manos', key: 'dex' }, { label: 'Sigilo', key: 'dex' },
+              { label: 'Arcanos', key: 'int' }, { label: 'Historia', key: 'int' }, { label: 'Investigación', key: 'int' }, { label: 'Naturaleza', key: 'int' }, { label: 'Religión', key: 'int' },
+              { label: 'Trato con Animales', key: 'sab' }, { label: 'Perspicacia', key: 'sab' }, { label: 'Medicina', key: 'sab' }, { label: 'Percepción', key: 'sab' }, { label: 'Supervivencia', key: 'sab' },
+              { label: 'Engaño', key: 'car' }, { label: 'Intimidación', key: 'car' }, { label: 'Interpretación', key: 'car' }, { label: 'Persuasión', key: 'car' }
+            ];
+
+            return (
+              <div 
+                style={{ position: 'absolute', bottom: '20px', left: '50%', transform: 'translateX(-50%)', zIndex: 200, display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px' }} 
+                onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }} 
+                onClick={e => { e.stopPropagation(); e.preventDefault(); }}
+              >
+                
+                {activeActionMenu === 'TS' && (
+                  <div className="clipped-frame" style={{ background: 'rgba(0,0,0,0.85)', padding: '12px', border: '2px solid var(--accent-gold)', display: 'flex', gap: '8px', flexWrap: 'wrap', justifyContent: 'center', maxWidth: '320px', animation: 'healthModalIn 0.2s ease-out' }}>
+                    <div className="font-cinzel" style={{ width: '100%', textAlign: 'center', color: 'var(--accent-gold)', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '4px', letterSpacing: '1px' }}>TIRADAS DE SALVACIÓN</div>
+                    {tsList.map(s => {
+                      const isProficient = selectedSavingThrows.includes(s.key);
+                      return (
+                        <button 
+                          key={s.label} 
+                          onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                          onClick={(e) => { e.stopPropagation(); performRoll(`Salvación de ${s.label}`, s.key, false); }} 
+                          className="font-cinzel" 
+                          style={{ 
+                            background: 'var(--bg-surface)', 
+                            border: isProficient ? '1.5px solid var(--accent-gold)' : '1px solid var(--border-color)', 
+                            color: isProficient ? 'var(--accent-gold)' : 'white', 
+                            padding: '6px 12px', 
+                            borderRadius: '4px', 
+                            cursor: 'pointer', 
+                            fontSize: '0.8rem', 
+                            transition: 'all 0.15s',
+                            textShadow: isProficient ? '0 0 5px rgba(255, 215, 0, 0.5)' : 'none',
+                            fontWeight: isProficient ? 'bold' : 'normal'
+                          }} 
+                          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-gold)'; e.currentTarget.style.transform = 'scale(1.05)'; }} 
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = isProficient ? 'var(--accent-gold)' : 'var(--border-color)'; e.currentTarget.style.transform = 'scale(1)'; }}
+                        >
+                          {s.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                {activeActionMenu === 'PH' && (
+                  <div className="clipped-frame" style={{ background: 'rgba(0,0,0,0.85)', padding: '14px', border: '2px solid var(--accent-gold)', display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '6px', maxWidth: '480px', animation: 'healthModalIn 0.2s ease-out', maxHeight: '55vh', overflowY: 'auto' }}>
+                    <div className="font-cinzel" style={{ gridColumn: '1 / -1', textAlign: 'center', color: 'var(--accent-gold)', fontSize: '0.75rem', fontWeight: 'bold', marginBottom: '6px', letterSpacing: '1px' }}>PRUEBAS DE HABILIDAD</div>
+                    {phList.map(s => {
+                      const isProficient = selectedSkills.includes(s.label);
+                      return (
+                        <button 
+                          key={s.label} 
+                          onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                          onClick={(e) => { e.stopPropagation(); performRoll(s.label, s.key, true); }} 
+                          className="font-cinzel" 
+                          style={{ 
+                            background: 'var(--bg-surface)', 
+                            border: isProficient ? '1.5px solid var(--accent-gold)' : '1px solid var(--border-color)', 
+                            color: isProficient ? 'var(--accent-gold)' : 'white', 
+                            padding: '8px 6px', 
+                            borderRadius: '4px', 
+                            cursor: 'pointer', 
+                            fontSize: '0.7rem', 
+                            whiteSpace: 'nowrap', 
+                            overflow: 'hidden', 
+                            textOverflow: 'ellipsis', 
+                            transition: 'all 0.15s',
+                            textShadow: isProficient ? '0 0 5px rgba(255, 215, 0, 0.5)' : 'none',
+                            fontWeight: isProficient ? 'bold' : 'normal'
+                          }} 
+                          onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--accent-gold)'; e.currentTarget.style.transform = 'scale(1.02)'; }} 
+                          onMouseLeave={e => { e.currentTarget.style.borderColor = isProficient ? 'var(--accent-gold)' : 'var(--border-color)'; e.currentTarget.style.transform = 'scale(1)'; }} 
+                          title={s.label}
+                        >
+                          {s.label}
+                        </button>
+                      );
+                    })}
+                  </div>
+                )}
+
+                <div style={{ display: 'flex', gap: '15px' }} onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }} onClick={e => { e.stopPropagation(); e.preventDefault(); }}>
+
+                  <button 
+                    onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                    onClick={(e) => { e.stopPropagation(); e.preventDefault(); setActiveActionMenu(activeActionMenu === 'PH' ? null : 'PH'); }} 
+                    className="font-cinzel torch-glow" 
+                    style={{ background: activeActionMenu === 'PH' ? 'var(--accent-gold)' : 'var(--bg-surface)', color: activeActionMenu === 'PH' ? '#000' : 'white', border: '2px solid var(--accent-gold)', padding: '10px 24px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.95rem', boxShadow: '0 4px 15px rgba(0,0,0,0.6)', transition: 'all 0.2s' }}
+                  >
+                    PH
+                  </button>
+                  <button 
+                    onMouseDown={e => { e.stopPropagation(); e.preventDefault(); }}
+                    onClick={(e) => { e.stopPropagation(); e.preventDefault(); setActiveActionMenu(activeActionMenu === 'TS' ? null : 'TS'); }} 
+                    className="font-cinzel torch-glow" 
+                    style={{ background: activeActionMenu === 'TS' ? 'var(--accent-gold)' : 'var(--bg-surface)', color: activeActionMenu === 'TS' ? '#000' : 'white', border: '2px solid var(--accent-gold)', padding: '10px 24px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.95rem', boxShadow: '0 4px 15px rgba(0,0,0,0.6)', transition: 'all 0.2s' }}
+                  >
+                    TS
+                  </button>
+                </div>
+              </div>
+            );
+          })()}
+          
+          {/* BOTONES FLOTANTES AoE */}
+          <div style={{ position: 'absolute', bottom: '20px', right: '20px', zIndex: 200, display: 'flex', flexDirection: 'column', gap: '10px' }} onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
+            <button title="Línea" onClick={() => { setAoeForm({...aoeForm, shape: 'line'}); setIsCreatingAoe(true); }} className="torch-glow" style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.5)', fontSize: '1.4rem', padding: 0 }}>📏</button>
+            <button title="Cono" onClick={() => { setAoeForm({...aoeForm, shape: 'cone'}); setIsCreatingAoe(true); }} className="torch-glow" style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.5)', fontSize: '1.4rem', padding: 0 }}>📐</button>
+            <button title="Círculo" onClick={() => { setAoeForm({...aoeForm, shape: 'circle'}); setIsCreatingAoe(true); }} className="torch-glow" style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.5)', fontSize: '1.4rem', padding: 0 }}>⭕</button>
+            <button title="Cubo" onClick={() => { setAoeForm({...aoeForm, shape: 'cube'}); setIsCreatingAoe(true); }} className="torch-glow" style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.5)', fontSize: '1.4rem', padding: 0 }}>🔲</button>
+          </div>
+
           <div
             ref={boardRef}
             onContextMenu={handleBoardContextMenu}
@@ -1027,6 +1762,39 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                 pointerEvents: 'none'
               }} />
             )}
+            
+            <canvas 
+              ref={fowCanvasRef}
+              width={BOARD_PX} 
+              height={BOARD_PX}
+              style={{
+                position: 'absolute', top: 0, left: 0, pointerEvents: 'none', zIndex: 1,
+                opacity: (userRole === 'dm' || userRole === 'admin') ? 0.35 : 1
+              }}
+            />
+            
+            {(userRole === 'dm' || userRole === 'admin') && Array.from(solidCells).map(cellKey => {
+              const [cx, cy] = cellKey.split(',').map(Number);
+              return (
+                <div key={`wall-${cellKey}`} style={{
+                  position: 'absolute',
+                  left: cx * CELL_PX,
+                  top: cy * CELL_PX,
+                  width: CELL_PX,
+                  height: CELL_PX,
+                  background: 'repeating-linear-gradient(45deg, #222 0px, #222 10px, #000 10px, #000 20px)',
+                  border: '1px solid #444',
+                  boxShadow: 'inset 0 0 15px black',
+                  pointerEvents: 'none',
+                  opacity: 0.8,
+                  zIndex: 2
+                }}>
+                  <div style={{ position: 'absolute', inset: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', opacity: 0.3, fontSize: '24px' }}>
+                    ❌
+                  </div>
+                </div>
+              );
+            })}
 
             <div ref={snapRef} style={{ display: 'none', position: 'absolute', width: CELL_PX, height: CELL_PX, background: 'rgba(200, 135, 42, 0.1)', border: '2px dashed var(--accent-gold)', borderRadius: '50%', pointerEvents: 'none', zIndex: 99 }} />
 
@@ -1035,8 +1803,128 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
             {boardTokens.filter(canSeeOnGrid).map((t: any) => {
               const isDragging = drag === t.instanceId;
               const isMyTeam = (userRole === 'dm' || (t.teamColor && t.teamColor === myTeam) || (currentUser && t.owner === currentUser.name));
-              const tokenOpacity = isDragging ? 0 : 1;
-              
+              const isAoe = t.type === 'aoe';
+              const tokenOpacity = isDragging && !isAoe ? 0 : 1;
+
+              if (isAoe) {
+                const aoe = t.aoeData;
+                const r = aoe?.rotation || 0;
+                let svgContent = null;
+                let w = CELL_PX;
+                let h = CELL_PX;
+                
+                if (aoe?.shape === 'circle') {
+                  const radPx = (aoe.size1 * CELL_PX);
+                  w = radPx * 2;
+                  h = radPx * 2;
+                  svgContent = <circle cx={radPx} cy={radPx} r={radPx} fill={aoe.color} fillOpacity={0.4} stroke={aoe.color} strokeWidth={2} />;
+                } else if (aoe?.shape === 'line') {
+                  const lengthPx = aoe.size1 * CELL_PX;
+                  const widthPx = aoe.size2 * CELL_PX;
+                  w = lengthPx;
+                  h = widthPx;
+                  svgContent = <rect x={0} y={0} width={lengthPx} height={widthPx} fill={aoe.color} fillOpacity={0.4} stroke={aoe.color} strokeWidth={2} />;
+                } else if (aoe?.shape === 'cone') {
+                  const lengthPx = aoe.size1 * CELL_PX;
+                  w = lengthPx;
+                  h = lengthPx;
+                  svgContent = <polygon points={`0,${lengthPx/2} ${lengthPx},0 ${lengthPx},${lengthPx}`} fill={aoe.color} fillOpacity={0.4} stroke={aoe.color} strokeWidth={2} strokeLinejoin="round" />;
+                } else if (aoe?.shape === 'cube') {
+                  const sizePx = aoe.size1 * CELL_PX;
+                  w = sizePx;
+                  h = sizePx;
+                  svgContent = <rect x={0} y={0} width={sizePx} height={sizePx} fill={aoe.color} fillOpacity={0.4} stroke={aoe.color} strokeWidth={2} />;
+                }
+                
+                let leftOffset = t.x * CELL_PX;
+                let topOffset = t.y * CELL_PX;
+                let transformOrigin = 'center';
+                
+                if (aoe?.shape === 'circle') {
+                  leftOffset = (t.x + 0.5) * CELL_PX - w / 2;
+                  topOffset = (t.y + 0.5) * CELL_PX - h / 2;
+                } else if (aoe?.shape === 'line' || aoe?.shape === 'cone') {
+                  leftOffset = (t.x + 0.5) * CELL_PX;
+                  topOffset = (t.y + 0.5) * CELL_PX - h / 2;
+                  transformOrigin = '0 50%';
+                }
+                
+                return (
+                  <div
+                    id={`token-${t.instanceId}`}
+                    data-rotation={r}
+                    key={t.instanceId}
+                    onMouseDown={(e) => handleTokenMouseDown(e, t.instanceId)}
+                    onClick={(e) => { 
+                      e.stopPropagation(); 
+                      if (wasDraggingRef.current) return;
+                      setSelectedAoeToken(t); 
+                      setActiveTokenId(t.instanceId); 
+                    }}
+                    style={{
+                      position: 'absolute',
+                      left: leftOffset,
+                      top: topOffset,
+                      width: w,
+                      height: h,
+                      cursor: isDragging ? 'grabbing' : 'pointer',
+                      zIndex: isDragging ? 1 : 5,
+                      opacity: tokenOpacity,
+                      transform: `rotate(${r}deg) ${activeTokenId === t.instanceId ? 'scale(1.05)' : ''}`,
+                      transformOrigin: transformOrigin,
+                      transition: isDragging ? 'none' : 'left 0.15s ease, top 0.15s ease, transform 0.2s',
+                      pointerEvents: 'none'
+                    }}
+                  >
+                    <svg width="100%" height="100%" style={{ display: 'block', pointerEvents: 'visiblePainted' }}>
+                      {svgContent}
+                    </svg>
+                  </div>
+                );
+              }
+
+              // Check if token is inside any AoE
+              let inAoeColor: string | null = null;
+              if (t.type === 'character' || t.type === 'monster') {
+                const tx = t.x + 0.5;
+                const ty = t.y + 0.5;
+                for (const a of boardTokens) {
+                  if (a.type === 'aoe' && a.aoeData) {
+                    const ax = a.x + 0.5;
+                    const ay = a.y + 0.5;
+                    const rRad = (a.aoeData.rotation || 0) * Math.PI / 180;
+                    
+                    const dx = tx - ax;
+                    const dy = ty - ay;
+                    const rdx = dx * Math.cos(-rRad) - dy * Math.sin(-rRad);
+                    const rdy = dx * Math.sin(-rRad) + dy * Math.cos(-rRad);
+                    
+                    let inside = false;
+                    if (a.aoeData.shape === 'circle') {
+                      const dist = Math.sqrt(dx*dx + dy*dy);
+                      if (dist <= a.aoeData.size1) inside = true;
+                    } else if (a.aoeData.shape === 'line') {
+                      const len = a.aoeData.size1;
+                      const wid = a.aoeData.size2;
+                      if (rdx >= 0 && rdx <= len && Math.abs(rdy) <= wid / 2) inside = true;
+                    } else if (a.aoeData.shape === 'cone') {
+                      const len = a.aoeData.size1;
+                      if (rdx >= 0 && rdx <= len && Math.abs(rdy) <= rdx / 2) inside = true;
+                    } else if (a.aoeData.shape === 'cube') {
+                      const s = a.aoeData.size1;
+                      const ctx = tx - a.x;
+                      const cty = ty - a.y;
+                      if (ctx >= 0 && ctx <= s && cty >= 0 && cty <= s) inside = true;
+                    }
+                    
+                    if (inside) {
+                      inAoeColor = a.aoeData.color;
+                      break;
+                    }
+                  }
+                }
+              }
+
               const isChest = t.type === 'chest';
               const isItem = t.type === 'item';
               const isNote = t.type === 'note';
@@ -1100,9 +1988,9 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                     background: isChest || isItem || isNote || isImage ? 'transparent' : (t.type === 'character' ? 'var(--accent-gold)' : 'var(--combat-red)'),
                     border: activeTokenId === t.instanceId ? '4px solid white' : (isChest || isItem || isNote || isImage ? '1px dashed rgba(255,255,255,0.4)' : '2px solid rgba(255,255,255,0.3)'),
                     overflow: isChest || isItem || isNote || isImage ? 'visible' : 'hidden',
-                    boxShadow: isChest || isItem || isNote || isImage ? 'none' : (t.teamColor ? `0 0 15px ${t.teamColor}` : '0 4px 10px rgba(0,0,0,0.5)'),
+                    boxShadow: inAoeColor ? `0 0 20px 5px ${inAoeColor}, inset 0 0 10px ${inAoeColor}` : (isChest || isItem || isNote || isImage ? 'none' : (t.teamColor ? `0 0 15px ${t.teamColor}` : '0 4px 10px rgba(0,0,0,0.5)')),
                     transform: activeTokenId === t.instanceId ? 'scale(1.1)' : 'scale(0.9)',
-                    transition: 'transform 0.1s'
+                    transition: 'transform 0.1s, box-shadow 0.3s'
                   }}>
                     {innerDisplay}
                   </div>
@@ -1119,7 +2007,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
 
         {/* COLUMNA DER: CHAT Y DADOS */}
         <div style={{ width: '300px', display: 'flex', borderLeft: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
-          <ChatPanel socket={socket} currentUser={currentUser} characters={characters} messages={chatMessages} />
+          <ChatPanel socket={socket} currentUser={currentUser} characters={characters} messages={chatMessages} blockRolls={blockRolls} />
         </div>
       </div>
 
@@ -1216,14 +2104,52 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
 
                 {/* Atributos */}
                 <div style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '15px' }}>
-                  {Object.entries(stats).map(([key, val]: [string, any]) => (
-                    <div key={key} style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', padding: '12px', textAlign: 'center' }}>
-                      <div className="font-cinzel" style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', fontWeight: 'bold', textTransform: 'uppercase' }}>{key}</div>
-                      <div className="mono" style={{ fontSize: '1.4rem', color: 'white', fontWeight: 'bold' }}>{val}</div>
-                      <div className="mono" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>{statMod(val)}</div>
-                    </div>
-                  ))}
+                  {Object.entries(stats).map(([key, val]: [string, any]) => {
+                    const mod = statMod(val);
+                    return (
+                      <div key={key} style={{ background: 'rgba(0,0,0,0.3)', border: '1px solid var(--border-color)', padding: '12px', textAlign: 'center' }}>
+                        <div className="font-cinzel" style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', fontWeight: 'bold', textTransform: 'uppercase' }}>{key}</div>
+                        <div className="mono" style={{ fontSize: '1.4rem', color: 'white', fontWeight: 'bold' }}>{val}</div>
+                        <div className="mono" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>Mod: {mod}</div>
+                        {isChar && <div className="mono" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', marginTop: '4px', fontWeight: 'bold' }}>TS: {mod}</div>}
+                      </div>
+                    );
+                  })}
                 </div>
+
+                {isChar && (() => {
+                  const selectedSkills = inventory?.habilidades || [];
+                  const level = characters.find((c: any) => c.id === item.originalId)?.level || 1;
+                  const pb = 1 + Math.ceil(level / 4);
+                  
+                  const phList = [
+                    { label: 'Atletismo', key: 'fue' },
+                    { label: 'Acrobacias', key: 'dex' }, { label: 'Juego de Manos', key: 'dex' }, { label: 'Sigilo', key: 'dex' },
+                    { label: 'Arcanos', key: 'int' }, { label: 'Historia', key: 'int' }, { label: 'Investigación', key: 'int' }, { label: 'Naturaleza', key: 'int' }, { label: 'Religión', key: 'int' },
+                    { label: 'Trato con Animales', key: 'sab' }, { label: 'Perspicacia', key: 'sab' }, { label: 'Medicina', key: 'sab' }, { label: 'Percepción', key: 'sab' }, { label: 'Supervivencia', key: 'sab' },
+                    { label: 'Engaño', key: 'car' }, { label: 'Intimidación', key: 'car' }, { label: 'Interpretación', key: 'car' }, { label: 'Persuasión', key: 'car' }
+                  ];
+
+                  return (
+                    <div>
+                      <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', marginBottom: '12px' }}>🎲 HABILIDADES</h4>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                        {phList.map(s => {
+                          const baseMod = Math.floor(((stats[s.key] || 10) - 10) / 2);
+                          const isProficient = selectedSkills.includes(s.label);
+                          const totalMod = baseMod + (isProficient ? pb : 0);
+                          const modStr = totalMod >= 0 ? `+${totalMod}` : `${totalMod}`;
+                          return (
+                            <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(0,0,0,0.2)', padding: '8px 12px', border: '1px solid var(--border-color)', borderRadius: '4px' }}>
+                              <span className="font-cinzel" style={{ fontSize: '0.75rem', color: isProficient ? 'var(--accent-gold)' : 'white' }}>{s.label} ({s.key.toUpperCase()})</span>
+                              <span className="mono" style={{ fontSize: '1rem', fontWeight: 'bold', color: isProficient ? 'var(--accent-gold)' : 'var(--text-secondary)' }}>{modStr}</span>
+                            </div>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  );
+                })()}
 
                 {/* Descripción */}
                 <div>
@@ -1380,6 +2306,115 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
           >
             🖼️ Agregar Imagen
           </button>
+        </div>
+      )}
+
+      {isCreatingAoe && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001 }} onClick={() => setIsCreatingAoe(false)}>
+          <div className="clipped-frame" style={{ background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', width: '100%', maxWidth: '400px', padding: '30px', boxShadow: '0 0 50px rgba(0,0,0,0.9)' }} onClick={e => e.stopPropagation()}>
+            <h3 className="font-cinzel" style={{ margin: '0 0 20px 0', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', textTransform: 'uppercase' }}>CREAR ÁREA DE EFECTO ({aoeForm.shape})</h3>
+            <form onSubmit={handleSpawnAoe}>
+              <div style={{ display: 'flex', gap: '20px', marginBottom: '20px' }}>
+                <div style={{ flex: 1 }}>
+                  <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>{aoeForm.shape === 'line' ? 'LARGO (Casillas)' : (aoeForm.shape === 'circle' ? 'RADIO (Casillas)' : 'TAMAÑO (Casillas)')}</label>
+                  <input
+                    type="number"
+                    min="1"
+                    value={aoeForm.size1}
+                    onChange={e => setAoeForm({...aoeForm, size1: parseInt(e.target.value) || 1})}
+                    style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white', padding: '12px', width: '100%', borderRadius: '4px', boxSizing: 'border-box', outline: 'none' }}
+                  />
+                </div>
+                {aoeForm.shape === 'line' && (
+                  <div style={{ flex: 1 }}>
+                    <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>ANCHO (Casillas)</label>
+                    <input
+                      type="number"
+                      min="1"
+                      value={aoeForm.size2}
+                      onChange={e => setAoeForm({...aoeForm, size2: parseInt(e.target.value) || 1})}
+                      style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white', padding: '12px', width: '100%', borderRadius: '4px', boxSizing: 'border-box', outline: 'none' }}
+                    />
+                  </div>
+                )}
+              </div>
+              
+              <div style={{ marginBottom: '20px' }}>
+                <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>COLOR DEL ÁREA</label>
+                <div style={{ display: 'flex', gap: '10px' }}>
+                  {['#ef4444', '#3b82f6', '#10b981', '#ecc94b', '#a855f7', '#ec4899', '#f97316', '#64748b'].map(color => (
+                    <div
+                      key={color}
+                      onClick={() => setAoeForm({...aoeForm, color})}
+                      style={{ width: '30px', height: '30px', borderRadius: '50%', background: color, cursor: 'pointer', border: aoeForm.color === color ? '3px solid white' : '1px solid rgba(255,255,255,0.3)', transform: aoeForm.color === color ? 'scale(1.1)' : 'scale(1)', transition: 'transform 0.1s' }}
+                    />
+                  ))}
+                </div>
+              </div>
+
+              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                <button type="button" onClick={() => setIsCreatingAoe(false)} className="font-cinzel" style={{ background: 'rgba(255,255,255,0.05)', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', padding: '10px 20px', cursor: 'pointer', borderRadius: '4px' }}>Cancelar</button>
+                <button type="submit" className="font-cinzel torch-glow" style={{ background: 'var(--accent-gold)', color: '#000', border: 'none', padding: '10px 25px', cursor: 'pointer', fontWeight: 'bold', borderRadius: '4px' }}>INVOCAR</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {selectedAoeToken && (
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001 }} onClick={() => setSelectedAoeToken(null)}>
+          <div className="clipped-frame" style={{ background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', width: '100%', maxWidth: '350px', padding: '30px', boxShadow: '0 0 50px rgba(0,0,0,0.9)' }} onClick={e => e.stopPropagation()}>
+            <h3 className="font-cinzel" style={{ margin: '0 0 20px 0', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>EDITAR ÁREA DE EFECTO</h3>
+            
+            <div style={{ marginBottom: '20px' }}>
+              <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>ROTACIÓN (Grados)</label>
+              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                <input
+                  type="range"
+                  min="0"
+                  max="360"
+                  value={selectedAoeToken.aoeData?.rotation || 0}
+                  onChange={e => {
+                    const newRot = parseInt(e.target.value) || 0;
+                    setSelectedAoeToken({...selectedAoeToken, aoeData: {...selectedAoeToken.aoeData, rotation: newRot}});
+                    socket.emit('token:update-aoe', { tokenId: selectedAoeToken.instanceId, aoeData: {...selectedAoeToken.aoeData, rotation: newRot} });
+                  }}
+                  style={{ flex: 1, accentColor: 'var(--accent-gold)' }}
+                />
+                <span className="mono" style={{ color: 'white', width: '40px', textAlign: 'right' }}>{selectedAoeToken.aoeData?.rotation || 0}°</span>
+              </div>
+            </div>
+
+            <div style={{ marginBottom: '30px' }}>
+              <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>COLOR DEL ÁREA</label>
+              <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                {['#ef4444', '#3b82f6', '#10b981', '#ecc94b', '#a855f7', '#ec4899', '#f97316', '#64748b'].map(color => (
+                  <div
+                    key={color}
+                    onClick={() => {
+                      setSelectedAoeToken({...selectedAoeToken, aoeData: {...selectedAoeToken.aoeData, color}});
+                      socket.emit('token:update-aoe', { tokenId: selectedAoeToken.instanceId, aoeData: {...selectedAoeToken.aoeData, color} });
+                    }}
+                    style={{ width: '30px', height: '30px', borderRadius: '50%', background: color, cursor: 'pointer', border: selectedAoeToken.aoeData?.color === color ? '3px solid white' : '1px solid rgba(255,255,255,0.3)', transform: selectedAoeToken.aoeData?.color === color ? 'scale(1.1)' : 'scale(1)', transition: 'transform 0.1s' }}
+                  />
+                ))}
+              </div>
+            </div>
+
+            <div style={{ display: 'flex', gap: '10px', justifyContent: 'space-between' }}>
+              <button
+                onClick={() => {
+                  socket.emit('token:remove', selectedAoeToken.instanceId);
+                  setSelectedAoeToken(null);
+                }}
+                className="font-cinzel"
+                style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--combat-red)', border: '1px solid var(--combat-red)', padding: '10px 15px', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold' }}
+              >
+                ELIMINAR ÁREA
+              </button>
+              <button onClick={() => setSelectedAoeToken(null)} className="font-cinzel" style={{ background: 'var(--accent-gold)', color: '#000', border: 'none', padding: '10px 20px', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold' }}>LISTO</button>
+            </div>
+          </div>
         </div>
       )}
 
@@ -1980,7 +3015,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
               {/* HEADER */}
               <div style={{ padding: '25px 30px', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '20px', alignItems: 'center', background: 'rgba(0,0,0,0.2)' }}>
                 <div style={{ width: '50px', height: '50px', border: '2px solid var(--accent-gold)', overflow: 'hidden', flexShrink: 0, background: 'rgba(0,0,0,0.4)', padding: '5px' }}>
-                  <ItemDropIcon rarity={item.rarity || 'Común'} />
+                  {item.image ? <img src={item.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ItemDropIcon rarity={item.rarity || 'Común'} />}
                 </div>
                 <div style={{ flex: 1 }}>
                   <h2 className="font-cinzel" style={{ margin: 0, fontSize: '1.6rem', color: 'var(--accent-gold)' }}>{item.name}</h2>
@@ -2048,11 +3083,252 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
         );
       })()}
 
+      {/* MODAL DE VIDA Y CONDICION */}
+      {healthModalToken && (() => {
+        const SPELLCASTING_CLASSES = ['Brujo', 'Bardo', 'Paladín', 'Mago', 'Hechicero', 'Druida', 'Clérigo'];
+        const SPELL_SLOTS_TABLE: Record<number, number[]> = {
+          1:[2,0,0,0,0,0,0,0,0], 2:[3,0,0,0,0,0,0,0,0], 3:[4,2,0,0,0,0,0,0,0], 4:[4,3,0,0,0,0,0,0,0],
+          5:[4,3,2,0,0,0,0,0,0], 6:[4,3,3,0,0,0,0,0,0], 7:[4,3,3,1,0,0,0,0,0], 8:[4,3,3,2,0,0,0,0,0],
+          9:[4,3,3,3,1,0,0,0,0], 10:[4,3,3,3,2,0,0,0,0], 11:[4,3,3,3,2,1,0,0,0], 12:[4,3,3,3,2,1,0,0,0],
+          13:[4,3,3,3,2,1,1,0,0], 14:[4,3,3,3,2,1,1,0,0], 15:[4,3,3,3,2,1,1,1,0], 16:[4,3,3,3,2,1,1,1,0],
+          17:[4,3,3,3,2,1,1,1,1], 18:[4,3,3,3,3,1,1,1,1], 19:[4,3,3,3,3,2,1,1,1], 20:[4,3,3,3,3,2,2,1,1],
+        };
+        const charSource = healthModalToken.type === 'character'
+          ? characters.find((c: any) => c.id === healthModalToken.originalId)
+          : null;
+        let parsedInv: any = {};
+        if (charSource?.inventory) {
+          try {
+            let tmp = charSource.inventory;
+            if (typeof tmp === 'string') tmp = JSON.parse(tmp);
+            if (typeof tmp === 'string') tmp = JSON.parse(tmp);
+            parsedInv = tmp || {};
+          } catch {}
+        }
+        let isSpellcaster = false;
+        let charLevel = 1;
+        if (charSource) {
+          charLevel = charSource.level || 1;
+          try {
+            const cls = typeof charSource.class === 'string' ? JSON.parse(charSource.class) : charSource.class;
+            isSpellcaster = Object.keys(cls || {}).some((c: string) => SPELLCASTING_CLASSES.includes(c));
+          } catch { isSpellcaster = SPELLCASTING_CLASSES.includes(charSource.class || ''); }
+          // Also treat as spellcaster if they have stored spell slots
+          if (!isSpellcaster && parsedInv?.slots && Object.keys(parsedInv.slots).length > 0) isSpellcaster = true;
+        }
+        const rawSpellSlots = parsedInv?.slots || {};
+        const spellSlotsUsed: Record<number, number> = {};
+        Object.entries(rawSpellSlots).forEach(([lvl, data]: [string, any]) => {
+          spellSlotsUsed[parseInt(lvl)] = parseInt(data?.used) || 0;
+        });
+        const effectiveUsed: Record<number, number> = { ...spellSlotsUsed, ...(healthModalToken._spellSlotsUsed || {}) };
+        const slotTable = SPELL_SLOTS_TABLE[Math.min(charLevel, 20)] || SPELL_SLOTS_TABLE[1];
+        const handleSpellSlotToggle = (level: number, slotIndex: number) => {
+          if (!charSource) return;
+          const maxForLevel = slotTable[level - 1];
+          const currentUsed = effectiveUsed[level] || 0;
+          const newUsed = Math.min(slotIndex < currentUsed ? slotIndex : slotIndex + 1, maxForLevel);
+          const newRawSlots = { ...rawSpellSlots, [level]: { max: maxForLevel, used: newUsed } };
+          const newInv = { ...parsedInv, slots: newRawSlots };
+          socket.emit('character:update', { ...charSource, inventory: JSON.stringify(newInv) });
+          setHealthModalToken({ ...healthModalToken, _spellSlotsUsed: { ...(healthModalToken._spellSlotsUsed || {}), [level]: newUsed } });
+        };
+        const hpPct = Math.min(100, (healthModalToken.hp / Math.max(1, healthModalToken.max_hp)) * 100);
+        const tmpPct = Math.min(100, ((healthModalToken.tempHp || 0) / Math.max(1, healthModalToken.max_hp)) * 100);
+        const hpColor = hpPct > 60 ? '#22c55e' : hpPct > 30 ? '#f59e0b' : '#ef4444';
+        return (
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.88)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001, backdropFilter: 'blur(4px)' }} onClick={() => setHealthModalToken(null)}>
+            <div className="clipped-frame" style={{ background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', width: '100%', maxWidth: '560px', padding: '28px 32px', boxShadow: '0 0 80px rgba(0,0,0,0.95), 0 0 40px rgba(200,135,42,0.15)', animation: 'healthModalIn 0.25s cubic-bezier(0.34,1.56,0.64,1) both' }} onClick={e => e.stopPropagation()}>
+
+              {/* HEADER */}
+              <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
+                <div style={{ width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', border: '2px solid var(--accent-gold)', flexShrink: 0, background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                  {healthModalToken.image ? <img src={healthModalToken.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '1.4rem' }}>{healthModalToken.type === 'character' ? '👤' : '👾'}</span>}
+                </div>
+                <div style={{ flex: 1 }}>
+                  <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontWeight: 'bold', fontSize: '1rem' }}>{healthModalToken.name}</div>
+                  <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+                    {healthModalToken.type === 'character' ? 'Héroe' : 'Criatura'} · {(healthModalToken.tempHp || 0) > 0 ? `${healthModalToken.tempHp} temp. HP` : 'Sin temp HP'}
+                  </div>
+                </div>
+                <button onClick={() => setHealthModalToken(null)} style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '1.6rem', cursor: 'pointer', lineHeight: 1, padding: '4px' }}>✕</button>
+              </div>
+
+              {/* HEALTH BAR */}
+              <div style={{ marginBottom: '18px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '6px' }}>
+                  <span className="font-cinzel" style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', letterSpacing: '1.5px' }}>PUNTOS DE GOLPE</span>
+                  <span className="mono" style={{ color: 'white', fontWeight: 'bold' }}>
+                    {healthModalToken.hp} <span style={{ color: 'var(--text-secondary)' }}>/ {healthModalToken.max_hp}</span>
+                    {(healthModalToken.tempHp || 0) > 0 && <span style={{ color: '#60a5fa', marginLeft: '6px' }}>+{healthModalToken.tempHp}</span>}
+                  </span>
+                </div>
+                <div style={{ width: '100%', height: '16px', background: 'rgba(0,0,0,0.5)', borderRadius: '8px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.07)', position: 'relative' }}>
+                  <div style={{ height: '100%', width: `${hpPct}%`, background: `linear-gradient(90deg, ${hpColor}cc, ${hpColor})`, borderRadius: '8px', transition: 'width 0.6s cubic-bezier(0.4,0,0.2,1), background 0.4s ease', boxShadow: `0 0 10px ${hpColor}80` }} />
+                  {(healthModalToken.tempHp || 0) > 0 && (
+                    <div style={{ position: 'absolute', top: 0, right: 0, height: '100%', width: `${tmpPct}%`, background: 'linear-gradient(90deg, rgba(96,165,250,0.4), rgba(96,165,250,0.8))', borderRadius: '0 8px 8px 0', transition: 'width 0.6s cubic-bezier(0.4,0,0.2,1)' }} />
+                  )}
+                </div>
+              </div>
+
+              {/* INPUT + 3 BUTTONS ROW */}
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '14px', marginBottom: '18px' }}>
+                <input
+                  type="number"
+                  min="0"
+                  value={healthInput}
+                  onChange={e => setHealthInput(e.target.value)}
+                  onKeyDown={e => {
+                    if (e.key === 'Enter') {
+                      const amt = parseInt(healthInput) || 0;
+                      if (amt > 0) {
+                        const newHp = Math.min(healthModalToken.max_hp, healthModalToken.hp + amt);
+                        socket.emit('token:update-combat-state', { tokenId: healthModalToken.instanceId, hp: newHp });
+                        setHealthModalToken({ ...healthModalToken, hp: newHp });
+                        setHealthInput('');
+                      }
+                    }
+                  }}
+                  placeholder="Cantidad..."
+                  style={{ width: '100%', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white', padding: '9px 14px', borderRadius: '6px', outline: 'none', fontSize: '1rem', fontFamily: 'monospace', fontWeight: 'bold', textAlign: 'center', boxSizing: 'border-box' }}
+                  autoFocus
+                />
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <button
+                    onClick={() => {
+                      const amt = parseInt(healthInput) || 0;
+                      if (amt > 0) {
+                        const newHp = Math.min(healthModalToken.max_hp, healthModalToken.hp + amt);
+                        socket.emit('token:update-combat-state', { tokenId: healthModalToken.instanceId, hp: newHp });
+                        setHealthModalToken({ ...healthModalToken, hp: newHp });
+                        setHealthInput('');
+                      }
+                    }}
+                    className="font-cinzel"
+                    style={{ flex: 1, background: '#16a34a', color: 'white', border: 'none', padding: '9px 0', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.72rem', letterSpacing: '0.5px', transition: 'filter 0.15s, transform 0.1s', boxShadow: '0 2px 8px rgba(22,163,74,0.35)' }}
+                    onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.2)'}
+                    onMouseLeave={e => e.currentTarget.style.filter = 'brightness(1)'}
+                    onMouseDown={e => e.currentTarget.style.transform = 'scale(0.96)'}
+                    onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                  >+ CURAR</button>
+                  <button
+                    onClick={() => {
+                      let amt = parseInt(healthInput) || 0;
+                      if (amt > 0) {
+                        let tempLeft = healthModalToken.tempHp || 0;
+                        let realHp = healthModalToken.hp;
+                        if (tempLeft >= amt) { tempLeft -= amt; }
+                        else { amt -= tempLeft; tempLeft = 0; realHp = Math.max(0, realHp - amt); }
+                        socket.emit('token:update-combat-state', { tokenId: healthModalToken.instanceId, hp: realHp, tempHp: tempLeft });
+                        setHealthModalToken({ ...healthModalToken, hp: realHp, tempHp: tempLeft });
+                        setHealthInput('');
+                      }
+                    }}
+                    className="font-cinzel"
+                    style={{ flex: 1, background: '#dc2626', color: 'white', border: 'none', padding: '9px 0', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.72rem', letterSpacing: '0.5px', transition: 'filter 0.15s, transform 0.1s', boxShadow: '0 2px 8px rgba(220,38,38,0.35)' }}
+                    onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.2)'}
+                    onMouseLeave={e => e.currentTarget.style.filter = 'brightness(1)'}
+                    onMouseDown={e => e.currentTarget.style.transform = 'scale(0.96)'}
+                    onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                  >− DAÑO</button>
+                  <button
+                    onClick={() => {
+                      const amt = parseInt(healthInput) || 0;
+                      const newTemp = Math.max(0, (healthModalToken.tempHp || 0) + amt);
+                      socket.emit('token:update-combat-state', { tokenId: healthModalToken.instanceId, tempHp: newTemp });
+                      setHealthModalToken({ ...healthModalToken, tempHp: newTemp });
+                      setHealthInput('');
+                    }}
+                    className="font-cinzel"
+                    style={{ flex: 1, background: '#475569', color: 'white', border: 'none', padding: '9px 0', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.72rem', letterSpacing: '0.5px', transition: 'filter 0.15s, transform 0.1s', boxShadow: '0 2px 8px rgba(71,85,105,0.35)' }}
+                    onMouseEnter={e => e.currentTarget.style.filter = 'brightness(1.2)'}
+                    onMouseLeave={e => e.currentTarget.style.filter = 'brightness(1)'}
+                    onMouseDown={e => e.currentTarget.style.transform = 'scale(0.96)'}
+                    onMouseUp={e => e.currentTarget.style.transform = 'scale(1)'}
+                  >TEMP</button>
+                </div>
+              </div>
+
+              {/* ESTADO / CONDICION */}
+              <div style={{ marginBottom: isSpellcaster ? '18px' : '0' }}>
+                <div className="font-cinzel" style={{ fontSize: '0.68rem', color: 'var(--text-secondary)', letterSpacing: '1.5px', marginBottom: '8px' }}>ESTADO</div>
+                <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap', marginBottom: '8px' }}>
+                  {['', '😵', '😨', '🔥', '❄️', '💤', '🛡️', '⚡', '🤢', '😡', '🤸'].map(emo => (
+                    <button
+                      key={emo || 'none'}
+                      onClick={() => setConditionInput(emo)}
+                      title={emo || 'Sin estado'}
+                      style={{ width: '34px', height: '34px', borderRadius: '6px', background: conditionInput === emo ? 'rgba(200,135,42,0.25)' : 'var(--bg-base)', border: conditionInput === emo ? '2px solid var(--accent-gold)' : '1px solid var(--border-color)', cursor: 'pointer', fontSize: '1.2rem', padding: 0, transition: 'all 0.15s', boxShadow: conditionInput === emo ? '0 0 8px rgba(200,135,42,0.4)' : 'none' }}
+                    >{emo || '✕'}</button>
+                  ))}
+                </div>
+                <div style={{ display: 'flex', gap: '8px' }}>
+                  <input
+                    type="text"
+                    value={conditionInput}
+                    onChange={e => setConditionInput(e.target.value)}
+                    placeholder="Emoji o texto corto..."
+                    maxLength={5}
+                    style={{ flex: 1, background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white', padding: '8px 12px', borderRadius: '6px', outline: 'none' }}
+                  />
+                  <button
+                    onClick={() => {
+                      socket.emit('token:update-combat-state', { tokenId: healthModalToken.instanceId, condition: conditionInput || null });
+                      setHealthModalToken({ ...healthModalToken, condition: conditionInput || null });
+                    }}
+                    className="font-cinzel"
+                    style={{ background: 'var(--accent-gold)', color: '#000', border: 'none', padding: '8px 16px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', fontSize: '0.75rem', whiteSpace: 'nowrap' }}
+                  >APLICAR</button>
+                </div>
+              </div>
+
+              {/* SPELL SLOTS */}
+              {isSpellcaster && (
+                <div style={{ marginTop: '18px', paddingTop: '16px', borderTop: '1px solid var(--border-color)' }}>
+                  <div className="font-cinzel" style={{ fontSize: '0.68rem', color: '#a78bfa', letterSpacing: '1.5px', marginBottom: '10px' }}>ESPACIOS DE CONJUROS</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    {slotTable.map((maxSlots, i) => {
+                      const level = i + 1;
+                      if (maxSlots === 0) return null;
+                      const used = effectiveUsed[level] || 0;
+                      return (
+                        <div key={level} style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                          <span className="mono" style={{ fontSize: '0.65rem', color: '#a78bfa', width: '24px', flexShrink: 0, textAlign: 'center', background: 'rgba(167,139,250,0.1)', border: '1px solid rgba(167,139,250,0.3)', borderRadius: '4px', padding: '2px 0' }}>N{level}</span>
+                          <div style={{ display: 'flex', gap: '6px', flexWrap: 'wrap' }}>
+                            {Array.from({ length: maxSlots }).map((_, si) => {
+                              const isSpent = si < used;
+                              return (
+                                <div
+                                  key={si}
+                                  onClick={() => handleSpellSlotToggle(level, si)}
+                                  title={isSpent ? `Espacio ${si+1} gastado — clic para recuperar` : `Gastar espacio ${si+1}`}
+                                  style={{ width: '20px', height: '20px', borderRadius: '50%', border: `2px solid ${isSpent ? 'rgba(167,139,250,0.25)' : '#a78bfa'}`, background: isSpent ? 'transparent' : 'rgba(167,139,250,0.85)', cursor: 'pointer', transition: 'all 0.3s cubic-bezier(0.34,1.56,0.64,1)', boxShadow: isSpent ? 'none' : '0 0 10px rgba(167,139,250,0.55)', transform: isSpent ? 'scale(0.8)' : 'scale(1)' }}
+                                />
+                              );
+                            })}
+                          </div>
+                          <span style={{ fontSize: '0.6rem', color: 'var(--text-secondary)', marginLeft: 'auto', flexShrink: 0 }}>{maxSlots - used}/{maxSlots}</span>
+                        </div>
+                      );
+                    })}
+                  </div>
+                </div>
+              )}
+
+            </div>
+          </div>
+        );
+      })()}
+
       <style>{`
         @keyframes pulse {
           0% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.7); }
           70% { box-shadow: 0 0 0 30px rgba(239, 68, 68, 0); }
           100% { box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+        }
+        @keyframes healthModalIn {
+          from { opacity: 0; transform: scale(0.88) translateY(24px); }
+          to   { opacity: 1; transform: scale(1) translateY(0); }
         }
         @keyframes tsEntry {
           from { opacity: 0; transform: translate(-50%, -50%) scale(0.8); }

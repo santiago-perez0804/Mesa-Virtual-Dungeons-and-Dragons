@@ -244,12 +244,20 @@ const cleanNameForMatching = (name: string): string => {
   return s;
 };
 
-export const DatabaseView = ({ compendium, socket, userRole }: any) => {
+export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpenId, onCloseOverlay }: any) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState<'all' | 'monster' | 'spell' | 'item' | 'class' | 'subclass' | 'race' | 'subrace' | 'condition' | 'features'>('all');
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 24;
+
+  // EFECTO PARA OVERLAY
+  useEffect(() => {
+    if (isOverlay && forceOpenId && compendium && compendium.length > 0) {
+      const item = compendium.find((d: any) => d.id === forceOpenId || d.name === forceOpenId);
+      if (item) setSelectedItem(item);
+    }
+  }, [isOverlay, forceOpenId, compendium]);
 
   // Estados de Creación / Edición
   const [isCreating, setIsCreating] = useState(false);
@@ -1559,8 +1567,17 @@ export const DatabaseView = ({ compendium, socket, userRole }: any) => {
   };
 
 
+
+  // When used as overlay, we only need the fixed-position detail modal.
+  // The main layout must NOT render with display:none because position:fixed
+  // children are clipped by it.
+  if (isOverlay) {
+    if (!selectedItem) return null;
+    // Render just the detail panel trigger — the IIFE below will handle it
+  }
+
   return (
-    <div style={{ width: '100%', height: 'calc(100vh - 120px)', background: 'var(--bg-base)', display: 'flex', overflow: 'hidden' }}>
+    <div style={{ width: '100%', height: isOverlay ? 0 : 'calc(100vh - 120px)', background: 'var(--bg-base)', display: 'flex', overflow: isOverlay ? 'visible' : 'hidden' }}>
       {/* SIDEBAR DE CATEGORÍAS */}
       <div style={{ width: '220px', background: 'var(--bg-surface)', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', padding: '30px 0' }}>
         <div style={{ padding: '0 20px', marginBottom: '30px' }}>
@@ -3041,7 +3058,7 @@ export const DatabaseView = ({ compendium, socket, userRole }: any) => {
                 // };
 
                 return (
-                  <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '40px' }} onClick={() => setSelectedItem(null)}>
+                  <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '40px' }} onClick={() => { setSelectedItem(null); if (isOverlay && onCloseOverlay) onCloseOverlay(); }}>
                     <div className="clipped-frame" style={{ background: 'var(--bg-surface)', border: '1px solid var(--border-color)', width: '100%', maxWidth: '900px', maxHeight: '90vh', overflowY: 'auto', padding: '40px', boxShadow: '0 0 100px rgba(0,0,0,1)' }} onClick={e => e.stopPropagation()}>
                       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '30px', borderBottom: '2px solid var(--border-color)', paddingBottom: '20px' }}>
                         <div>
