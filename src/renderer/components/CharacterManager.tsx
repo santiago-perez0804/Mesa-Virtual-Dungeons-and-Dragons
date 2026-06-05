@@ -232,7 +232,8 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     setFeaturesLoading(true);
     setClassFeatures([]);
     try {
-      const res = await fetch(`http://localhost:3000/api/class-features/${encodeURIComponent(className)}`);
+      const host = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
+      const res = await fetch(`${host}/api/class-features/${encodeURIComponent(className)}`);
       const data = await res.json();
       setClassFeatures(Array.isArray(data) ? data : []);
     } catch (e) {
@@ -240,6 +241,12 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     }
     setFeaturesLoading(false);
   };
+
+  useEffect(() => {
+    if (isCreating && charClass) {
+      fetchClassFeatures(charClass);
+    }
+  }, [isCreating, charClass]);
 
   const openCharacterSheet = (c: any) => {
     setSelectedCharacter(c);
@@ -567,6 +574,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
                   {c.name}
                 </div>
                 <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '1px' }}>Nivel {c.level || 1}</div>
+                <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '4px', fontStyle: 'italic', opacity: 0.8 }}>De: {c.owner || 'Anónimo'}</div>
                 <div style={{ fontSize: '0.7rem', color: 'var(--text-parchment)', textAlign: 'center', marginTop: '5px', opacity: 0.7 }}>{Object.keys(parsedCls)[0]}</div>
               </div>
             );
@@ -1208,9 +1216,22 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
                             <span style={{ color: 'var(--accent-gold)', marginRight: '10px', fontSize: '1.1rem' }}>✦</span>
                             <span>Competencia con salvaciones de <strong>{charClass === 'Guerrero' ? 'FUE y CON' : 'INT y SAB'}</strong>.</span>
                           </div>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', fontSize: '0.95rem', color: 'var(--text-parchment)', lineHeight: '1.5', opacity: 0.75 }}>
-                            <span style={{ color: 'var(--accent-gold)', marginRight: '10px', fontSize: '1.1rem' }}>✦</span>
-                            <span>Rasgo de Clase: <em>Por definir...</em></span>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                            {featuresLoading ? (
+                              <div style={{ color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.85rem' }}>Cargando rasgos...</div>
+                            ) : classFeatures.filter(f => f.level_acquired === 1).length > 0 ? (
+                              classFeatures.filter(f => f.level_acquired === 1).map((f, idx) => (
+                                <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', fontSize: '0.95rem', color: 'var(--text-parchment)', lineHeight: '1.5' }}>
+                                  <span style={{ color: 'var(--accent-gold)', marginRight: '10px', fontSize: '1.1rem' }}>◈</span>
+                                  <span><strong>{f.feature_name}:</strong> {f.description}</span>
+                                </div>
+                              ))
+                            ) : (
+                              <div style={{ display: 'flex', alignItems: 'flex-start', fontSize: '0.95rem', color: 'var(--text-parchment)', lineHeight: '1.5' }}>
+                                <span style={{ color: 'var(--accent-gold)', marginRight: '10px', fontSize: '1.1rem' }}>✦</span>
+                                <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>Sin rasgos registrados para Nivel 1.</span>
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>

@@ -1135,7 +1135,7 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
       }}>
         <div className="clipped-frame" style={{
           background: 'var(--bg-surface)', border: '2px solid var(--border-color)',
-          width: '90%', maxWidth: '800px', padding: '40px', position: 'relative',
+          width: '90%', maxWidth: '800px', padding: '25px', position: 'relative', maxHeight: '90vh', overflowY: 'auto',
           boxShadow: '0 25px 80px rgba(0,0,0,0.9)', display: 'flex', flexDirection: 'column', gap: '30px'
         }}>
           {/* Header */}
@@ -1413,7 +1413,7 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
       }}>
         <div className="clipped-frame" style={{
           background: 'var(--bg-surface)', border: '2px solid var(--border-color)',
-          width: '90%', maxWidth: '700px', padding: '40px', position: 'relative',
+          width: '90%', maxWidth: '700px', padding: '25px', position: 'relative', maxHeight: '90vh', overflowY: 'auto',
           boxShadow: '0 25px 80px rgba(0,0,0,0.9)', display: 'flex', flexDirection: 'column', gap: '25px'
         }}>
           {/* Header */}
@@ -1493,7 +1493,7 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
       }} onClick={() => setIsEditingFeature(false)}>
         <div className="clipped-frame" style={{
           background: 'var(--bg-surface)', border: '2px solid var(--border-color)',
-          width: '90%', maxWidth: '600px', padding: '40px', position: 'relative',
+          width: '90%', maxWidth: '600px', padding: '25px', position: 'relative', maxHeight: '90vh', overflowY: 'auto',
           boxShadow: '0 25px 80px rgba(0,0,0,0.9)', display: 'flex', flexDirection: 'column', gap: '30px'
         }} onClick={e => e.stopPropagation()}>
           

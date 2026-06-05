@@ -1329,7 +1329,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                     {(() => {
                       if (initIndex !== -1) {
                         return (
-                          <div style={{ position: 'absolute', top: '-6px', right: '-6px', width: '22px', height: '22px', background: isTheirTurn ? 'var(--natural-green)' : 'var(--accent-gold)', borderRadius: '50%', color: isTheirTurn ? 'white' : 'black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold', zIndex: 5, boxShadow: '0 0 5px rgba(0,0,0,0.5)' }}>
+                          <div style={{ position: 'absolute', top: '4px', right: '4px', width: '22px', height: '22px', background: isTheirTurn ? 'var(--natural-green)' : 'var(--accent-gold)', borderRadius: '50%', color: isTheirTurn ? 'white' : 'black', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.8rem', fontWeight: 'bold', zIndex: 5, boxShadow: '0 0 5px rgba(0,0,0,0.5)' }}>
                             {initIndex + 1}
                           </div>
                         );
@@ -1354,7 +1354,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                             }}
                             onMouseEnter={(e) => { e.currentTarget.style.transform = 'scale(1.1)'; }}
                             onMouseLeave={(e) => { e.currentTarget.style.transform = 'scale(1)'; }}
-                            style={{ position: 'absolute', top: '-6px', right: '-6px', width: '22px', height: '22px', background: 'var(--bg-surface)', border: '1px solid var(--accent-gold)', borderRadius: '50%', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold', zIndex: 5, boxShadow: '0 0 5px rgba(0,0,0,0.5)', cursor: 'pointer', transition: 'transform 0.1s' }}
+                            style={{ position: 'absolute', top: '4px', right: '4px', width: '22px', height: '22px', background: 'var(--bg-surface)', border: '1px solid var(--accent-gold)', borderRadius: '50%', color: 'var(--text-secondary)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '0.7rem', fontWeight: 'bold', zIndex: 5, boxShadow: '0 0 5px rgba(0,0,0,0.5)', cursor: 'pointer', transition: 'transform 0.1s' }}
                           >
                             {modStr}
                           </div>
@@ -2018,7 +2018,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
         </div>
 
         {/* COLUMNA DER: CHAT Y DADOS */}
-        <div style={{ width: '300px', display: 'flex', borderLeft: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
+        <div style={{ width: '300px', minWidth: '300px', flexShrink: 0, display: 'flex', borderLeft: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
           <ChatPanel socket={socket} currentUser={currentUser} characters={characters} messages={chatMessages} blockRolls={blockRolls} />
         </div>
       </div>
@@ -2375,25 +2375,65 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
 
       {selectedAoeToken && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001 }} onClick={() => setSelectedAoeToken(null)}>
-          <div className="clipped-frame" style={{ background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', width: '100%', maxWidth: '350px', padding: '30px', boxShadow: '0 0 50px rgba(0,0,0,0.9)' }} onClick={e => e.stopPropagation()}>
+          <div className="clipped-frame" style={{ background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', width: '100%', maxWidth: '450px', padding: '30px', boxShadow: '0 0 50px rgba(0,0,0,0.9)' }} onClick={e => e.stopPropagation()}>
             <h3 className="font-cinzel" style={{ margin: '0 0 20px 0', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>EDITAR ÁREA DE EFECTO</h3>
             
-            <div style={{ marginBottom: '20px' }}>
-              <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>ROTACIÓN (Grados)</label>
-              <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                <input
-                  type="range"
-                  min="0"
-                  max="360"
-                  value={selectedAoeToken.aoeData?.rotation || 0}
-                  onChange={e => {
-                    const newRot = parseInt(e.target.value) || 0;
-                    setSelectedAoeToken({...selectedAoeToken, aoeData: {...selectedAoeToken.aoeData, rotation: newRot}});
-                    socket.emit('token:update-aoe', { tokenId: selectedAoeToken.instanceId, aoeData: {...selectedAoeToken.aoeData, rotation: newRot} });
-                  }}
-                  style={{ flex: 1, accentColor: 'var(--accent-gold)' }}
-                />
-                <span className="mono" style={{ color: 'white', width: '40px', textAlign: 'right' }}>{selectedAoeToken.aoeData?.rotation || 0}°</span>
+            <div style={{ marginBottom: '20px', display: 'flex', gap: '20px', alignItems: 'center' }}>
+              <div style={{ flex: 1 }}>
+                <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>ROTACIÓN (Grados)</label>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <input
+                    type="range"
+                    min="0"
+                    max="360"
+                    value={selectedAoeToken.aoeData?.rotation || 0}
+                    onChange={e => {
+                      const newRot = parseInt(e.target.value) || 0;
+                      setSelectedAoeToken({...selectedAoeToken, aoeData: {...selectedAoeToken.aoeData, rotation: newRot}});
+                      socket.emit('token:update-aoe', { tokenId: selectedAoeToken.instanceId, aoeData: {...selectedAoeToken.aoeData, rotation: newRot} });
+                    }}
+                    style={{ flex: 1, accentColor: 'var(--accent-gold)' }}
+                  />
+                  <span className="mono" style={{ color: 'white', width: '40px', textAlign: 'right' }}>{selectedAoeToken.aoeData?.rotation || 0}°</span>
+                </div>
+              </div>
+              
+              <div style={{ width: '60px', height: '60px', border: '1px solid var(--border-color)', background: '#0a0a0a', position: 'relative', borderRadius: '4px', display: 'flex', alignItems: 'center', justifyContent: 'center', overflow: 'visible' }}>
+                {(() => {
+                  const aoe = selectedAoeToken.aoeData;
+                  if (!aoe) return null;
+                  const miniCell = 10;
+                  const r = aoe.rotation || 0;
+                  let svgContent = null;
+                  let w = miniCell, h = miniCell;
+                  let transformOrigin = 'center';
+                  
+                  if (aoe.shape === 'circle') {
+                    const radPx = aoe.size1 * miniCell;
+                    w = radPx * 2; h = radPx * 2;
+                    svgContent = <circle cx={radPx} cy={radPx} r={radPx} fill={aoe.color} fillOpacity={0.6} stroke={aoe.color} strokeWidth={1} />;
+                  } else if (aoe.shape === 'line') {
+                    w = aoe.size1 * miniCell; h = aoe.size2 * miniCell;
+                    svgContent = <rect x={0} y={0} width={w} height={h} fill={aoe.color} fillOpacity={0.6} stroke={aoe.color} strokeWidth={1} />;
+                    transformOrigin = '0 50%';
+                  } else if (aoe.shape === 'cone') {
+                    w = aoe.size1 * miniCell; h = w;
+                    svgContent = <polygon points={`0,${h/2} ${w},0 ${w},${h}`} fill={aoe.color} fillOpacity={0.6} stroke={aoe.color} strokeWidth={1} strokeLinejoin="round" />;
+                    transformOrigin = '0 50%';
+                  } else if (aoe.shape === 'cube') {
+                    w = aoe.size1 * miniCell; h = w;
+                    svgContent = <rect x={0} y={0} width={w} height={h} fill={aoe.color} fillOpacity={0.6} stroke={aoe.color} strokeWidth={1} />;
+                  }
+                  
+                  return (
+                    <div style={{ position: 'relative', width: w, height: h, transform: `rotate(${r}deg)`, transformOrigin }}>
+                      <svg width={w} height={h} style={{ overflow: 'visible' }}>
+                        {svgContent}
+                        <circle cx={transformOrigin === 'center' ? w/2 : 0} cy={h/2} r={2} fill="white" />
+                      </svg>
+                    </div>
+                  );
+                })()}
               </div>
             </div>
 

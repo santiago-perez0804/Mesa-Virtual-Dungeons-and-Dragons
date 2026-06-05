@@ -994,8 +994,8 @@ export const startServer = async () => {
     s.emit('character:list', list);
   }
 
-  async function refreshAllCharacters() {
-    const allSockets = await io.fetchSockets();
+  function refreshAllCharacters() {
+    const allSockets = Array.from(io.sockets.sockets.values());
     allSockets.forEach(s => sendCharactersToSocket(s));
   }
 
