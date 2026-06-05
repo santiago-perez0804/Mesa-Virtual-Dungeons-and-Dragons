@@ -529,7 +529,8 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
     if (file) {
       const formData = new FormData();
       formData.append('file', file);
-      const uploadUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000/api/upload?folder=compendium' : `${window.location.origin}/api/upload?folder=compendium`;
+      const backendUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+      const uploadUrl = `${backendUrl}/api/upload?folder=compendium`;
       
       try {
         const res = await fetch(uploadUrl, { method: 'POST', body: formData });

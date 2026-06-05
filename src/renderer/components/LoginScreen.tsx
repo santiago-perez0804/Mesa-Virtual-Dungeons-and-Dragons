@@ -75,7 +75,8 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
     if (file) {
       const formData = new FormData();
       formData.append('file', file);
-      const uploadUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000/api/upload?folder=users' : `${window.location.origin}/api/upload?folder=users`;
+      const backendUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+      const uploadUrl = `${backendUrl}/api/upload?folder=users`;
       
       try {
         const res = await fetch(uploadUrl, { method: 'POST', body: formData });

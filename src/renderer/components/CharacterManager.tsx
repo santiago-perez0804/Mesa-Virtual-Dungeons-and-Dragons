@@ -279,7 +279,8 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     if (file) {
       const formData = new FormData();
       formData.append('file', file);
-      const uploadUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000/api/upload?folder=avatars' : `${window.location.origin}/api/upload?folder=avatars`;
+      const backendUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+      const uploadUrl = `${backendUrl}/api/upload?folder=avatars`;
       
       try {
         const res = await fetch(uploadUrl, { method: 'POST', body: formData });
@@ -1770,7 +1771,8 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
                                   if (file) {
                                     const formData = new FormData();
                                     formData.append('file', file);
-                                    const uploadUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000/api/upload?folder=full_body' : `${window.location.origin}/api/upload?folder=full_body`;
+                                    const backendUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+                                    const uploadUrl = `${backendUrl}/api/upload?folder=full_body`;
                                     try {
                                       const res = await fetch(uploadUrl, { method: 'POST', body: formData });
                                       const data = await res.json();
