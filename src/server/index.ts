@@ -6,6 +6,8 @@ import { db, initDB, updateCompendiumItem } from './db.js';
 import { runFullImport } from './seeder.js';
 import { initAI, startAISession, sendChatMessageToAI, sendDiceRollToAI, endAISession, isAISessionActive } from './ai-dm.js';
 import { initImageAI, generateItemImage } from './ai-image.js';
+import multer from 'multer';
+import { subirAvatarS3 } from './services/s3Service.js';
 
 // Helpers de Parseo Seguro de JSON para prevenir double-serialization o spreads corruptos
 function safeParseJSON(field: any, defaultVal: any): any {
@@ -89,6 +91,7 @@ let combatState = {
 
 const app = express();
 app.use(express.json());
+const upload = multer({ storage: multer.memoryStorage() });
 
 // Middleware de CORS para que el frontend (Vite en puerto 5173) pueda consumir la API
 app.use((req, res, next) => {
@@ -394,6 +397,37 @@ export const startServer = async () => {
   await runFullImport();
   initAI();
   initImageAI();
+
+  app.post('/api/personaje/:id/avatar', upload.single('avatar'), async (req: any, res: any) => {
+    try {
+      const { id } = req.params;
+      const archivo = req.file;
+
+      if (!archivo) {
+        res.status(400).json({ error: 'No se subió ninguna imagen' });
+        return;
+      }
+
+      // 1. Subir a AWS S3
+      const urlS3 = await subirAvatarS3(archivo.originalname, archivo.buffer, archivo.mimetype);
+
+      // 2. Guardar la URL en SQLite
+      db.prepare('UPDATE characters SET image = ? WHERE id = ?').run(urlS3, id);
+
+      // 3. Notificar a todos los clientes del cambio
+      await refreshAllCharacters();
+
+      res.json({ 
+        success: true, 
+        message: 'Avatar actualizado', 
+        url: urlS3 
+      });
+
+    } catch (error: any) {
+      console.error("Error al subir avatar:", error);
+      res.status(500).json({ error: 'Error al procesar el avatar', details: error.message });
+    }
+  });
 
   let activeAiCampaignId: number | null = null;
 
