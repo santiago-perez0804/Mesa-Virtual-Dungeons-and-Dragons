@@ -274,12 +274,25 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
 
   // --- LÓGICA DE PERSONAJES ---
 
-  const handleImageUpload = (e: any) => {
+  const handleImageUpload = async (e: any) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => setImage(ev.target?.result as string);
-      reader.readAsDataURL(file);
+      const formData = new FormData();
+      formData.append('file', file);
+      const uploadUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000/api/upload?folder=avatars' : `${window.location.origin}/api/upload?folder=avatars`;
+      
+      try {
+        const res = await fetch(uploadUrl, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          setImage(data.url);
+        } else {
+          alert('Error al subir imagen: ' + data.error);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error de conexión al subir la imagen');
+      }
     }
   };
 
@@ -1752,16 +1765,25 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
                                 type="file" 
                                 accept="image/*" 
                                 style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
-                                onChange={(e: any) => {
+                                onChange={async (e: any) => {
                                   const file = e.target.files[0];
                                   if (file) {
-                                    const reader = new FileReader();
-                                    reader.onload = (ev) => {
-                                      const newImg = ev.target?.result as string;
-                                      socket.emit('character:update', { ...selectedCharacter, full_body_image: newImg });
-                                      setSelectedCharacter({ ...selectedCharacter, full_body_image: newImg });
-                                    };
-                                    reader.readAsDataURL(file);
+                                    const formData = new FormData();
+                                    formData.append('file', file);
+                                    const uploadUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000/api/upload?folder=full_body' : `${window.location.origin}/api/upload?folder=full_body`;
+                                    try {
+                                      const res = await fetch(uploadUrl, { method: 'POST', body: formData });
+                                      const data = await res.json();
+                                      if (data.success) {
+                                        socket.emit('character:update', { ...selectedCharacter, full_body_image: data.url });
+                                        setSelectedCharacter({ ...selectedCharacter, full_body_image: data.url });
+                                      } else {
+                                        alert('Error al subir la imagen: ' + data.error);
+                                      }
+                                    } catch (err) {
+                                      console.error(err);
+                                      alert('Error de conexión al subir la imagen');
+                                    }
                                   }
                                 }}
                               />

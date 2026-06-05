@@ -70,12 +70,25 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
     socket.emit('auth:register', { username: newUsername.trim(), password: newPassword, role: 'player', profile_image: newProfileImage });
   };
 
-  const handleRegisterImage = (e: any) => {
+  const handleRegisterImage = async (e: any) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => setNewProfileImage(ev.target?.result as string);
-      reader.readAsDataURL(file);
+      const formData = new FormData();
+      formData.append('file', file);
+      const uploadUrl = window.location.hostname === 'localhost' ? 'http://localhost:3000/api/upload?folder=users' : `${window.location.origin}/api/upload?folder=users`;
+      
+      try {
+        const res = await fetch(uploadUrl, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          setNewProfileImage(data.url);
+        } else {
+          alert('Error al subir imagen: ' + data.error);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error de conexión al subir la imagen');
+      }
     }
   };
 

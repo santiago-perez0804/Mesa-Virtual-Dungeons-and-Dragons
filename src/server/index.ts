@@ -7,7 +7,7 @@ import { runFullImport } from './seeder.js';
 import { initAI, startAISession, sendChatMessageToAI, sendDiceRollToAI, endAISession, isAISessionActive } from './ai-dm.js';
 import { initImageAI, generateItemImage } from './ai-image.js';
 import multer from 'multer';
-import { subirAvatarS3 } from './services/s3Service.js';
+import { uploadToS3 } from './services/s3Service.js';
 
 // Helpers de Parseo Seguro de JSON para prevenir double-serialization o spreads corruptos
 function safeParseJSON(field: any, defaultVal: any): any {
@@ -398,10 +398,10 @@ export const startServer = async () => {
   initAI();
   initImageAI();
 
-  app.post('/api/personaje/:id/avatar', upload.single('avatar'), async (req: any, res: any) => {
+  app.post('/api/upload', upload.single('file'), async (req: any, res: any) => {
     try {
-      const { id } = req.params;
       const archivo = req.file;
+      const folder = req.query.folder || 'misc'; // Se lee la ruta/carpeta por query param
 
       if (!archivo) {
         res.status(400).json({ error: 'No se subió ninguna imagen' });
@@ -409,23 +409,18 @@ export const startServer = async () => {
       }
 
       // 1. Subir a AWS S3
-      const urlS3 = await subirAvatarS3(archivo.originalname, archivo.buffer, archivo.mimetype);
-
-      // 2. Guardar la URL en SQLite
-      db.prepare('UPDATE characters SET image = ? WHERE id = ?').run(urlS3, id);
-
-      // 3. Notificar a todos los clientes del cambio
-      await refreshAllCharacters();
+      const uniqueName = `${Date.now()}_${Math.round(Math.random() * 1E9)}_${archivo.originalname.replace(/\s+/g, '_')}`;
+      const urlS3 = await uploadToS3(uniqueName, archivo.buffer, archivo.mimetype, folder);
 
       res.json({ 
         success: true, 
-        message: 'Avatar actualizado', 
+        message: 'Archivo subido correctamente', 
         url: urlS3 
       });
 
     } catch (error: any) {
-      console.error("Error al subir avatar:", error);
-      res.status(500).json({ error: 'Error al procesar el avatar', details: error.message });
+      console.error("Error al subir archivo a S3:", error);
+      res.status(500).json({ error: 'Error al procesar el archivo', details: error.message });
     }
   });
 
