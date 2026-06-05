@@ -127,15 +127,26 @@ function App() {
     socket.emit('campaign:request');
   };
 
-  const handleProfileImageChange = (e: any) => {
+  const handleProfileImageChange = async (e: any) => {
     const file = e.target.files[0];
     if (file) {
-      const reader = new FileReader();
-      reader.onload = (ev) => {
-        const base64 = ev.target?.result as string;
-        socket.emit('auth:update_profile', { profile_image: base64 });
-      };
-      reader.readAsDataURL(file);
+      const formData = new FormData();
+      formData.append('file', file);
+      const backendUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+      const uploadUrl = `${backendUrl}/api/upload?folder=users`;
+      
+      try {
+        const res = await fetch(uploadUrl, { method: 'POST', body: formData });
+        const data = await res.json();
+        if (data.success) {
+          socket.emit('auth:update_profile', { profile_image: data.url });
+        } else {
+          alert('Error al actualizar foto de perfil: ' + data.error);
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error de conexión al subir la imagen de perfil');
+      }
     }
   };
 
