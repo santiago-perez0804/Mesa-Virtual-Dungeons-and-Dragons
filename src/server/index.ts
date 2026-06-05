@@ -972,3 +972,8 @@ export const startServer = async () => {
 
   httpServer.listen(3000, () => console.log('🚀 Server en http://localhost:3000'));
 };
+
+// Si se ejecuta directamente en Node/EC2 (fuera de Electron), arranca automáticamente
+if (!process.versions.electron) {
+  startServer();
+}
