@@ -1335,7 +1335,6 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                       parsedInv = temp || {};
                     } catch(e) {}
                   }
-                  const spellSlots = parsedInv?.slots || null;
 
                   const initIndex = combatState.initiativeOrder.findIndex(i => i.tokenId === t.instanceId);
                   const isTheirTurn = combatState.turnModeActive && initIndex !== -1 && combatState.currentTurnIndex === initIndex;
@@ -1898,18 +1897,9 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                   svgContent = <rect x={0} y={0} width={sizePx} height={sizePx} fill={aoe.color} fillOpacity={0.4} stroke={aoe.color} strokeWidth={2} />;
                 }
                 
-                let leftOffset = t.x * CELL_PX;
-                let topOffset = t.y * CELL_PX;
+                let leftOffset = (t.x + 0.5) * CELL_PX - w / 2;
+                let topOffset = (t.y + 0.5) * CELL_PX - h / 2;
                 let transformOrigin = 'center';
-                
-                if (aoe?.shape === 'circle') {
-                  leftOffset = (t.x + 0.5) * CELL_PX - w / 2;
-                  topOffset = (t.y + 0.5) * CELL_PX - h / 2;
-                } else if (aoe?.shape === 'line' || aoe?.shape === 'cone') {
-                  leftOffset = (t.x + 0.5) * CELL_PX;
-                  topOffset = (t.y + 0.5) * CELL_PX - h / 2;
-                  transformOrigin = '0 50%';
-                }
                 
                 return (
                   <div
@@ -2489,11 +2479,9 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                   } else if (aoe.shape === 'line') {
                     w = aoe.size1 * miniCell; h = aoe.size2 * miniCell;
                     svgContent = <rect x={0} y={0} width={w} height={h} fill={aoe.color} fillOpacity={0.6} stroke={aoe.color} strokeWidth={1} />;
-                    transformOrigin = '0 50%';
                   } else if (aoe.shape === 'cone') {
                     w = aoe.size1 * miniCell; h = w;
                     svgContent = <polygon points={`0,${h/2} ${w},0 ${w},${h}`} fill={aoe.color} fillOpacity={0.6} stroke={aoe.color} strokeWidth={1} strokeLinejoin="round" />;
-                    transformOrigin = '0 50%';
                   } else if (aoe.shape === 'cube') {
                     w = aoe.size1 * miniCell; h = w;
                     svgContent = <rect x={0} y={0} width={w} height={h} fill={aoe.color} fillOpacity={0.6} stroke={aoe.color} strokeWidth={1} />;
@@ -2503,7 +2491,6 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                     <div style={{ position: 'relative', width: w, height: h, transform: `rotate(${r}deg)`, transformOrigin }}>
                       <svg width={w} height={h} style={{ overflow: 'visible' }}>
                         {svgContent}
-                        <circle cx={transformOrigin === 'center' ? w/2 : 0} cy={h/2} r={2} fill="white" />
                       </svg>
                     </div>
                   );

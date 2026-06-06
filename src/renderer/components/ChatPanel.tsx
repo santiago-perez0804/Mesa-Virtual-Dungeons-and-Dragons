@@ -14,11 +14,69 @@ export const ChatPanel = ({ socket, currentUser, characters, messages, blockRoll
 
   const handleSend = () => {
     if (!inputValue.trim()) return;
+
+    const text = inputValue.trim();
+
+    // Check for roll command
+    const rollMatch = text.match(/^\/r\s+(.+)$/i);
+    if (rollMatch) {
+      if (blockRolls) {
+        alert("No puedes tirar dados fuera de tu turno!");
+        return;
+      }
+
+      const customFormula = rollMatch[1];
+      const formula = customFormula.replace(/\s+/g, '').toLowerCase();
+      // Regex for XdY, XdY+Z, XdY-Z
+      const match = formula.match(/^(\d+)d(\d+)(?:\+(\d+))?(?:-(\d+))?$/);
+
+      if (!match) {
+        alert('Formato inválido. Usá algo como /r 2d6 o /r 1d20+5');
+        return;
+      }
+
+      const count = parseInt(match[1]);
+      const faces = parseInt(match[2]);
+      const modifierPlus = match[3] ? parseInt(match[3]) : 0;
+      const modifierMinus = match[4] ? parseInt(match[4]) : 0;
+      const modifier = modifierPlus - modifierMinus;
+
+      if (count > 50 || faces > 100) {
+        alert('Calma con los dados, aventurero.');
+        return;
+      }
+
+      let total = 0;
+      const rolls = [];
+      for (let i = 0; i < count; i++) {
+        const roll = Math.floor(Math.random() * faces) + 1;
+        rolls.push(roll);
+        total += roll;
+      }
+      total += modifier;
+
+      const modText = modifier > 0 ? ` + ${modifier}` : (modifier < 0 ? ` - ${Math.abs(modifier)}` : '');
+      const details = count > 1 ? ` [${rolls.join(', ')}${modText}]` : (modifier !== 0 ? ` [${rolls[0]}${modText}]` : '');
+
+      const sysMsg = {
+        id: Date.now() + Math.random(),
+        sender: 'Sistema',
+        to: sendTo,
+        text: `🎲 ${currentUser?.name || 'Alguien'} tiró ${customFormula}: ${total} ${details}`,
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        isSystem: true
+      };
+
+      socket.emit('chat:send', sysMsg);
+      setInputValue('');
+      return;
+    }
+
     const msg = {
       id: Date.now() + Math.random(),
       sender: currentUser.name,
       to: sendTo,
-      text: inputValue.trim(),
+      text: text,
       timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
     };
     socket.emit('chat:send', msg);
@@ -72,8 +130,8 @@ export const ChatPanel = ({ socket, currentUser, characters, messages, blockRoll
           return (
             <div key={m.id} style={{ marginBottom: '12px', background: isPrivate ? 'rgba(168, 85, 247, 0.1)' : 'rgba(0,0,0,0.2)', padding: '10px 14px', borderLeft: `3px solid ${isPrivate ? '#a855f7' : ((m.sender || m.user) === currentUser.name ? 'var(--accent-gold)' : 'var(--text-secondary)')}`, fontSize: '0.9rem', borderRadius: '4px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '4px' }}>
-                <span className="font-cinzel" style={{ fontWeight: 'bold', color: isPrivate ? '#c084fc' : ((m.sender || m.user) === currentUser.name ? 'var(--accent-gold)' : 'var(--text-parchment)'), fontSize: '0.75rem' }}>
-                  {(m.sender || m.user || 'Desconocido').toUpperCase()} {privateLabel && <span style={{ fontSize: '0.65rem', marginLeft: '6px', color: '#c084fc', textTransform: 'none' }}>{privateLabel}</span>}
+                <span className="font-cinzel" style={{ fontStyle: 'italic', fontWeight: 'bold', color: isPrivate ? '#c084fc' : ((m.sender || m.user) === currentUser.name ? 'var(--accent-gold)' : 'var(--text-parchment)'), fontSize: '0.75rem' }}>
+                  {(m.sender || m.user || 'Desconocido')} {privateLabel && <span style={{ fontSize: '0.65rem', marginLeft: '6px', color: '#c084fc', textTransform: 'none' }}>{privateLabel}</span>}
                 </span>
                 <span className="mono" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>{m.timestamp}</span>
               </div>
@@ -96,7 +154,7 @@ export const ChatPanel = ({ socket, currentUser, characters, messages, blockRoll
           <input
             className="mono"
             style={{ flex: 1, padding: '10px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)', outline: 'none', fontSize: '0.85rem' }}
-            placeholder="Enviar mensaje..."
+            placeholder="/r 1d20"
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
             onKeyDown={(e) => e.key === 'Enter' && handleSend()}
