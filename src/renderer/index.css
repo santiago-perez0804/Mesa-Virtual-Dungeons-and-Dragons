@@ -104,3 +104,27 @@ input[type="number"] {
   -moz-appearance: textfield;
   appearance: textfield;
 }
+
+/* Responsive VTT Classes */
+.vtt-main-container {
+  padding: 25px;
+}
+
+.dm-quick-sections {
+  grid-template-columns: 1fr 1fr;
+}
+
+@media (max-width: 1200px) {
+  .vtt-main-container {
+    padding: 12px;
+  }
+}
+
+@media (max-width: 900px) {
+  .vtt-main-container {
+    padding: 6px;
+  }
+  .dm-quick-sections {
+    grid-template-columns: 1fr !important;
+  }
+}

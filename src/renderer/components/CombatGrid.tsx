@@ -119,6 +119,8 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
   const [showGridLines, setShowGridLines] = useState(true);
   const [gridOpacity] = useState(0.2);
   const [saveNotification, setSaveNotification] = useState<any>(null);
+  const [isSidebarOpen, setIsSidebarOpen] = useState(true);
+  const [isChatOpen, setIsChatOpen] = useState(true);
 
   // Estado del combate
   const [combatState, setCombatState] = useState<{ turnModeActive: boolean, initiativeOrder: {tokenId: string, value: number}[], currentTurnIndex: number }>({
@@ -1021,11 +1023,29 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-base)', position: 'relative' }} onClick={() => { setActiveTokenId(null); setContextMenu(null); }}>
 
       {/* TOOLBAR SUPERIOR */}
-      <div style={{ padding: '12px 20px', background: 'rgba(0,0,0,0.4)', borderBottom: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', zIndex: 100 }}>
+      <div style={{ padding: '8px 20px', background: 'rgba(0,0,0,0.4)', borderBottom: '1px solid var(--border-color)', display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'space-between', alignItems: 'center', zIndex: 100 }}>
         
         {/* LADO IZQUIERDO: COMBATE, URL, APLICAR, LIMPIAR, EDITAR */}
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'center' }}>
+        <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
           <h2 className="font-cinzel" style={{ margin: 0, color: 'var(--accent-gold)', fontSize: '1.2rem', letterSpacing: '1px' }}>COMBATE</h2>
+          <button
+            onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+            className="font-cinzel torch-glow"
+            style={{
+              background: isSidebarOpen ? 'rgba(200,135,42,0.15)' : 'transparent',
+              border: '1px solid var(--border-color)',
+              color: isSidebarOpen ? 'var(--accent-gold)' : 'var(--text-secondary)',
+              padding: '4px 10px',
+              borderRadius: '4px',
+              cursor: 'pointer',
+              fontSize: '0.75rem',
+              fontWeight: 'bold',
+              transition: 'all 0.2s'
+            }}
+            title={isSidebarOpen ? "Ocultar panel de combatientes" : "Mostrar panel de combatientes"}
+          >
+            {isSidebarOpen ? '◀ Fichas' : '▶ Fichas'}
+          </button>
           {(userRole === 'dm' || userRole === 'admin') && (
             <div style={{ display: 'flex', gap: '8px' }}>
               <input
@@ -1166,20 +1186,49 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
           <div style={{ width: '1px', height: '24px', background: 'var(--border-color)', display: (userRole === 'dm' || userRole === 'admin') ? 'block' : 'none' }} />
 
           {/* GRILLA, RESET */}
-          <div style={{ display: 'flex', gap: '10px' }}>
+          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
             <button onClick={() => setShowGridLines(!showGridLines)} className="font-cinzel"
               style={{ background: showGridLines ? 'var(--accent-gold)' : 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--border-color)', padding: '6px 14px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>
               {showGridLines ? '👁️ Grilla' : '🙈 Grilla'}
             </button>
             <button onClick={() => { setPan({ x: 0, y: 0 }); setZoom(1); }} className="font-cinzel"
               style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', padding: '6px 14px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>🎯 Reset</button>
+            <button
+              onClick={() => setIsChatOpen(!isChatOpen)}
+              className="font-cinzel torch-glow"
+              style={{
+                background: isChatOpen ? 'rgba(200,135,42,0.15)' : 'transparent',
+                border: '1px solid var(--border-color)',
+                color: isChatOpen ? 'var(--accent-gold)' : 'var(--text-secondary)',
+                padding: '6px 14px',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontSize: '0.75rem',
+                fontWeight: 'bold',
+                transition: 'all 0.2s'
+              }}
+              title={isChatOpen ? "Ocultar chat" : "Mostrar chat"}
+            >
+              {isChatOpen ? 'Chat ◀' : 'Chat ▶'}
+            </button>
           </div>
         </div>
       </div>
 
       <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
         {/* COLUMNA IZQ: COMBATIENTES u OBJETOS */}
-        <div style={{ width: '320px', background: 'rgba(0,0,0,0.2)', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', overflow: 'hidden' }}>
+        <div style={{
+          width: isSidebarOpen ? '320px' : '0px',
+          minWidth: isSidebarOpen ? '320px' : '0px',
+          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          background: 'rgba(0,0,0,0.2)',
+          borderRight: isSidebarOpen ? '1px solid var(--border-color)' : 'none',
+          display: 'flex',
+          flexDirection: 'column',
+          overflow: 'hidden',
+          flexShrink: 0
+        }}>
+          <div style={{ width: '320px', height: '100%', display: 'flex', flexDirection: 'column', flexShrink: 0 }}>
           
           {/* ── HEADER DE PESTAÑAS PREMIUM ── */}
           <div style={{ padding: '14px 16px 0', background: 'rgba(0,0,0,0.25)', borderBottom: '1px solid var(--border-color)', flexShrink: 0 }}>
@@ -1566,6 +1615,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                 </div>
               )}
             </div>
+          </div>
           </div>
         </div>
 
@@ -2018,8 +2068,19 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
         </div>
 
         {/* COLUMNA DER: CHAT Y DADOS */}
-        <div style={{ width: '300px', minWidth: '300px', flexShrink: 0, display: 'flex', borderLeft: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
-          <ChatPanel socket={socket} currentUser={currentUser} characters={characters} messages={chatMessages} blockRolls={blockRolls} />
+        <div style={{
+          width: isChatOpen ? '300px' : '0px',
+          minWidth: isChatOpen ? '300px' : '0px',
+          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1), min-width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          flexShrink: 0,
+          display: 'flex',
+          borderLeft: isChatOpen ? '1px solid var(--border-color)' : 'none',
+          background: 'var(--bg-surface)',
+          overflow: 'hidden'
+        }}>
+          <div style={{ width: '300px', height: '100%', flexShrink: 0, display: 'flex', flexDirection: 'column' }}>
+            <ChatPanel socket={socket} currentUser={currentUser} characters={characters} messages={chatMessages} blockRolls={blockRolls} />
+          </div>
         </div>
       </div>
 
@@ -2402,7 +2463,20 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                 {(() => {
                   const aoe = selectedAoeToken.aoeData;
                   if (!aoe) return null;
-                  const miniCell = 10;
+                  
+                  // Calculate dynamic cell size to fit shape inside 50px bounding box
+                  let shapeW = aoe.size1 || 1;
+                  let shapeH = aoe.size1 || 1;
+                  if (aoe.shape === 'circle') {
+                    shapeW = (aoe.size1 || 1) * 2;
+                    shapeH = (aoe.size1 || 1) * 2;
+                  } else if (aoe.shape === 'line') {
+                    shapeW = aoe.size1 || 1;
+                    shapeH = aoe.size2 || 1;
+                  }
+                  const maxDim = Math.max(shapeW, shapeH);
+                  const miniCell = maxDim > 0 ? (50 / maxDim) : 10;
+                  
                   const r = aoe.rotation || 0;
                   let svgContent = null;
                   let w = miniCell, h = miniCell;

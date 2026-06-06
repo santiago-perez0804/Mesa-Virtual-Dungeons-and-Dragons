@@ -326,7 +326,7 @@ function App() {
         ))}
       </div>
 
-      <main style={{ padding: '25px', width: '100%', boxSizing: 'border-box', margin: '0 auto' }}>
+      <main className="vtt-main-container" style={{ width: '100%', boxSizing: 'border-box', margin: '0 auto' }}>
         {activeTab === 'combat' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
 
@@ -348,7 +348,7 @@ function App() {
               </section>
 
               {(user.role === 'dm' || user.role === 'admin') && (
-                <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '25px' }}>
+                <div className="dm-quick-sections" style={{ display: 'grid', gap: '25px' }}>
                   {/* BESTIARIO */}
                   <section style={{ background: '#111', borderRadius: '12px', padding: '20px', border: '1px solid #444', height: '350px', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 15px rgba(0,0,0,0.5)' }}>
                     <h3 style={{ color: '#ef4444', marginTop: 0, borderBottom: '1px solid #333', paddingBottom: '10px' }}>Bestiario Rápido</h3>
