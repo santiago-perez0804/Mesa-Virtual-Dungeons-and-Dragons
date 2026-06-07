@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Dices } from 'lucide-react';
 import { DiceRoller } from './DiceRoller';
 
 export const ChatPanel = ({ socket, currentUser, characters, messages, blockRolls = false }: any) => {

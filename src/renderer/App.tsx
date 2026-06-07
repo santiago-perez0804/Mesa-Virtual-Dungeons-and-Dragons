@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { Palette, AlertTriangle, LogOut } from 'lucide-react';
 import { io } from 'socket.io-client';
 import LoginScreen from './components/LoginScreen';
 import DiceVisualizer from './components/DiceVisualizer';
@@ -220,9 +221,9 @@ function App() {
               animation: 'spin 0.8s linear infinite', flexShrink: 0
             }} />
           ) : imageToast.status === 'ready' ? (
-            <span style={{ fontSize: '1.5rem', flexShrink: 0 }}>🎨</span>
+            <Palette size={24} style={{ flexShrink: 0 }} />
           ) : (
-            <span style={{ fontSize: '1.5rem', flexShrink: 0 }}>⚠️</span>
+            <AlertTriangle size={24} style={{ flexShrink: 0 }} />
           )}
           <div>
             <div className="font-cinzel" style={{
@@ -287,9 +288,9 @@ function App() {
           <button 
             onClick={() => setUser(null)}
             className="torch-glow"
-            style={{ background: 'transparent', border: '1px solid var(--combat-red)', color: 'var(--combat-red)', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold' }}
+            style={{ background: 'transparent', border: '1px solid var(--combat-red)', color: 'var(--combat-red)', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}
           >
-            🚪 SALIR
+            <LogOut size={16} /> SALIR
           </button>
         </div>
       </header>
@@ -354,7 +355,7 @@ function App() {
                     <h3 style={{ color: '#ef4444', marginTop: 0, borderBottom: '1px solid #333', paddingBottom: '10px' }}>Bestiario Rápido</h3>
                     <input
                       style={{ padding: '12px', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', color: 'white', width: '100%', marginBottom: '15px', boxSizing: 'border-box' }}
-                      placeholder="🔍 Buscar monstruo..."
+                      placeholder="Buscar monstruo..."
                       value={monsterSearch}
                       onChange={(e) => setMonsterSearch(e.target.value)}
                     />

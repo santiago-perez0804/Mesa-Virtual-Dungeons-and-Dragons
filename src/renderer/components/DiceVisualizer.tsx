@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import * as THREE from 'three';
+import { AlertTriangle } from 'lucide-react';
 
 export type DiceType = "d3" | "d4" | "d6" | "d8" | "d10" | "d12" | "d20";
 
@@ -772,7 +773,7 @@ const DiceVisualizer: React.FC<DiceVisualizerProps> = ({
         whiteSpace: 'pre-wrap', wordBreak: 'break-all', maxWidth: '85vw', maxHeight: '85vh', overflow: 'auto',
         boxShadow: '0 0 50px rgba(0,0,0,0.95)', position: 'relative', zIndex: 99999
       }}>
-        <h3 className="font-cinzel" style={{ color: '#ef4444', margin: '0 0 12px 0', fontSize: '1.2rem', letterSpacing: '1px' }}>🚨 ERROR EN DADOS 3D</h3>
+        <h3 className="font-cinzel" style={{ color: '#ef4444', margin: '0 0 12px 0', fontSize: '1.2rem', letterSpacing: '1px', display: 'flex', alignItems: 'center', gap: '8px' }}><AlertTriangle size={20} /> ERROR EN DADOS 3D</h3>
         <p style={{ margin: '0 0 15px 0', fontSize: '0.9rem', color: '#cbd5e1' }}>Hubo una falla en tiempo de ejecución. Detalle técnico:</p>
         <div style={{ background: 'rgba(0,0,0,0.5)', padding: '12px', borderRadius: '4px', border: '1px solid rgba(239, 68, 68, 0.2)' }}>
           {debugError}

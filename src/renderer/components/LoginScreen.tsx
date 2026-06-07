@@ -1,4 +1,6 @@
 import React, { useState, useEffect } from 'react';
+import { ProfileCard } from './ui/ProfileCard';
+import { Eye, EyeOff, Shield, UserRound, Swords } from 'lucide-react';
 
 interface LoginProps {
   socket: any;
@@ -14,6 +16,7 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
   const [newUsername, setNewUsername] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [newProfileImage, setNewProfileImage] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
 
   const [errorMsg, setErrorMsg] = useState('');
   const [successMsg, setSuccessMsg] = useState('');
@@ -95,9 +98,9 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
 
   const getProfileIcon = (profile: any) => {
     if (profile.profile_image) return <img src={profile.profile_image} alt="User" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />;
-    if (profile.role === 'admin') return <span style={{ fontSize: '3rem' }}>🛡️</span>; // Escudo
-    if (profile.role === 'dm') return <span style={{ fontSize: '3rem' }}>🧙‍♂️</span>; // Capucha (Mago)
-    return <span style={{ fontSize: '3rem' }}>⚔️</span>; // Espada
+    if (profile.role === 'admin') return <Shield size={48} color="var(--accent-gold)" />; // Escudo
+    if (profile.role === 'dm') return <UserRound size={48} color="var(--accent-gold)" />; // Capucha (Mago)
+    return <Swords size={48} color="var(--text-secondary)" />; // Espada
   };
 
   return (
@@ -114,35 +117,23 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
       {!selectedProfile && !isRegistering && (
         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '30px', justifyContent: 'center', maxWidth: '1000px' }}>
           {profiles.map(p => (
-            <div
+            <ProfileCard
               key={p.id}
+              profile={p}
+              getProfileIcon={getProfileIcon}
               onClick={() => { setSelectedProfile(p); setErrorMsg(''); setSuccessMsg(''); setPassword(''); }}
-              className="clipped-frame torch-glow"
-              style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', width: '160px', padding: '20px', transition: 'all 0.3s' }}
-            >
-              <div style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: '15px', overflow: 'hidden' }}>
-                {getProfileIcon(p)}
-              </div>
-              <span className="font-cinzel" style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-parchment)' }}>{p.username}</span>
-              <span style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginTop: '5px' }}>{p.role}</span>
-            </div>
+            />
           ))}
 
-          <div
+          <ProfileCard
+            isNew
             onClick={() => { setIsRegistering(true); setErrorMsg(''); setSuccessMsg(''); }}
-            className="clipped-frame torch-glow"
-            style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', width: '160px', padding: '20px', transition: 'all 0.3s', borderStyle: 'dashed' }}
-          >
-            <div style={{ width: '80px', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '3rem', color: 'var(--border-color)', marginBottom: '15px' }}>
-              +
-            </div>
-            <span className="font-cinzel" style={{ fontSize: '1.1rem', fontWeight: 'bold', color: 'var(--text-secondary)' }}>NUEVO HÉROE</span>
-          </div>
+          />
         </div>
       )}
 
       {(selectedProfile || isRegistering) && (
-        <div className="clipped-frame" style={{ padding: '40px', width: '380px', boxShadow: '0 20px 50px rgba(0,0,0,0.8)' }}>
+        <div style={{ padding: '40px', width: '380px', background: 'var(--bg-surface)', borderRadius: 'var(--radius-xl)', boxShadow: 'var(--shadow-modal)' }}>
           <h2 className="font-cinzel" style={{ textAlign: 'center', color: 'var(--accent-gold)', marginBottom: '30px', marginTop: 0 }}>
             {isRegistering ? 'NUEVO AVENTURERO' : 'IDENTIFÍCATE'}
           </h2>
@@ -158,14 +149,19 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
                   onChange={(e) => setNewUsername(e.target.value)}
                   style={{ width: '100%', padding: '12px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)', outline: 'none' }}
                 />
-                <input
-                  type="password"
-                  placeholder="CONTRASEÑA"
-                  className="mono"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  style={{ width: '100%', padding: '12px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)', outline: 'none' }}
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="CONTRASEÑA"
+                    className="mono"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    style={{ width: '100%', padding: '12px', paddingRight: '40px', background: 'var(--bg-base)', border: `1px solid ${errorMsg ? 'var(--combat-red)' : 'var(--border-color)'}`, color: 'var(--text-parchment)', outline: 'none' }}
+                  />
+                  <div style={{ position: 'absolute', right: '12px', top: '12px', cursor: 'pointer', color: 'var(--text-secondary)' }} onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </div>
+                </div>
                 <div style={{ border: '1px dashed var(--border-color)', padding: '10px', textAlign: 'center', position: 'relative', overflow: 'hidden', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   {newProfileImage ? (
                     <img src={newProfileImage} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute' }} />
@@ -177,24 +173,34 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
               </>
             ) : (
               <>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px', padding: '10px', background: 'rgba(0,0,0,0.2)', borderRadius: '4px' }}>
-                  <div style={{ width: '50px', height: '50px', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px', marginBottom: '10px', padding: '10px', background: 'var(--bg-raised)', borderRadius: 'var(--radius-lg)' }}>
+                  <div style={{ width: '56px', height: '56px', borderRadius: '50%', border: '2px solid var(--gold-primary)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)' }}>
                     {getProfileIcon(selectedProfile)}
                   </div>
                   <div>
-                    <div className="font-cinzel" style={{ color: 'white', fontSize: '1.2rem' }}>{selectedProfile.username}</div>
-                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', textTransform: 'uppercase' }}>{selectedProfile.role}</div>
+                    <div className="font-cinzel" style={{ color: 'var(--text-primary)', fontSize: '1.2rem', fontWeight: 'bold' }}>{selectedProfile.username}</div>
+                    <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px', marginTop: '4px' }}>{selectedProfile.role}</div>
                   </div>
                 </div>
-                <input
-                  type="password"
-                  placeholder="CONTRASEÑA"
-                  className="mono"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                  autoFocus
-                  style={{ width: '100%', padding: '12px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)', outline: 'none' }}
-                />
+                <div style={{ position: 'relative' }}>
+                  <input
+                    type={showPassword ? "text" : "password"}
+                    placeholder="CONTRASEÑA"
+                    className="mono"
+                    value={password}
+                    onChange={(e) => setPassword(e.target.value)}
+                    autoFocus
+                    style={{ width: '100%', padding: '12px', paddingRight: '40px', background: 'var(--bg-base)', border: `1px solid ${errorMsg ? 'var(--combat-red)' : 'var(--border-normal)'}`, borderRadius: 'var(--radius-md)', color: 'var(--text-primary)', outline: 'none' }}
+                  />
+                  <div style={{ position: 'absolute', right: '12px', top: '12px', cursor: 'pointer', color: 'var(--text-secondary)' }} onClick={() => setShowPassword(!showPassword)}>
+                    {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                  </div>
+                  {errorMsg && (
+                    <div style={{ color: 'var(--combat-red)', fontSize: '0.8rem', marginTop: '6px' }}>
+                      {errorMsg}
+                    </div>
+                  )}
+                </div>
               </>
             )}
 

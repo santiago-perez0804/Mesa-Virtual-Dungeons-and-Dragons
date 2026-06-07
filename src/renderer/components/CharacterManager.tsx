@@ -1,4 +1,6 @@
 import { useState, useEffect } from 'react';
+import { User, Shield, Backpack, X, Link, Scale } from 'lucide-react';
+import { HeroCard } from './ui/HeroCard';
 import { formatDescription } from '../utils/format';
 import pcCoin from '../assets/pc_coin_icon.png';
 import plCoin from '../assets/pl_coin_icon.png';
@@ -220,7 +222,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [isLevelingUp, setIsLevelingUp] = useState(false);
 
   // --- TABS DE LA FICHA DE PERSONAJE ---
-  const [charDetailTab, setCharDetailTab] = useState<'hoja' | 'rasgos' | 'conjuros'>('hoja');
+  const [charDetailTab, setCharDetailTab] = useState<'hoja' | 'inventario' | 'conjuros' | 'trasfondo'>('hoja');
   const [classFeatures, setClassFeatures] = useState<any[]>([]);
   const [featuresLoading, setFeaturesLoading] = useState(false);
   const [activeFeaturesClass, setActiveFeaturesClass] = useState<string>('');
@@ -483,7 +485,10 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     if (triggerDiceRoll) {
       triggerDiceRoll(`d${hitDie}` as any, roll, applyUpdate);
     } else {
-      alert(`🗡️ Tomaste un nivel en ${levelUpClass}.\nTiraste un d${hitDie} y sacaste ${roll}.\nModificador de CON: ${getModStr(charStats.con)}.\n¡Tu Vida Máxima aumenta en ${hpGain} puntos!`);
+      alert(`🗡️ Tomaste un nivel en ${levelUpClass}.
+Tiraste un d${hitDie} y sacaste ${roll}.
+Modificador de CON: ${getModStr(charStats.con)}.
+¡Tu Vida Máxima aumenta en ${hpGain} puntos!`);
       applyUpdate();
     }
   };
@@ -548,35 +553,47 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
             />
             <span style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔍</span>
           </div>
-          <button
-            onClick={() => { resetForm(); setIsCreating(true); }}
-            className="font-cinzel torch-glow"
-            style={{ background: 'var(--accent-gold)', color: 'white', border: 'none', padding: '14px 30px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.9rem', letterSpacing: '1px' }}
-          >
-            + NUEVO HÉROE
-          </button>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '30px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
+          {/* Botón de Crear Nuevo Héroe (Dashed Card) */}
+          <div
+            onClick={() => { resetForm(); setIsCreating(true); }}
+            style={{
+              border: '2px dashed var(--accent-gold)',
+              borderRadius: 'var(--radius-lg)',
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              cursor: 'pointer',
+              minHeight: '220px',
+              transition: 'all 0.2s ease',
+              background: 'rgba(200, 135, 42, 0.05)',
+              color: 'var(--accent-gold)'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'rgba(200, 135, 42, 0.15)';
+              e.currentTarget.style.transform = 'translateY(-2px)';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'rgba(200, 135, 42, 0.05)';
+              e.currentTarget.style.transform = 'translateY(0)';
+            }}
+          >
+            <span style={{ fontSize: '3rem', marginBottom: '10px' }}>+</span>
+            <span className="font-cinzel" style={{ fontSize: '1.2rem', fontWeight: 'bold', letterSpacing: '1px' }}>NUEVO HÉROE</span>
+          </div>
+
           {filteredCharacters.map((c: any) => {
             const parsedCls = parseClasses(c.class);
+            const className = Object.keys(parsedCls)[0] || 'Clase';
             return (
-              <div
+              <HeroCard
                 key={c.id}
+                character={{ ...c, class: className }}
                 onClick={() => openCharacterSheet(c)}
-                className="clipped-frame torch-glow"
-                style={{ background: 'var(--bg-surface)', padding: '20px', display: 'flex', flexDirection: 'column', alignItems: 'center', cursor: 'pointer', transition: 'all 0.3s' }}
-              >
-                <div style={{ width: '100%', aspectRatio: '1/1', border: '1px solid var(--accent-gold)', overflow: 'hidden', marginBottom: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg-base)' }}>
-                  {c.image ? <img src={c.image} alt={c.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '3rem', opacity: 0.2 }}>👤</span>}
-                </div>
-                <div className="font-cinzel" style={{ fontSize: '1.1rem', fontWeight: 'bold', textAlign: 'center', color: 'var(--accent-gold)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis', width: '100%', marginBottom: '5px' }}>
-                  {c.name}
-                </div>
-                <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textAlign: 'center', textTransform: 'uppercase', letterSpacing: '1px' }}>Nivel {c.level || 1}</div>
-                <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textAlign: 'center', marginTop: '4px', fontStyle: 'italic', opacity: 0.8 }}>De: {c.owner || 'Anónimo'}</div>
-                <div style={{ fontSize: '0.7rem', color: 'var(--text-parchment)', textAlign: 'center', marginTop: '5px', opacity: 0.7 }}>{Object.keys(parsedCls)[0]}</div>
-              </div>
+              />
             );
           })}
           {filteredCharacters.length === 0 && <div style={{ color: 'var(--text-secondary)', fontStyle: 'italic', gridColumn: '1/-1', textAlign: 'center', padding: '40px' }}>No se encontraron aventureros...</div>}
@@ -689,7 +706,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
                       {image ? (
                         <img src={image} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                       ) : (
-                        <span style={{ color: 'var(--text-secondary)', fontSize: '2rem' }}>👤</span>
+                        <span style={{ color: 'var(--text-secondary)', fontSize: '2rem' }}><User className="w-full h-full p-2" /></span>
                       )}
                       <input
                         type="file"
@@ -1007,7 +1024,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
 
                   {/* Sección A2 — Competencias en Tiradas de Salvación */}
                   <section style={{ marginBottom: '25px' }}>
-                    <h3 className="font-cinzel" style={{ color: 'var(--accent-gold)', marginBottom: '10px', fontSize: '1.1rem' }}>🛡️ TIRADAS DE SALVACIÓN COMPETENTES</h3>
+                    <h3 className="font-cinzel" style={{ color: 'var(--accent-gold)', marginBottom: '10px', fontSize: '1.1rem' }}><Shield className="w-4 h-4 inline-block mr-1" /> TIRADAS DE SALVACIÓN COMPETENTES</h3>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '15px' }}>Selecciona hasta 2 atributos para tus tiradas de salvación competentes.</p>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
                       {[
@@ -1056,7 +1073,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
 
                   {/* Sección B — Equipo de Trasfondo */}
                   <section style={{ marginBottom: '10px' }}>
-                    <h3 className="font-cinzel" style={{ color: 'var(--accent-gold)', marginBottom: '10px', fontSize: '1.1rem' }}>🎒 EQUIPO DE TRASFONDO</h3>
+                    <h3 className="font-cinzel" style={{ color: 'var(--accent-gold)', marginBottom: '10px', fontSize: '1.1rem' }}><Backpack className="w-6 h-6 m-auto" /> EQUIPO DE TRASFONDO</h3>
                     <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '15px' }}>Define dos objetos significativos de la base de datos que tu personaje posea según su trasfondo.</p>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
@@ -1103,7 +1120,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
                                 }}
                               >
                                 <span className="font-cinzel" style={{ fontSize: '0.9rem', fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  🎒 {selectedItemName}
+                                  <Backpack className="w-6 h-6 m-auto" /> {selectedItemName}
                                 </span>
                                 <button
                                   onClick={handleClear}
@@ -1255,7 +1272,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
                           }}
                         >
                           <h4 className="font-cinzel" style={{ margin: '0 0 15px 0', fontSize: '0.95rem', color: 'var(--natural-green)', fontWeight: 'bold', letterSpacing: '1px' }}>
-                            🛡️ CLASE DE ARMADURA (CA)
+                            <Shield className="w-4 h-4 inline-block mr-1" /> CLASE DE ARMADURA (CA)
                           </h4>
                           <div className="mono" style={{ fontSize: '3.5rem', fontWeight: 'bold', color: 'white', lineHeight: '1', marginBottom: '10px' }}>
                             {10 + calcMod(stats.dex)}
@@ -1397,6 +1414,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
       )}
 
 
+
       {/* MODAL DE DETALLES DEL PERSONAJE */}
       {selectedCharacter && (() => {
         const charStats = safeParseStats(selectedCharacter.stats);
@@ -1405,873 +1423,478 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
         const classesDisplay = Object.entries(parsedClasses).map(([cls, lvl]) => `${cls} ${lvl}`).join(' / ');
 
         return (
+          <>
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '40px', boxSizing: 'border-box' }} onClick={() => { setSelectedCharacter(null); if(onCloseOverlay) onCloseOverlay(); }}>
-            <div className="clipped-frame" style={{ ...styles.card, width: '100%', maxWidth: '1250px', maxHeight: '90vh', overflowY: 'auto', position: 'relative', display: 'flex', flexDirection: 'column', gap: '30px', boxShadow: '0 0 100px rgba(0,0,0,1)' }} onClick={e => e.stopPropagation()}>
-              <button onClick={() => { setSelectedCharacter(null); if(onCloseOverlay) onCloseOverlay(); }} style={{ position: 'absolute', top: '15px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '2.5rem', cursor: 'pointer', zIndex: 10 }}>✕</button>
+            <div className="clipped-frame" style={{ ...styles.card, width: '100%', maxWidth: '1250px', maxHeight: '90vh', overflowY: 'auto', position: 'relative', display: 'flex', flexDirection: 'column', gap: '30px', boxShadow: '0 0 100px rgba(0,0,0,1)', padding: '40px' }} onClick={e => e.stopPropagation()}>
+              <button onClick={() => { setSelectedCharacter(null); if(onCloseOverlay) onCloseOverlay(); }} style={{ position: 'absolute', top: '15px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '2.5rem', cursor: 'pointer', zIndex: 10 }}><X className="w-4 h-4 m-auto" /></button>
 
-              <div style={{ display: 'flex', gap: '30px', alignItems: 'flex-start', flexWrap: 'wrap', borderBottom: '2px solid var(--border-color)', paddingBottom: '30px' }}>
-                <div style={{ width: '150px', height: '150px', border: '2px solid var(--accent-gold)', background: 'var(--bg-base)', overflow: 'hidden', flexShrink: 0, display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {selectedCharacter.image ? <img src={selectedCharacter.image} alt={selectedCharacter.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <div style={{ fontSize: '1rem', opacity: 0.3, color: 'var(--accent-gold)' }}>SIN IMAGEN</div>}
+              {/* [A] CABECERA */}
+              <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr auto', gap: '20px', alignItems: 'center' }}>
+                <div style={{ width: '64px', height: '64px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-gold-subtle)' }}>
+                  {selectedCharacter.image ? (
+                    <img src={selectedCharacter.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  ) : (
+                    <div style={{ width: '100%', height: '100%', background: 'var(--bg-raised)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}><User className="w-full h-full p-2" /></div>
+                  )}
                 </div>
-                <div style={{ flex: 1 }}>
-                  <h1 className="font-cinzel" style={{ margin: '0 0 10px 0', color: 'var(--accent-gold)', fontSize: '2.5rem' }}>
-                    {selectedCharacter.name}
-                    <span className="mono" style={{ fontSize: '1rem', color: 'white', background: 'var(--border-color)', padding: '5px 12px', marginLeft: '20px', verticalAlign: 'middle' }}>NV {selectedCharacter.level || 1}</span>
-                    <span className="mono" style={{ fontSize: '1rem', color: 'black', background: 'var(--accent-gold)', padding: '5px 12px', marginLeft: '10px', verticalAlign: 'middle', fontWeight: 'bold' }}>COMPETENCIA: +{getProficiencyBonus(selectedCharacter.level || 1)}</span>
-
-                    <button
-                      onClick={() => {
-                        setIsLevelingUp(true);
-                        const parsed = parseClasses(selectedCharacter.class);
-                        const firstClass = Object.keys(parsed)[0] || 'Guerrero';
-                        setLevelUpClass(firstClass);
-                      }}
-                      className="mono font-cinzel torch-glow"
-                      style={{
-                        marginLeft: '12px',
-                        background: 'var(--accent-gold)',
-                        color: 'black',
-                        border: 'none',
-                        padding: '4px 12px',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        fontSize: '0.8rem',
-                        display: 'inline-flex',
-                        alignItems: 'center',
-                        gap: '5px',
-                        verticalAlign: 'middle',
-                        boxShadow: '0 2px 5px rgba(0,0,0,0.5)',
-                        transition: 'all 0.15s ease'
-                      }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.transform = 'scale(1.08)';
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.transform = 'scale(1)';
-                      }}
-                      title="Subir de Nivel"
-                    >
-                      ▲
-                    </button>
-                  </h1>
-                  <p className="font-cinzel" style={{ margin: 0, fontSize: '1.1rem', color: 'var(--text-secondary)', letterSpacing: '1px' }}>
-                    {selectedCharacter.race || 'Humano'} • {classesDisplay.toUpperCase()}
-                  </p>
-
-                  {/* SISTEMA DE VIDA (SOLO LECTURA) */}
-                  <div style={{ marginTop: '25px', width: '100%', maxWidth: '400px' }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '8px' }}>
-                      <span className="font-cinzel" style={{ color: 'var(--combat-red)', fontWeight: 'bold', fontSize: '0.8rem' }}>PUNTOS DE GOLPE</span>
-                      <span className="mono" style={{ fontSize: '0.9rem', color: 'white' }}>
-                        {selectedCharacter.current_hp || selectedCharacter.max_hp || 10} / {selectedCharacter.max_hp || 10}
-                      </span>
-                    </div>
-                    <div style={{ width: '100%', height: '12px', background: 'rgba(255,255,255,0.05)', border: '1px solid var(--border-color)', borderRadius: '6px', overflow: 'hidden' }}>
-                      <div style={{
-                        width: `${Math.min(100, ((selectedCharacter.current_hp || selectedCharacter.max_hp || 10) / (selectedCharacter.max_hp || 10)) * 100)}%`,
-                        height: '100%',
-                        background: 'linear-gradient(90deg, #991b1b, #ef4444)',
-                        transition: 'width 0.5s ease-out'
-                      }} />
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
+                  <h1 className="font-cinzel" style={{ margin: 0, color: 'var(--gold-primary)', fontSize: '1.25rem' }}>{selectedCharacter.name}</h1>
+                  <div className="font-cinzel" style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
+                    {selectedCharacter.race || 'Humano'} • {classesDisplay} • Bono de Competencia +{getProficiencyBonus(selectedCharacter.level || 1)}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                  <div className="mono font-cinzel" style={{ fontSize: '2rem', color: 'var(--text-parchment)', fontWeight: 'bold' }}>Nv. {selectedCharacter.level || 1}</div>
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
+                    <button onClick={() => { setIsLevelingUp(true); setLevelUpClass(Object.keys(parsedClasses)[0] || 'Guerrero'); }} style={{ background: '#27ae60', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}>▲ SUBIR NIVEL</button>
+                    <div style={{ display: 'flex', gap: '6px' }}>
+                      <button onClick={() => startEdit(selectedCharacter)} style={{ flex: 1, background: 'var(--gold-primary)', color: 'var(--bg-void)', border: 'none', padding: '4px', borderRadius: '2px', fontSize: '9px', cursor: 'pointer', fontWeight: 'bold' }}>EDITAR</button>
+                      {(userRole === 'dm' || userRole === 'admin') && <button onClick={() => { handleDelete(selectedCharacter.id); setSelectedCharacter(null); if(onCloseOverlay) onCloseOverlay(); }} style={{ flex: 1, background: 'rgba(192,57,43,0.2)', color: 'var(--combat-red)', border: '1px solid rgba(192,57,43,0.4)', padding: '4px', borderRadius: '2px', fontSize: '9px', cursor: 'pointer', fontWeight: 'bold' }}>BORRAR</button>}
                     </div>
                   </div>
-                </div> {/* Closes Details column <div style={{ flex: 1 }}> */}
-
-                {/* Column for EDITAR/BORRAR buttons underneath the absolute close button */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', minWidth: '150px', alignSelf: 'flex-start', marginTop: '40px' }}>
-                  <button className="font-cinzel torch-glow" onClick={() => startEdit(selectedCharacter)} style={{ background: 'var(--accent-gold)', color: 'white', border: 'none', padding: '12px', fontWeight: 'bold', cursor: 'pointer' }}>EDITAR</button>
-                  {(userRole === 'dm' || userRole === 'admin') && <button className="font-cinzel" onClick={() => { handleDelete(selectedCharacter.id); setSelectedCharacter(null); if(onCloseOverlay) onCloseOverlay(); }} style={{ background: 'transparent', color: 'var(--combat-red)', border: '1px solid var(--combat-red)', padding: '12px', fontWeight: 'bold', cursor: 'pointer' }}>BORRAR</button>}
                 </div>
-              </div> {/* Closes Header <div style={{ display: 'flex', gap: '30px', ... }}> */}
+              </div>
 
-                {/* ===== TABS & CONTENT SECTION ===== */}
-              {(() => {
-                const allClasses = Object.keys(parseClasses(selectedCharacter.class));
-                const isSpellcaster = allClasses.some(c => SPELLCASTING_CLASSES.includes(c));
-                const activeTabToRender = (charDetailTab === 'conjuros' && !isSpellcaster) ? 'hoja' : charDetailTab;
+              {/* [B] BARRA HP */}
+              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                  <div className="font-cinzel" style={{ color: '#27ae60', fontSize: '0.8rem', fontWeight: 'bold', letterSpacing: '1px' }}>PUNTOS DE GOLPE</div>
+                  <div className="mono" style={{ fontSize: '1rem', color: 'white' }}>{selectedCharacter.current_hp || selectedCharacter.max_hp || 10} / <span style={{ color: 'var(--text-secondary)' }}>{selectedCharacter.max_hp || 10}</span></div>
+                </div>
+                <div style={{ width: '100%', height: '6px', background: 'var(--bg-void)', borderRadius: '3px', overflow: 'hidden' }}>
+                  {(() => {
+                    const hpPercent = Math.min(100, Math.max(0, ((selectedCharacter.current_hp || selectedCharacter.max_hp || 10) / (selectedCharacter.max_hp || 10)) * 100));
+                    const hpColor = hpPercent > 60 ? '#27ae60' : (hpPercent > 30 ? '#e67e22' : '#e74c3c');
+                    return <div style={{ width: `${hpPercent}%`, height: '100%', background: hpColor, transition: 'width 0.3s ease, background 0.3s ease' }} />
+                  })()}
+                </div>
+              </div>
 
-                const renderRasgos = () => {
-                  const charLevel = selectedCharacter.level || 1;
-                  const allClassesMap = parseClasses(selectedCharacter.class);
-                  const activeClassLevel = allClassesMap[activeFeaturesClass] || charLevel;
-                  const featuresByLevel: any = {};
-                  classFeatures.forEach((f) => {
-                    const lvl = f.level_acquired;
-                    if (!featuresByLevel[lvl]) featuresByLevel[lvl] = [];
-                    featuresByLevel[lvl].push(f);
-                  });
-                  const levels = Object.keys(featuresByLevel).map(Number).sort((a, b) => a - b);
+              {/* [C] DASHBOARD DE COMBATE */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+                <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center' }}>
+                  <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Clase de Armadura</div>
+                  <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--gold-primary)', fontWeight: 'bold' }}>{selectedCharacter.ac || (10 + calcMod(charStats.dex || 10))}</div>
+                </div>
+                {(() => {
+                  const initMod = calcMod(charStats.dex || 10);
+                  const initColor = initMod >= 0 ? '#27ae60' : '#e74c3c';
+                  const initStr = initMod >= 0 ? `+${initMod}` : `${initMod}`;
                   return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-                      {Object.keys(allClassesMap).length > 1 && (
-                        <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
-                          {Object.entries(allClassesMap as Record<string, number>).map(([cls, lvl]) => (
-                            <button key={cls} className="font-cinzel" onClick={() => fetchClassFeatures(cls)}
-                              style={{ padding: '6px 14px', background: 'rgba(200,135,42,0.1)', border: '1px solid var(--border-color)', color: 'var(--accent-gold)', cursor: 'pointer', fontSize: '0.8rem' }}>
-                              {cls} (Nv {lvl})
-                            </button>
-                          ))}
+                    <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center' }}>
+                      <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Iniciativa</div>
+                      <div className="mono" style={{ fontSize: '1.8rem', color: initColor, fontWeight: 'bold' }}>{initStr}</div>
+                    </div>
+                  );
+                })()}
+                <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center' }}>
+                  <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Velocidad</div>
+                  <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--text-parchment)', fontWeight: 'bold' }}>{selectedCharacter.speed || '6c'}</div>
+                </div>
+                <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center' }}>
+                  <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Competencia</div>
+                  <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--text-parchment)', fontWeight: 'bold' }}>+{getProficiencyBonus(selectedCharacter.level || 1)}</div>
+                </div>
+              </div>
+
+              {/* [D] CUERPO */}
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '30px' }}>
+                {/* Columna Izquierda (Mecánicas) */}
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: '220px', maxWidth: '280px' }}>
+                  
+                  {/* Atributos */}
+                  <div>
+                    <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '10px', fontSize: '0.8rem' }}>ATRIBUTOS</h4>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
+                      {['fue', 'dex', 'con', 'int', 'sab', 'car'].map((key) => {
+                        const value = charStats[key] || 10;
+                        const mod = calcMod(value);
+                        const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
+                        const modColor = mod > 0 ? 'var(--gold-primary)' : (mod < 0 ? '#e74c3c' : 'white');
+                        return (
+                          <div key={key} style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '10px 4px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
+                            <div className="font-cinzel" style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 'bold' }}>{key.toUpperCase()}</div>
+                            <div className="mono" style={{ fontSize: '18px', fontWeight: 'bold', color: modColor, margin: '4px 0' }}>{modStr}</div>
+                            <div className="mono" style={{ fontSize: '10px', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '3px', color: 'var(--text-secondary)' }}>{value}</div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
+
+                  {(() => {
+                    const parsedInv = typeof selectedCharacter.inventory === 'string' ? JSON.parse(selectedCharacter.inventory || '{}') : (selectedCharacter.inventory || {});
+                    const selectedSkills = parsedInv.habilidades || [];
+                    const charLevel = selectedCharacter.level || 1;
+                    const pb = getProficiencyBonus(charLevel);
+                    
+                    const phList = [
+                      { label: 'Atletismo', key: 'fue' },
+                      { label: 'Acrobacias', key: 'dex' }, { label: 'Juego de Manos', key: 'dex' }, { label: 'Sigilo', key: 'dex' },
+                      { label: 'Arcanos', key: 'int' }, { label: 'Historia', key: 'int' }, { label: 'Investigación', key: 'int' }, { label: 'Naturaleza', key: 'int' }, { label: 'Religión', key: 'int' },
+                      { label: 'Trato con Animales', key: 'sab' }, { label: 'Perspicacia', key: 'sab' }, { label: 'Medicina', key: 'sab' }, { label: 'Percepción', key: 'sab' }, { label: 'Supervivencia', key: 'sab' },
+                      { label: 'Engaño', key: 'car' }, { label: 'Intimidación', key: 'car' }, { label: 'Interpretación', key: 'car' }, { label: 'Persuasión', key: 'car' }
+                    ];
+
+                    const tsList = [
+                      { label: 'Fuerza', key: 'fue' }, { label: 'Destreza', key: 'dex' }, { label: 'Constitución', key: 'con' },
+                      { label: 'Inteligencia', key: 'int' }, { label: 'Sabiduría', key: 'sab' }, { label: 'Carisma', key: 'car' }
+                    ];
+
+                    return (
+                      <>
+                        {/* TIRADAS DE SALVACIÓN */}
+                        <div>
+                          <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '10px', fontSize: '0.8rem' }}>SALVACIONES</h4>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
+                            {tsList.map((s) => {
+                              const baseMod = calcMod(charStats[s.key] || 10);
+                              const isProficient = (parsedInv.salvaciones || []).includes(s.key);
+                              const totalMod = baseMod + (isProficient ? pb : 0);
+                              const modStr = totalMod >= 0 ? `+${totalMod}` : `${totalMod}`;
+                              return (
+                                <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px', background: isProficient ? 'rgba(200, 135, 42, 0.08)' : 'transparent', borderRadius: '4px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isProficient ? 'var(--gold-primary)' : 'var(--bg-raised)', border: `1px solid ${isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)'}` }} />
+                                    <span className="font-cinzel" style={{ fontSize: '0.75rem', color: isProficient ? 'var(--text-parchment)' : 'var(--text-secondary)' }}>{s.label} <span style={{opacity: 0.5}}>({s.key})</span></span>
+                                  </div>
+                                  <span className="mono" style={{ fontSize: '0.85rem', color: isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)' }}>{modStr}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      )}
-                      {featuresLoading && (
-                        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-                          <div style={{ fontSize: '1.5rem', marginBottom: '10px' }}>⚔️</div>
-                          <div className="font-cinzel" style={{ fontSize: '0.85rem', letterSpacing: '1px', opacity: 0.7 }}>Cargando rasgos...</div>
+
+                        {/* HABILIDADES */}
+                        <div>
+                          <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '10px', fontSize: '0.8rem' }}>HABILIDADES</h4>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
+                            {phList.map((s) => {
+                              const baseMod = calcMod(charStats[s.key] || 10);
+                              const isProficient = selectedSkills.includes(s.label);
+                              const totalMod = baseMod + (isProficient ? pb : 0);
+                              const modStr = totalMod >= 0 ? `+${totalMod}` : `${totalMod}`;
+                              return (
+                                <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 8px', background: isProficient ? 'rgba(200, 135, 42, 0.05)' : 'transparent', borderRadius: '4px' }}>
+                                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                                    <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isProficient ? 'var(--gold-primary)' : 'var(--bg-raised)', border: `1px solid ${isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)'}` }} />
+                                    <span className="font-cinzel" style={{ fontSize: '0.75rem', color: isProficient ? 'var(--text-parchment)' : 'var(--text-secondary)' }}>{s.label} <span style={{opacity: 0.5}}>({s.key})</span></span>
+                                  </div>
+                                  <span className="mono" style={{ fontSize: '0.85rem', color: isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)' }}>{modStr}</span>
+                                </div>
+                              );
+                            })}
+                          </div>
                         </div>
-                      )}
-                      {!featuresLoading && classFeatures.length === 0 && (
-                        <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
-                          <div style={{ fontSize: '2rem', marginBottom: '12px', opacity: 0.3 }}>📜</div>
-                          <div className="font-cinzel" style={{ fontSize: '0.85rem', letterSpacing: '1px' }}>Sin rasgos registrados para esta clase.</div>
-                        </div>
-                      )}
-                      {!featuresLoading && levels.length > 0 && (
+                      </>
+                    );
+                  })()}
+
+                </div>
+
+                {/* Columna Derecha (Narrativa e Inventario / Tabs) */}
+                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '30px' }}>
+                  {(() => {
+                    const activeTab = charDetailTab === 'hoja' || charDetailTab === 'inventario' ? 'hoja' : (charDetailTab === 'rasgos' || charDetailTab === 'trasfondo' ? 'rasgos' : 'conjuros');
+                    const isSpellcaster = Object.keys(parsedClasses).some(c => SPELLCASTING_CLASSES.includes(c));
+                    const activeTabToRender = activeTab === 'conjuros' && !isSpellcaster ? 'hoja' : activeTab;
+
+                    const renderRasgos = () => {
+                      const charLevel = selectedCharacter.level || 1;
+                      const allClassesMap = parseClasses(selectedCharacter.class);
+                      const activeClassLevel = allClassesMap[activeFeaturesClass] || charLevel;
+                      const featuresByLevel: any = {};
+                      classFeatures.forEach((f) => {
+                        const lvl = f.level_acquired;
+                        if (!featuresByLevel[lvl]) featuresByLevel[lvl] = [];
+                        featuresByLevel[lvl].push(f);
+                      });
+                      const levels = Object.keys(featuresByLevel).map(Number).sort((a, b) => a - b);
+                      return (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
-                          {levels.map(lvl => {
-                            const isUnlocked = lvl <= activeClassLevel;
-                            return (
-                              <div key={lvl} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', marginBottom: '4px' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', opacity: isUnlocked ? 1 : 0.35 }}>
-                                  <div style={{
-                                    width: '36px', height: '36px', borderRadius: '50%',
-                                    background: isUnlocked ? 'var(--accent-gold)' : 'rgba(255,255,255,0.06)',
-                                    border: `2px solid ${isUnlocked ? 'var(--accent-gold)' : 'rgba(255,255,255,0.12)'}`,
-                                    display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
-                                    boxShadow: isUnlocked ? '0 0 12px rgba(200,135,42,0.5)' : 'none'
-                                  }}>
-                                    <span className="mono" style={{ fontWeight: 'bold', fontSize: '0.8rem', color: isUnlocked ? 'black' : 'var(--text-secondary)' }}>{lvl}</span>
-                                  </div>
-                                  <span className="font-cinzel" style={{ fontSize: '0.7rem', color: isUnlocked ? 'var(--accent-gold)' : 'var(--text-secondary)', letterSpacing: '2px' }}>
-                                    NIVEL {lvl}{!isUnlocked && ' - bloqueado'}
-                                  </span>
-                                </div>
-                                <div style={{ paddingLeft: '48px', paddingBottom: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                  {featuresByLevel[lvl].map((f: any, fi: number) => (
-                                    <div key={fi} style={{
-                                      background: isUnlocked ? 'rgba(200,135,42,0.04)' : 'rgba(255,255,255,0.02)',
-                                      border: `1px solid ${isUnlocked ? 'rgba(200,135,42,0.2)' : 'rgba(255,255,255,0.05)'}`,
-                                      padding: '14px 16px', opacity: isUnlocked ? 1 : 0.4, filter: isUnlocked ? 'none' : 'grayscale(1)'
-                                    }}>
-                                      <div className="font-cinzel" style={{ color: isUnlocked ? 'var(--accent-gold)' : 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '6px' }}>{f.feature_name}</div>
-                                      <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: '1.6' }}>{f.description}</div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            );
-                          })}
-                        </div>
-                      )}
-                    </div>
-                  );
-                };
-
-                const renderConjuros = () => {
-                  const charLevel = selectedCharacter.level || 1;
-                  const allClassesList = Object.keys(parseClasses(selectedCharacter.class));
-                  const spellSlotsTable: Record<number, number[]> = {
-                    1: [2, 0, 0, 0, 0, 0, 0, 0, 0], 2: [3, 0, 0, 0, 0, 0, 0, 0, 0], 3: [4, 2, 0, 0, 0, 0, 0, 0, 0], 4: [4, 3, 0, 0, 0, 0, 0, 0, 0],
-                    5: [4, 3, 2, 0, 0, 0, 0, 0, 0], 6: [4, 3, 3, 0, 0, 0, 0, 0, 0], 7: [4, 3, 3, 1, 0, 0, 0, 0, 0], 8: [4, 3, 3, 2, 0, 0, 0, 0, 0],
-                    9: [4, 3, 3, 3, 1, 0, 0, 0, 0], 10: [4, 3, 3, 3, 2, 0, 0, 0, 0], 11: [4, 3, 3, 3, 2, 1, 0, 0, 0], 12: [4, 3, 3, 3, 2, 1, 0, 0, 0],
-                    13: [4, 3, 3, 3, 2, 1, 1, 0, 0], 14: [4, 3, 3, 3, 2, 1, 1, 0, 0], 15: [4, 3, 3, 3, 2, 1, 1, 1, 0], 16: [4, 3, 3, 3, 2, 1, 1, 1, 0],
-                    17: [4, 3, 3, 3, 2, 1, 1, 1, 1], 18: [4, 3, 3, 3, 3, 1, 1, 1, 1], 19: [4, 3, 3, 3, 3, 2, 1, 1, 1], 20: [4, 3, 3, 3, 3, 2, 2, 1, 1],
-                  };
-                  const slots = spellSlotsTable[Math.min(charLevel, 20)] || spellSlotsTable[1];
-                  return (
-                    <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-                      <div style={{ textAlign: 'center', padding: '10px 0' }}>
-                        <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '6px' }}>CLASE LANZADORA</div>
-                        <div style={{ color: 'var(--text-parchment)', fontSize: '1.1rem', fontWeight: 'bold' }}>
-                          {allClassesList.filter(c => SPELLCASTING_CLASSES.includes(c)).join(' / ')}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', margin: 0 }}>ESPACIOS DE CONJUROS</h4>
-                        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                          {slots.map((maxSlots, i) => {
-                            const nivel = i + 1;
-                            const isAvailable = maxSlots > 0;
-                            return (
-                              <div key={nivel} style={{
-                                background: isAvailable ? 'rgba(139,92,246,0.08)' : 'rgba(255,255,255,0.02)',
-                                border: `1px solid ${isAvailable ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.06)'}`,
-                                padding: '14px 12px', textAlign: 'center', opacity: isAvailable ? 1 : 0.3
-                              }}>
-                                <div className="font-cinzel" style={{ fontSize: '0.65rem', color: isAvailable ? '#a78bfa' : 'var(--text-secondary)', letterSpacing: '1px', marginBottom: '8px' }}>NIVEL {nivel}</div>
-                                <div className="mono" style={{ fontSize: '1.6rem', fontWeight: 'bold', color: isAvailable ? 'white' : 'var(--text-secondary)' }}>{maxSlots}</div>
-                                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '4px' }}>disponibles</div>
-                                {isAvailable && (
-                                  <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', marginTop: '8px' }}>
-                                    {Array.from({ length: maxSlots }).map((_, pi) => (
-                                      <div key={pi} style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#a78bfa', boxShadow: '0 0 4px rgba(167,139,250,0.6)' }} />
-                                    ))}
-                                  </div>
-                                )}
-                              </div>
-                            );
-                          })}
-                        </div>
-                      </div>
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
-                        <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', margin: 0 }}>CONJUROS CONOCIDOS</h4>
-                        <div style={{ background: 'rgba(0,0,0,0.15)', border: '1px dashed rgba(139,92,246,0.25)', padding: '30px', textAlign: 'center' }}>
-                          <div style={{ fontSize: '2rem', marginBottom: '12px', opacity: 0.3 }}>✨</div>
-                          <div className="font-cinzel" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', letterSpacing: '1px' }}>0 conjuros preparados</div>
-                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '8px', opacity: 0.6 }}>La gestion de conjuros estara disponible proximamente.</div>
-                        </div>
-                      </div>
-                    </div>
-                  );
-                };
-
-                return (
-                  <>
-                    {/* ===== TAB: HOJA ===== */}
-                    {activeTabToRender === 'hoja' && (
-                      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px' }}>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-                          <section>
-                            <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '15px' }}>ATRIBUTOS</h4>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px' }}>
-                              {['fue', 'dex', 'con', 'int', 'sab', 'car'].map((key) => {
-                                const value = charStats[key] || 10;
-                                const mod = calcMod(value);
-                                const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
+                          {Object.keys(allClassesMap).length > 1 && (
+                            <div style={{ display: 'flex', gap: '8px', marginBottom: '20px', flexWrap: 'wrap' }}>
+                              {Object.entries(allClassesMap as Record<string, number>).map(([cls, lvl]) => (
+                                <button key={cls} className="font-cinzel" onClick={() => fetchClassFeatures(cls)}
+                                  style={{ padding: '6px 14px', background: 'rgba(200,135,42,0.1)', border: '1px solid var(--border-color)', color: 'var(--accent-gold)', cursor: 'pointer', fontSize: '0.8rem' }}>
+                                  {cls} (Nv {lvl})
+                                </button>
+                              ))}
+                            </div>
+                          )}
+                          {featuresLoading && (
+                            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+                              <div style={{ fontSize: '1.5rem', marginBottom: '10px' }}>⚔️</div>
+                              <div className="font-cinzel" style={{ fontSize: '0.85rem', letterSpacing: '1px', opacity: 0.7 }}>Cargando rasgos...</div>
+                            </div>
+                          )}
+                          {!featuresLoading && classFeatures.length === 0 && (
+                            <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-secondary)' }}>
+                              <div style={{ fontSize: '2rem', marginBottom: '12px', opacity: 0.3 }}>📜</div>
+                              <div className="font-cinzel" style={{ fontSize: '0.85rem', letterSpacing: '1px' }}>Sin rasgos registrados para esta clase.</div>
+                            </div>
+                          )}
+                          {!featuresLoading && levels.length > 0 && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '0' }}>
+                              {levels.map(lvl => {
+                                const isUnlocked = lvl <= activeClassLevel;
                                 return (
-                                  <div key={key} style={{ background: 'var(--bg-base)', padding: '12px 8px', border: '1px solid var(--border-color)', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', minHeight: '110px' }} className="clipped-frame">
-                                    <div style={{ fontSize: '0.65rem', color: 'var(--accent-gold)', fontWeight: 'bold', marginBottom: '4px', letterSpacing: '1.2px' }}>{key.toUpperCase()}</div>
-                                    <div className="mono" style={{ fontSize: '2.2rem', fontWeight: 'bold', color: 'white', lineHeight: '1.1' }}>{modStr}</div>
-                                    <div style={{ marginTop: '8px', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid rgba(255, 255, 255, 0.1)', padding: '2px 8px', borderRadius: '3px', fontSize: '0.8rem', color: 'var(--text-secondary)', display: 'inline-block' }}>
-                                      <span className="mono">{value}</span>
+                                  <div key={lvl} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', marginBottom: '4px' }}>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', opacity: isUnlocked ? 1 : 0.35 }}>
+                                      <div style={{
+                                        width: '36px', height: '36px', borderRadius: '50%',
+                                        background: isUnlocked ? 'var(--accent-gold)' : 'rgba(255,255,255,0.06)',
+                                        border: `2px solid ${isUnlocked ? 'var(--accent-gold)' : 'rgba(255,255,255,0.12)'}`,
+                                        display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
+                                        boxShadow: isUnlocked ? '0 0 12px rgba(200,135,42,0.5)' : 'none'
+                                      }}>
+                                        <span className="mono" style={{ fontWeight: 'bold', fontSize: '0.8rem', color: isUnlocked ? 'black' : 'var(--text-secondary)' }}>{lvl}</span>
+                                      </div>
+                                      <span className="font-cinzel" style={{ fontSize: '0.7rem', color: isUnlocked ? 'var(--accent-gold)' : 'var(--text-secondary)', letterSpacing: '2px' }}>
+                                        NIVEL {lvl}{!isUnlocked && ' - bloqueado'}
+                                      </span>
+                                    </div>
+                                    <div style={{ paddingLeft: '48px', paddingBottom: '12px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                      {featuresByLevel[lvl].map((f: any, fi: number) => (
+                                        <div key={fi} style={{
+                                          background: isUnlocked ? 'rgba(200,135,42,0.04)' : 'rgba(255,255,255,0.02)',
+                                          border: `1px solid ${isUnlocked ? 'rgba(200,135,42,0.2)' : 'rgba(255,255,255,0.05)'}`,
+                                          padding: '14px 16px', opacity: isUnlocked ? 1 : 0.4, filter: isUnlocked ? 'none' : 'grayscale(1)'
+                                        }}>
+                                          <div className="font-cinzel" style={{ color: isUnlocked ? 'var(--accent-gold)' : 'var(--text-secondary)', fontSize: '0.9rem', fontWeight: 'bold', marginBottom: '6px' }}>{f.feature_name}</div>
+                                          <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: '1.6' }}>{f.description}</div>
+                                        </div>
+                                      ))}
                                     </div>
                                   </div>
                                 );
                               })}
                             </div>
-
-                            {(() => {
-                              const parsedInv = typeof selectedCharacter.inventory === 'string' ? JSON.parse(selectedCharacter.inventory || '{}') : (selectedCharacter.inventory || {});
-                              const selectedSkills = parsedInv.habilidades || [];
-                              const charLevel = selectedCharacter.level || 1;
-                              const pb = getProficiencyBonus(charLevel);
-                              
-                              const phList = [
-                                { label: 'Atletismo', key: 'fue' },
-                                { label: 'Acrobacias', key: 'dex' }, { label: 'Juego de Manos', key: 'dex' }, { label: 'Sigilo', key: 'dex' },
-                                { label: 'Arcanos', key: 'int' }, { label: 'Historia', key: 'int' }, { label: 'Investigación', key: 'int' }, { label: 'Naturaleza', key: 'int' }, { label: 'Religión', key: 'int' },
-                                { label: 'Trato con Animales', key: 'sab' }, { label: 'Perspicacia', key: 'sab' }, { label: 'Medicina', key: 'sab' }, { label: 'Percepción', key: 'sab' }, { label: 'Supervivencia', key: 'sab' },
-                                { label: 'Engaño', key: 'car' }, { label: 'Intimidación', key: 'car' }, { label: 'Interpretación', key: 'car' }, { label: 'Persuasión', key: 'car' }
-                              ];
-
-                              const tsList = [
-                                { label: 'Fuerza', key: 'fue' },
-                                { label: 'Destreza', key: 'dex' },
-                                { label: 'Constitución', key: 'con' },
-                                { label: 'Inteligencia', key: 'int' },
-                                { label: 'Sabiduría', key: 'sab' },
-                                { label: 'Carisma', key: 'car' }
-                              ];
-
-                              return (
-                                <>
-                                  {/* HABILIDADES */}
-                                  <div style={{ marginTop: '20px' }}>
-                                    <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '10px' }}>🎲 HABILIDADES</h4>
-                                    <div style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--border-color)', background: 'var(--bg-base)' }}>
-                                      {phList.map((s, index) => {
-                                        const baseMod = calcMod(charStats[s.key] || 10);
-                                        const isProficient = selectedSkills.includes(s.label);
-                                        const totalMod = baseMod + (isProficient ? pb : 0);
-                                        const modStr = totalMod >= 0 ? `+${totalMod}` : `${totalMod}`;
-                                        const rowStyle: React.CSSProperties = {
-                                          display: 'flex',
-                                          justifyContent: 'space-between',
-                                          alignItems: 'center',
-                                          padding: '6px 12px',
-                                          borderBottom: index === phList.length - 1 ? 'none' : '1px solid rgba(255, 255, 255, 0.05)',
-                                          background: isProficient ? 'rgba(200, 135, 42, 0.04)' : 'transparent',
-                                        };
-                                        const textStyle: React.CSSProperties = isProficient ? {
-                                          color: '#ffd700',
-                                          textShadow: '0 0 8px rgba(255, 215, 0, 0.6)',
-                                          fontWeight: 'bold',
-                                          fontSize: '0.82rem'
-                                        } : {
-                                          color: 'var(--text-parchment)',
-                                          fontSize: '0.82rem'
-                                        };
-                                        return (
-                                          <div key={s.label} style={rowStyle}>
-                                            <span className="font-cinzel" style={textStyle}>
-                                              {isProficient ? '✦ ' : ''}{s.label} ({s.key.toUpperCase()})
-                                            </span>
-                                            <span className="mono" style={{ ...textStyle, fontSize: '0.9rem' }}>{modStr}</span>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-
-                                  {/* TIRADAS DE SALVACIÓN */}
-                                  <div style={{ marginTop: '20px' }}>
-                                    <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '10px' }}>🛡️ TIRADAS DE SALVACIÓN</h4>
-                                    <div style={{ display: 'flex', flexDirection: 'column', border: '1px solid var(--border-color)', background: 'var(--bg-base)' }}>
-                                      {tsList.map((s, index) => {
-                                        const baseMod = calcMod(charStats[s.key] || 10);
-                                        const isProficient = (parsedInv.salvaciones || []).includes(s.key);
-                                        const totalMod = baseMod + (isProficient ? pb : 0);
-                                        const modStr = totalMod >= 0 ? `+${totalMod}` : `${totalMod}`;
-                                        const rowStyle: React.CSSProperties = {
-                                          display: 'flex',
-                                          justifyContent: 'space-between',
-                                          alignItems: 'center',
-                                          padding: '6px 12px',
-                                          borderBottom: index === tsList.length - 1 ? 'none' : '1px solid rgba(255, 255, 255, 0.05)',
-                                          background: isProficient ? 'rgba(200, 135, 42, 0.04)' : 'transparent',
-                                        };
-                                        const textStyle: React.CSSProperties = isProficient ? {
-                                          color: '#ffd700',
-                                          textShadow: '0 0 8px rgba(255, 215, 0, 0.6)',
-                                          fontWeight: 'bold',
-                                          fontSize: '0.82rem'
-                                        } : {
-                                          color: 'var(--text-parchment)',
-                                          fontSize: '0.82rem'
-                                        };
-                                        return (
-                                          <div key={s.label} style={rowStyle}>
-                                            <span className="font-cinzel" style={textStyle}>
-                                              {isProficient ? '✦ ' : ''}{s.label} ({s.key.toUpperCase()})
-                                            </span>
-                                            <span className="mono" style={{ ...textStyle, fontSize: '0.9rem' }}>{modStr}</span>
-                                          </div>
-                                        );
-                                      })}
-                                    </div>
-                                  </div>
-                                </>
-                              );
-                            })()}
-                          </section>
+                          )}
                         </div>
+                      );
+                    };
 
+                    const renderConjuros = () => {
+                      const charLevel = selectedCharacter.level || 1;
+                      const allClassesList = Object.keys(parseClasses(selectedCharacter.class));
+                      const spellSlotsTable: Record<number, number[]> = {
+                        1: [2, 0, 0, 0, 0, 0, 0, 0, 0], 2: [3, 0, 0, 0, 0, 0, 0, 0, 0], 3: [4, 2, 0, 0, 0, 0, 0, 0, 0], 4: [4, 3, 0, 0, 0, 0, 0, 0, 0],
+                        5: [4, 3, 2, 0, 0, 0, 0, 0, 0], 6: [4, 3, 3, 0, 0, 0, 0, 0, 0], 7: [4, 3, 3, 1, 0, 0, 0, 0, 0], 8: [4, 3, 3, 2, 0, 0, 0, 0, 0],
+                        9: [4, 3, 3, 3, 1, 0, 0, 0, 0], 10: [4, 3, 3, 3, 2, 0, 0, 0, 0], 11: [4, 3, 3, 3, 2, 1, 0, 0, 0], 12: [4, 3, 3, 3, 2, 1, 0, 0, 0],
+                        13: [4, 3, 3, 3, 2, 1, 1, 0, 0], 14: [4, 3, 3, 3, 2, 1, 1, 0, 0], 15: [4, 3, 3, 3, 2, 1, 1, 1, 0], 16: [4, 3, 3, 3, 2, 1, 1, 1, 0],
+                        17: [4, 3, 3, 3, 2, 1, 1, 1, 1], 18: [4, 3, 3, 3, 3, 1, 1, 1, 1], 19: [4, 3, 3, 3, 3, 2, 1, 1, 1], 20: [4, 3, 3, 3, 3, 2, 2, 1, 1],
+                      };
+                      const slots = spellSlotsTable[Math.min(charLevel, 20)] || spellSlotsTable[1];
+                      return (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-
-                          {/* FOTO DE CUERPO COMPLETO (2:3) */}
-                          <section>
-                            <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '15px' }}>📸 FOTO DE CUERPO COMPLETO</h4>
-                            <div style={{ 
-                              width: '100%', 
-                              maxWidth: '350px',
-                              aspectRatio: '2/3', 
-                              border: '1px dashed var(--accent-gold)', 
-                              background: 'var(--bg-base)', 
-                              display: 'flex', 
-                              flexDirection: 'column', 
-                              alignItems: 'center', 
-                              justifyContent: 'center', 
-                              position: 'relative', 
-                              overflow: 'hidden',
-                              cursor: 'pointer'
-                            }} className="clipped-frame torch-glow">
-                              {selectedCharacter.full_body_image ? (
-                                <img src={selectedCharacter.full_body_image} alt="Cuerpo Completo" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                              ) : (
-                                <div style={{ color: 'var(--text-secondary)', textAlign: 'center' }}>
-                                  <div style={{ fontSize: '2.5rem', marginBottom: '10px' }}>👤</div>
-                                  <div>Subir Foto (2:3)</div>
-                                </div>
-                              )}
-                              <input 
-                                type="file" 
-                                accept="image/*" 
-                                style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
-                                onChange={async (e: any) => {
-                                  const file = e.target.files[0];
-                                  if (file) {
-                                    const formData = new FormData();
-                                    formData.append('file', file);
-                                    const backendUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
-                                    const uploadUrl = `${backendUrl}/api/upload?folder=full_body`;
-                                    try {
-                                      const res = await fetch(uploadUrl, { method: 'POST', body: formData });
-                                      const data = await res.json();
-                                      if (data.success) {
-                                        socket.emit('character:update', { ...selectedCharacter, full_body_image: data.url });
-                                        setSelectedCharacter({ ...selectedCharacter, full_body_image: data.url });
-                                      } else {
-                                        alert('Error al subir la imagen: ' + data.error);
-                                      }
-                                    } catch (err) {
-                                      console.error(err);
-                                      alert('Error de conexión al subir la imagen');
-                                    }
-                                  }
-                                }}
-                              />
+                          <div style={{ textAlign: 'center', padding: '10px 0' }}>
+                            <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '6px' }}>CLASE LANZADORA</div>
+                            <div style={{ color: 'var(--text-parchment)', fontSize: '1.1rem', fontWeight: 'bold' }}>
+                              {allClassesList.filter(c => SPELLCASTING_CLASSES.includes(c)).join(' / ')}
                             </div>
-                          </section>
-
-                          {/* LEYENDA (DESCRIPCIÓN) */}
-                          <section>
-                            <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '15px' }}>📜 LEYENDA</h4>
-                            <div style={{ background: 'rgba(0,0,0,0.2)', padding: '20px', border: '1px solid var(--border-color)' }} className="clipped-frame">
-                              <p
-                                style={{ margin: 0, color: 'var(--text-parchment)', lineHeight: '1.8', fontSize: '1rem', fontStyle: selectedCharacter.description ? 'normal' : 'italic' }}
-                                dangerouslySetInnerHTML={{ __html: formatDescription(selectedCharacter.description || "Esta leyenda aún no ha sido escrita...") }}
-                              />
-                            </div>
-                          </section>
-
-                          {/* INVENTARIO */}
-                          <section>
-                            {(() => {
-                              const fue = charStats.fue || 10;
-                              const maxWeight = fue * 6.8;
-                              const slots = charInv.slots || {};
-                              let currentWeight = 0;
-                              Object.values(slots).forEach((item: any) => {
-                                currentWeight += (item.weight || 0) * (item.quantity || 1);
-                              });
-                              const coins = charInv.coins || { pc: 0, pl: 0, el: 0, po: 0, pt: 0 };
-                              const totalCoins = coins.pc + coins.pl + coins.el + coins.po + coins.pt;
-                              currentWeight += (totalCoins / 100) * 0.9;
-                              const overEncumbered = currentWeight >= maxWeight * 0.9;
-
-                              return (
-                                <h3 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                  <span>INVENTARIO ({currentWeight.toFixed(1)} / {maxWeight.toFixed(1)} kg)</span>
-                                  {overEncumbered && (
-                                    <span style={{ color: 'white', background: 'var(--combat-red)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
-                                      ⚠️ DESVENTAJA
-                                    </span>
-                                  )}
-                                </h3>
-                              );
-                            })()}
-                            
-                            {/* Contenedor Flex para la cuadrícula y el indicador lateral */}
-                            <div style={{ display: 'flex', gap: '15px', alignItems: 'center', marginBottom: '15px' }}>
-                              <div style={{
-                                display: 'grid',
-                                gridTemplateColumns: 'repeat(5, 1fr)',
-                                gap: '15px',
-                                background: 'rgba(0,0,0,0.2)',
-                                padding: '20px',
-                                border: '1px solid var(--border-color)',
-                                flex: 1
-                              }}>
-                                {Array.from({ length: 20 }).map((_, index) => {
-                                  if (index >= 15) {
-                                    // Espacios de Monedas (15-19)
-                                    const coinKeys = ['pc', 'pl', 'el', 'po', 'pt'] as const;
-                                    const coinKey = coinKeys[index - 15];
-                                    const coinIcons = {
-                                      pc: pcCoin,
-                                      pl: plCoin,
-                                      el: elCoin,
-                                      po: poCoin,
-                                      pt: ptCoin
-                                    };
-                                    const coinIcon = coinIcons[coinKey];
-                                    const coins = charInv.coins || { pc: 0, pl: 0, el: 0, po: 0, pt: 0 };
-                                    const glowColors = {
-                                      pc: 'rgba(180, 83, 9, 0.3)',   // Cobre
-                                      pl: 'rgba(156, 163, 175, 0.3)', // Plata
-                                      el: 'rgba(163, 230, 53, 0.2)',  // Electrum
-                                      po: 'rgba(234, 179, 8, 0.3)',   // Oro
-                                      pt: 'rgba(56, 189, 248, 0.3)'   // Platino
-                                    };
-
-                                    const coinLabels = {
-                                      pc: 'COBRE',
-                                      pl: 'PLATA',
-                                      el: 'ELECTRUM',
-                                      po: 'ORO',
-                                      pt: 'PLATINO'
-                                    };
-
-                                    return (
-                                      <div
-                                        key={coinKey}
-                                        style={{
-                                          display: 'flex',
-                                          flexDirection: 'column',
-                                          alignItems: 'center',
-                                          background: 'linear-gradient(135deg, rgba(30, 30, 30, 0.6), rgba(15, 15, 15, 0.8))',
-                                          border: '1px solid rgba(200, 135, 42, 0.15)',
-                                          borderRadius: '8px',
-                                          padding: '10px 5px 8px 5px',
-                                          transition: 'all 0.3s cubic-bezier(0.25, 0.8, 0.25, 1)',
-                                          boxShadow: '0 4px 10px rgba(0,0,0,0.4)',
-                                          position: 'relative',
-                                          overflow: 'hidden'
-                                        }}
-                                        onMouseEnter={e => {
-                                          e.currentTarget.style.borderColor = 'var(--accent-gold)';
-                                          e.currentTarget.style.transform = 'translateY(-2px)';
-                                          e.currentTarget.style.boxShadow = `0 6px 15px rgba(0,0,0,0.6), 0 0 12px ${glowColors[coinKey]}`;
-                                        }}
-                                        onMouseLeave={e => {
-                                          e.currentTarget.style.borderColor = 'rgba(200, 135, 42, 0.15)';
-                                          e.currentTarget.style.transform = 'translateY(0)';
-                                          e.currentTarget.style.boxShadow = '0 4px 10px rgba(0,0,0,0.4)';
-                                        }}
-                                      >
-                                        {/* Coin Circle Frame */}
-                                        <div style={{
-                                          width: '52px',
-                                          height: '52px',
-                                          borderRadius: '50%',
-                                          border: '2px solid rgba(200, 135, 42, 0.35)',
-                                          background: 'radial-gradient(circle, rgba(45,45,45,0.9) 0%, rgba(20,20,20,0.95) 100%)',
-                                          display: 'flex',
-                                          alignItems: 'center',
-                                          justifyContent: 'center',
-                                          boxShadow: 'inset 0 0 8px rgba(0,0,0,0.9), 0 2px 4px rgba(0,0,0,0.4)',
-                                          position: 'relative',
-                                          overflow: 'hidden'
-                                        }}>
-                                          <div style={{
-                                            position: 'absolute',
-                                            top: '2px', left: '2px', right: '2px', bottom: '2px',
-                                            borderRadius: '50%',
-                                            border: '1px dashed rgba(200, 135, 42, 0.12)',
-                                            pointerEvents: 'none'
-                                          }} />
-                                          <img
-                                            src={coinIcon}
-                                            alt={coinKey}
-                                            style={{
-                                              width: '100%',
-                                              height: '100%',
-                                              objectFit: 'contain',
-                                              transform: 'scale(1.2)',
-                                              filter: 'drop-shadow(0 3px 5px rgba(0,0,0,0.5))'
-                                            }}
-                                          />
-                                        </div>
-
-                                        {/* Premium Input Container */}
-                                        <div
-                                          style={{
-                                            marginTop: '8px',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            gap: '2px',
-                                            background: 'rgba(0,0,0,0.45)',
-                                            border: '1px solid rgba(200, 135, 42, 0.25)',
-                                            borderRadius: '4px',
-                                            padding: '2px 5px',
-                                            width: '90%',
-                                            boxSizing: 'border-box',
-                                            transition: 'all 0.2s ease',
-                                            boxShadow: 'inset 0 1px 3px rgba(0,0,0,0.8)'
-                                          }}
-                                          onFocus={e => {
-                                            e.currentTarget.style.borderColor = 'var(--accent-gold)';
-                                            e.currentTarget.style.boxShadow = 'inset 0 1px 3px rgba(0,0,0,0.8), 0 0 8px rgba(200,135,42,0.4)';
-                                          }}
-                                          onBlur={e => {
-                                            e.currentTarget.style.borderColor = 'rgba(200, 135, 42, 0.25)';
-                                            e.currentTarget.style.boxShadow = 'inset 0 1px 3px rgba(0,0,0,0.8)';
-                                          }}
-                                        >
-                                          <input
-                                            type="text"
-                                            inputMode="numeric"
-                                            pattern="[0-9]*"
-                                            value={coins[coinKey] ?? 0}
-                                            onChange={(e) => {
-                                              const digits = e.target.value.replace(/\D/g, '');
-                                              const newVal = digits ? parseInt(digits, 10) : 0;
-                                              const newInv = {
-                                                ...charInv,
-                                                coins: {
-                                                  ...coins,
-                                                  [coinKey]: newVal
-                                                }
-                                              };
-                                              const updated = { ...selectedCharacter, inventory: JSON.stringify(newInv) };
-                                              setSelectedCharacter(updated);
-                                            }}
-                                            onBlur={() => {
-                                              if (selectedCharacter) {
-                                                socket.emit('character:update', selectedCharacter);
-                                              }
-                                            }}
-                                            onKeyDown={(e) => {
-                                              if (e.key === 'Enter') {
-                                                e.currentTarget.blur();
-                                              }
-                                            }}
-                                            style={{
-                                              width: '100%',
-                                              background: 'transparent',
-                                              border: 'none',
-                                              color: 'white',
-                                              textAlign: 'center',
-                                              fontSize: '0.85rem',
-                                              fontFamily: 'monospace',
-                                              fontWeight: 'bold',
-                                              outline: 'none',
-                                              MozAppearance: 'textfield'
-                                            }}
-                                          />
-                                        </div>
-
-                                        {/* Premium Letter-spaced Label */}
-                                        <span className="font-cinzel" style={{ fontSize: '0.55rem', color: 'var(--accent-gold)', fontWeight: 'bold', letterSpacing: '1px', marginTop: '4px', opacity: 0.85 }}>
-                                          {coinLabels[coinKey]}
-                                        </span>
-                                      </div>
-                                    );
-                                  } else {
-                                    // Slots de equipo normal (0-14)
-                                    const slots = charInv.slots || {};
-                                    const currentSlotItem = slots[index];
-                                    
-                                    return currentSlotItem ? (
-                                      <div key={index} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                        <div
-                                          className="clipped-frame torch-glow"
-                                          onClick={() => {
-                                            setViewingItemDetail(currentSlotItem);
-                                          }}
-                                          style={{
-                                            width: '65px',
-                                            height: '65px',
-                                            border: currentSlotItem.attuned ? '2px solid var(--accent-gold)' : '1px solid var(--accent-gold)',
-                                            background: currentSlotItem.attuned ? 'rgba(200, 135, 42, 0.15)' : 'rgba(200, 135, 42, 0.05)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            cursor: 'pointer',
-                                            position: 'relative',
-                                            transition: 'all 0.2s',
-                                            boxShadow: currentSlotItem.attuned ? '0 0 12px var(--accent-gold), inset 0 0 10px rgba(0,0,0,0.8)' : 'inset 0 0 10px rgba(0,0,0,0.8)'
-                                          }}
-                                          onMouseEnter={e => { e.currentTarget.style.borderColor = '#fff'; }}
-                                          onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--accent-gold)'; }}
-                                        >
-                                          {/* Botón de desequipar (X roja) */}
-                                          <div
-                                            onClick={(e) => {
-                                              e.stopPropagation();
-                                              if (currentSlotItem.quantity === 1) {
-                                                const newSlots = { ...slots };
-                                                delete newSlots[index];
-                                                const newInv = { ...charInv, slots: newSlots };
-                                                const updated = { ...selectedCharacter, inventory: JSON.stringify(newInv) };
-                                                socket.emit('character:update', updated);
-                                                setSelectedCharacter(updated);
-                                              } else {
-                                                setUnequippingSlotIndex(index);
-                                                setUnequipQuantity(1);
-                                              }
-                                            }}
-                                            style={{
-                                              position: 'absolute',
-                                              top: '2px',
-                                              right: '2px',
-                                              width: '16px',
-                                              height: '16px',
-                                              background: 'rgba(239, 68, 68, 0.85)',
-                                              borderRadius: '50%',
-                                              display: 'flex',
-                                              alignItems: 'center',
-                                              justifyContent: 'center',
-                                              fontSize: '0.55rem',
-                                              color: 'white',
-                                              fontWeight: 'bold',
-                                              cursor: 'pointer',
-                                              zIndex: 2,
-                                              lineHeight: 1,
-                                              boxShadow: '0 1px 4px rgba(0,0,0,0.5)',
-                                              transition: 'background 0.15s'
-                                            }}
-                                            onMouseEnter={ev => ev.currentTarget.style.background = 'rgba(239, 68, 68, 1)'}
-                                            onMouseLeave={ev => ev.currentTarget.style.background = 'rgba(239, 68, 68, 0.85)'}
-                                            title="Desequipar objeto"
-                                          >
-                                            ✕
-                                          </div>
-
-                                          {currentSlotItem.image ? (
-                                            <img
-                                              src={currentSlotItem.image}
-                                              alt={currentSlotItem.name}
-                                              style={{
-                                                width: '100%',
-                                                height: '100%',
-                                                objectFit: 'cover',
-                                                transform: `translate(${(currentSlotItem.imagePosX ?? 0) * 0.5}px, ${(currentSlotItem.imagePosY ?? 0) * 0.5}px) scale(${currentSlotItem.imageZoom ?? 1})`,
-                                                transformOrigin: 'center center'
-                                              }}
-                                            />
-                                          ) : (
-                                            <span style={{ fontSize: '1.5rem' }}>🎒</span>
-                                          )}
-
-                                          {/* Badge de cantidad */}
-                                          {currentSlotItem.quantity > 1 && (
-                                            <div style={{
-                                              position: 'absolute',
-                                              bottom: '2px',
-                                              left: (currentSlotItem.attuned || currentSlotItem.requiresAttunement) ? '4px' : undefined,
-                                              right: (currentSlotItem.attuned || currentSlotItem.requiresAttunement) ? undefined : '4px',
-                                              background: 'rgba(0,0,0,0.7)',
-                                              color: 'white',
-                                              fontSize: '0.55rem',
-                                              padding: '1px 3px',
-                                              borderRadius: '3px',
-                                              fontWeight: 'bold',
-                                              lineHeight: 1.2
-                                            }}>
-                                              x{currentSlotItem.quantity}
-                                            </div>
-                                          )}
-
-                                          {/* Indicador de sintonización */}
-                                          {(currentSlotItem.attuned || currentSlotItem.requiresAttunement) && (
-                                            <div style={{
-                                              position: 'absolute',
-                                              bottom: '2px',
-                                              right: '4px',
-                                              fontSize: '0.7rem',
-                                              opacity: currentSlotItem.attuned ? 1 : 0.35,
-                                              filter: currentSlotItem.attuned ? 'drop-shadow(0 0 3px rgba(255,215,0,0.8))' : 'none',
-                                              lineHeight: 1
-                                            }}>
-                                              🔗
-                                            </div>
-                                          )}
-                                        </div>
-                                        <div style={{ height: '18px' }} />
-                                      </div>
-                                    ) : (
-                                      <div key={index} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                                        <div
-                                          className="clipped-frame"
-                                          onClick={() => {
-                                            setActiveSlotIndex(index);
-                                            setSlotSearchQuery('');
-                                            setSlotQuantity(1);
-                                          }}
-                                          style={{
-                                            width: '65px',
-                                            height: '65px',
-                                            border: '1px solid rgba(255, 255, 255, 0.15)',
-                                            background: 'rgba(255, 255, 255, 0.01)',
-                                            display: 'flex',
-                                            alignItems: 'center',
-                                            justifyContent: 'center',
-                                            cursor: 'pointer',
-                                            transition: 'all 0.2s'
-                                          }}
-                                          onMouseEnter={e => {
-                                            e.currentTarget.style.borderColor = 'var(--accent-gold)';
-                                            e.currentTarget.style.background = 'rgba(200, 135, 42, 0.03)';
-                                          }}
-                                          onMouseLeave={e => {
-                                            e.currentTarget.style.borderColor = 'rgba(255, 255, 255, 0.15)';
-                                            e.currentTarget.style.background = 'rgba(255, 255, 255, 0.01)';
-                                          }}
-                                        >
-                                          <span style={{ fontSize: '1.2rem', opacity: 0.35, color: 'var(--accent-gold)', fontWeight: 'bold' }}>+</span>
-                                        </div>
-                                        <div style={{ height: '18px' }} />
-                                      </div>
-                                    );
-                                  }
-                                })}
-                              </div>
-
-                              {/* Indicador de sintonización lateral */}
-                              {(() => {
-                                const slots = charInv.slots || {};
-                                const attunedCount = Object.values(slots).filter((s: any) => s && s.attuned).length;
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', margin: 0 }}>ESPACIOS DE CONJUROS</h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                              {slots.map((maxSlots, i) => {
+                                const nivel = i + 1;
+                                const isAvailable = maxSlots > 0;
                                 return (
-                                  <div
-                                    style={{
-                                      display: 'flex', flexDirection: 'column', gap: '10px',
-                                      alignItems: 'center', justifyContent: 'center',
-                                      padding: '12px 6px',
-                                      background: 'rgba(0,0,0,0.3)',
-                                      border: '1px solid var(--border-color)',
-                                      borderRadius: '20px',
-                                      width: '24px',
-                                      boxShadow: 'inset 0 0 8px rgba(0,0,0,0.8)'
-                                    }}
-                                    title={`${attunedCount}/3 Objetos Sintonizados`}
-                                  >
-                                    {Array.from({ length: 3 }).map((_, i) => {
-                                      const isAttuned = i < attunedCount;
-                                      return (
-                                        <div key={i} style={{
-                                          width: '10px', height: '10px', borderRadius: '50%',
-                                          background: isAttuned ? '#ffffff' : 'transparent',
-                                          border: '1.5px solid var(--accent-gold)',
-                                          boxShadow: isAttuned ? '0 0 6px #ffffff, 0 0 10px var(--accent-gold)' : 'inset 0 0 3px rgba(0,0,0,0.6)',
-                                          transition: 'all 0.3s ease'
-                                        }} title={`Sintonizacion ${i + 1}/3 ${isAttuned ? '(Activa)' : '(Vacia)'}`} />
-                                      );
-                                    })}
+                                  <div key={nivel} style={{
+                                    background: isAvailable ? 'rgba(139,92,246,0.08)' : 'rgba(255,255,255,0.02)',
+                                    border: `1px solid ${isAvailable ? 'rgba(139,92,246,0.3)' : 'rgba(255,255,255,0.06)'}`,
+                                    padding: '14px 12px', textAlign: 'center', opacity: isAvailable ? 1 : 0.3
+                                  }}>
+                                    <div className="font-cinzel" style={{ fontSize: '0.65rem', color: isAvailable ? '#a78bfa' : 'var(--text-secondary)', letterSpacing: '1px', marginBottom: '8px' }}>NIVEL {nivel}</div>
+                                    <div className="mono" style={{ fontSize: '1.6rem', fontWeight: 'bold', color: isAvailable ? 'white' : 'var(--text-secondary)' }}>{maxSlots}</div>
+                                    <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', marginTop: '4px' }}>disponibles</div>
+                                    {isAvailable && (
+                                      <div style={{ display: 'flex', gap: '4px', justifyContent: 'center', marginTop: '8px' }}>
+                                        {Array.from({ length: maxSlots }).map((_, pi) => (
+                                          <div key={pi} style={{ width: '8px', height: '8px', borderRadius: '50%', background: '#a78bfa', boxShadow: '0 0 4px rgba(167,139,250,0.6)' }} />
+                                        ))}
+                                      </div>
+                                    )}
                                   </div>
                                 );
-                              })()}
+                              })}
+                            </div>
+                          </div>
+                          <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                            <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', margin: 0 }}>CONJUROS CONOCIDOS</h4>
+                            <div style={{ background: 'rgba(0,0,0,0.15)', border: '1px dashed rgba(139,92,246,0.25)', padding: '30px', textAlign: 'center' }}>
+                              <div style={{ fontSize: '2rem', marginBottom: '12px', opacity: 0.3 }}>✨</div>
+                              <div className="font-cinzel" style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', letterSpacing: '1px' }}>0 conjuros preparados</div>
+                              <div style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', marginTop: '8px', opacity: 0.6 }}>La gestion de conjuros estara disponible proximamente.</div>
+                            </div>
+                          </div>
+                        </div>
+                      );
+                    };
+
+                    if (activeTabToRender === 'hoja') {
+                      const fue = charStats.fue || 10;
+                      const maxWeight = fue * 6.8;
+                      const slots = charInv.slots || {};
+                      let currentWeight = 0;
+                      Object.values(slots).forEach((item: any) => {
+                        currentWeight += (item.weight || 0) * (item.quantity || 1);
+                      });
+                      const coins = charInv.coins || { pc: 0, pl: 0, el: 0, po: 0, pt: 0 };
+                      const totalCoins = coins.pc + coins.pl + coins.el + coins.po + coins.pt;
+                      currentWeight += (totalCoins / 100) * 0.9;
+                      const overEncumbered = currentWeight >= maxWeight * 0.9;
+
+                      const attunedItems = Object.values(slots).filter((item: any) => item.isAttuned).length;
+
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+                          <section>
+                            <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between' }}>
+                              SINTONIZACIÓN MÁGICA
+                              <span style={{ fontSize: '10px', color: 'var(--text-secondary)' }}>{attunedItems} / 3</span>
+                            </h4>
+                            <div style={{ display: 'flex', gap: '15px', justifyContent: 'center', marginBottom: '10px' }}>
+                              {[0,1,2].map(i => (
+                                <div key={i} style={{ width: '30px', height: '30px', borderRadius: '50%', border: `2px solid ${i < attunedItems ? 'var(--gold-primary)' : 'var(--border-color)'}`, background: i < attunedItems ? 'rgba(200,135,42,0.2)' : 'var(--bg-raised)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: i < attunedItems ? '0 0 10px rgba(200,135,42,0.5)' : 'none' }}>
+                                  {i < attunedItems && <span style={{ color: 'var(--gold-primary)', fontSize: '14px' }}>✦</span>}
+                                </div>
+                              ))}
+                            </div>
+                          </section>
+
+                          <section>
+                            <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                              <span>INVENTARIO ({currentWeight.toFixed(1)} / {maxWeight.toFixed(1)} kg)</span>
+                              {overEncumbered && (
+                                <span style={{ color: 'white', background: 'var(--combat-red)', padding: '2px 8px', borderRadius: '4px', fontSize: '0.75rem', fontWeight: 'bold' }}>
+                                  ⚠️ DESVENTAJA
+                                </span>
+                              )}
+                            </h4>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+                              {Array.from({ length: 25 }).map((_, i) => {
+                                const item = slots[i];
+                                return (
+                                  <div key={i} style={{ aspectRatio: '1/1', background: 'var(--bg-raised)', border: `1px solid ${item?.isAttuned ? 'var(--gold-primary)' : 'var(--border-color)'}`, borderRadius: '4px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', boxShadow: item?.isAttuned ? 'inset 0 0 10px rgba(200,135,42,0.3)' : 'none' }} onClick={() => setActiveSlotIndex(i)}>
+                                    {item ? (
+                                      <>
+                                        {item.image ? (
+                                          <img src={item.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
+                                        ) : (
+                                          <div style={{ fontSize: '1.5rem', opacity: 0.5 }}>{item.type === 'weapon' ? '⚔️' : (item.type === 'armor' ? '🛡️' : '<Backpack className="w-6 h-6 m-auto" />')}</div>
+                                        )}
+                                        {item.quantity > 1 && (
+                                          <div className="mono" style={{ position: 'absolute', bottom: '2px', right: '4px', fontSize: '10px', color: 'white', textShadow: '0 0 2px black' }}>x{item.quantity}</div>
+                                        )}
+                                        {item.isAttuned && (
+                                          <div style={{ position: 'absolute', top: '2px', left: '2px', fontSize: '10px' }}>✦</div>
+                                        )}
+                                      </>
+                                    ) : (
+                                      <div style={{ fontSize: '1.5rem', opacity: 0.1 }}>+</div>
+                                    )}
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </section>
+                          
+                          <section>
+                            <h4 className="font-cinzel" style={{ color: 'var(--combat-red)', borderBottom: '1px solid rgba(231,76,60,0.3)', paddingBottom: '6px', marginBottom: '15px' }}>ACCIONES Y ATAQUES</h4>
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                              {Object.values(slots).filter((i: any) => i && i.isDamage).length === 0 ? (
+                                <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', fontStyle: 'italic' }}>No hay armas equipadas.</div>
+                              ) : (
+                                Object.values(slots).filter((i: any) => i && i.isDamage).map((weapon: any, idx: number) => {
+                                  return (
+                                    <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(231,76,60,0.05)', border: '1px solid rgba(231,76,60,0.2)', padding: '10px', borderRadius: '4px' }}>
+                                      <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                                        <div style={{ fontSize: '1.2rem' }}>⚔️</div>
+                                        <div>
+                                          <div className="font-cinzel" style={{ color: 'var(--text-parchment)', fontSize: '0.9rem', fontWeight: 'bold' }}>{weapon.attackName || weapon.name}</div>
+                                          <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{weapon.range || 'Cuerpo a cuerpo'}</div>
+                                        </div>
+                                      </div>
+                                      <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+                                        <div style={{ textAlign: 'center' }}>
+                                          <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Atk</div>
+                                          <div className="mono" style={{ fontSize: '14px', color: 'var(--text-parchment)' }}>+{weapon.attackBonus || 0}</div>
+                                        </div>
+                                        <div style={{ textAlign: 'center' }}>
+                                          <div style={{ fontSize: '10px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Dmg</div>
+                                          <div className="mono" style={{ fontSize: '14px', color: 'var(--combat-red)' }}>{weapon.damage}</div>
+                                        </div>
+                                      </div>
+                                    </div>
+                                  );
+                                })
+                              )}
                             </div>
                           </section>
                         </div>
-                      </div>
-                    )}
+                      );
+                    } else if (activeTabToRender === 'rasgos') {
+                      return (
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+                          <section>
+                            <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '15px' }}>📜 LEYENDA (TRASFONDO)</h4>
+                            <div style={{ background: 'var(--bg-surface)', padding: '20px', border: '1px solid var(--border-color)', borderRadius: '4px' }}>
+                              <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: '1.6', fontSize: '0.9rem', fontStyle: selectedCharacter.description ? 'normal' : 'italic' }} dangerouslySetInnerHTML={{ __html: formatDescription(selectedCharacter.description || "Esta leyenda aún no ha sido escrita...") }} />
+                            </div>
+                          </section>
+                          <section>
+                            <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '15px' }}>⚔️ RASGOS DE CLASE</h4>
+                            {renderRasgos()}
+                          </section>
+                        </div>
+                      );
+                    } else if (activeTabToRender === 'conjuros') {
+                      return renderConjuros();
+                    }
+                    return null;
+                  })()}
+                </div>
+              </div>
 
-                    {/* ===== TAB: RASGOS ===== */}
-                    {activeTabToRender === 'rasgos' && renderRasgos()}
+              {/* [E] TABS INFERIORES */}
+              <div style={{ display: 'flex', gap: '20px', borderTop: '1px solid var(--border-color)', marginTop: '20px', paddingTop: '15px', overflowX: 'auto', justifyContent: 'center' }}>
+                {[
+                  { id: 'hoja', label: 'HOJA' },
+                  { id: 'rasgos', label: 'RASGOS' },
+                  { id: 'conjuros', label: 'CONJUROS' }
+                ].map(tab => {
+                  const isActive = charDetailTab === tab.id || (charDetailTab === 'inventario' && tab.id === 'hoja') || (charDetailTab === 'trasfondo' && tab.id === 'rasgos');
+                  return (
+                    <button
+                      key={tab.id}
+                      className="font-cinzel"
+                      onClick={() => setCharDetailTab(tab.id as any)}
+                      style={{
+                        background: isActive ? 'var(--gold-primary)' : 'transparent',
+                        border: '1px solid',
+                        borderColor: isActive ? 'var(--gold-primary)' : 'var(--border-color)',
+                        borderRadius: '4px',
+                        color: isActive ? 'black' : 'var(--text-secondary)',
+                        fontSize: '0.85rem',
+                        fontWeight: 'bold',
+                        padding: '8px 24px',
+                        cursor: 'pointer',
+                        letterSpacing: '1px',
+                        transition: 'all 0.2s',
+                        boxShadow: isActive ? '0 0 10px rgba(200,135,42,0.3)' : 'none'
+                      }}
+                    >
+                      {tab.label}
+                    </button>
+                  );
+                })}
+              </div>
 
-                    {/* ===== TAB: CONJUROS ===== */}
-                    {isSpellcaster && activeTabToRender === 'conjuros' && renderConjuros()}
+            </div>
+          </div>
 
-                    {/* ===== BARRA DE TABS AL FINAL EN EL CENTRO ===== */}
-                    <div style={{ display: 'flex', justifyContent: 'center', gap: '0', borderTop: '2px solid var(--border-color)', marginTop: '40px', paddingTop: '15px' }}>
-                      {(['hoja', 'rasgos', 'conjuros'] as const)
-                        .filter((tab) => tab !== 'conjuros' || isSpellcaster)
-                        .map((tab) => {
-                          const labels: Record<string, string> = { hoja: '📋 HOJA', rasgos: '⚔️ RASGOS', conjuros: '✨ CONJUROS' };
-                          const isActive = activeTabToRender === tab;
-                          return (
-                            <button
-                              key={tab}
-                              className="font-cinzel"
-                              onClick={() => setCharDetailTab(tab)}
-                              style={{
-                                padding: '12px 32px',
-                                background: isActive ? 'rgba(200, 135, 42, 0.1)' : 'transparent',
-                                border: 'none',
-                                borderBottom: isActive ? '3px solid var(--accent-gold)' : '3px solid transparent',
-                                borderTop: '1px solid transparent',
-                                color: isActive ? 'var(--accent-gold)' : 'var(--text-secondary)',
-                                fontWeight: isActive ? 'bold' : 'normal',
-                                cursor: 'pointer',
-                                fontSize: '0.85rem',
-                                letterSpacing: '1.5px',
-                                transition: 'all 0.2s',
-                                position: 'relative',
-                                bottom: '-2px'
-                              }}
-                              onMouseEnter={e => { if (!isActive) e.currentTarget.style.color = 'var(--text-parchment)'; }}
-                              onMouseLeave={e => { if (!isActive) e.currentTarget.style.color = 'var(--text-secondary)'; }}
-                            >
-                              {labels[tab]}
-                            </button>
-                          );
-                        })}
-                    </div>
-                  </>
-                );
-              })()}
 {/* SUB-MODAL DE SELECCIÓN DE OBJETO PARA SLOT */}
                                       {activeSlotIndex !== null && (() => {
                                         const slots = charInv.slots || {};
@@ -2412,7 +2035,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
                                               {currentSlotItem && currentSlotItem.requiresAttunement && (
                                                 <div style={{ background: 'rgba(200, 135, 42, 0.05)', padding: '15px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '10px' }} className="clipped-frame">
                                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <span className="font-cinzel" style={{ fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 'bold', letterSpacing: '1.2px' }}>🔗 SINTONIZACIÓN</span>
+                                                    <span className="font-cinzel" style={{ fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 'bold', letterSpacing: '1.2px' }}><Link className="w-4 h-4 inline-block mr-2" /> SINTONIZACIÓN</span>
                                                     <span className="mono" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                                                       {Object.values(slots).filter((s: any) => s && s.attuned).length} / 3 Sintonizados
                                                     </span>
@@ -2481,7 +2104,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
 
                                               {currentSlotItem && currentSlotItem.weight !== undefined && currentSlotItem.weight !== '' && (
                                                 <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '15px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className="clipped-frame">
-                                                  <span className="font-cinzel" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 'bold', letterSpacing: '1.2px' }}>⚖️ PESO TOTAL</span>
+                                                  <span className="font-cinzel" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 'bold', letterSpacing: '1.2px' }}><Scale className="w-4 h-4 inline-block mr-2" /> PESO TOTAL</span>
                                                   <span className="mono" style={{ fontSize: '0.95rem', color: 'white', fontWeight: 'bold' }}>
                                                     {currentSlotItem.weight} kg {currentSlotItem.quantity > 1 ? `(Total: ${(Number(currentSlotItem.weight) * currentSlotItem.quantity).toFixed(2).replace(/\.00$/, '')} kg)` : ''}
                                                   </span>
@@ -2539,7 +2162,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
                                                         {itemData?.image || itemData?.img ? (
                                                           <img src={itemData.image || itemData.img} alt={item.name} style={{ width: '24px', height: '24px', objectFit: 'contain' }} />
                                                         ) : (
-                                                          <span style={{ fontSize: '1.2rem' }}>🎒</span>
+                                                          <span style={{ fontSize: '1.2rem' }}><Backpack className="w-8 h-8 m-auto" /></span>
                                                         )}
                                                         <span>{item.name}</span>
                                                       </div>
@@ -2692,7 +2315,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
                                                       }}
                                                     />
                                                   ) : (
-                                                    <span style={{ fontSize: '2.5rem' }}>🎒</span>
+                                                    <span style={{ fontSize: '2.5rem' }}><Backpack className="w-8 h-8 m-auto" /></span>
                                                   )}
                                                 </div>
                                                 <div style={{ flex: 1 }}>
@@ -2708,7 +2331,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
                                               {/* Peso */}
                                               {viewingItemDetail.weight !== undefined && viewingItemDetail.weight !== '' && (
                                                 <div style={{ background: 'rgba(255, 255, 255, 0.02)', padding: '12px 15px', border: '1px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }} className="clipped-frame">
-                                                  <span className="font-cinzel" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 'bold', letterSpacing: '1px' }}>⚖️ Peso</span>
+                                                  <span className="font-cinzel" style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', fontWeight: 'bold', letterSpacing: '1px' }}><Scale className="w-4 h-4 inline-block mr-2" /> Peso</span>
                                                   <span className="mono" style={{ fontSize: '0.95rem', color: 'white', fontWeight: 'bold' }}>
                                                     {viewingItemDetail.weight} kg {viewingItemDetail.quantity > 1 ? `(Total: ${(Number(viewingItemDetail.weight) * viewingItemDetail.quantity).toFixed(2).replace(/\.00$/, '')} kg)` : ''}
                                                   </span>
@@ -2719,7 +2342,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
                                               {viewingItemDetail.requiresAttunement && (
                                                 <div style={{ background: 'rgba(200, 135, 42, 0.05)', padding: '15px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '10px' }} className="clipped-frame">
                                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                                                    <span className="font-cinzel" style={{ fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 'bold', letterSpacing: '1px' }}>🔗 Sintonización</span>
+                                                    <span className="font-cinzel" style={{ fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 'bold', letterSpacing: '1px' }}><Link className="w-4 h-4 inline-block mr-2" /> Sintonización</span>
                                                     <span className="mono" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
                                                       {Object.values(slots).filter((s: any) => s && s.attuned).length} / 3 Sintonizados
                                                     </span>
@@ -3195,9 +2818,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
                                           </div>
                                         </div>
                                       )}
-            </div>
-                          </div>
-                          );
+                          </>);
       })()}
                         </div>
                       );

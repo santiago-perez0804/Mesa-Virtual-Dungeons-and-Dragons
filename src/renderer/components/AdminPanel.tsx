@@ -1,4 +1,5 @@
 import { useState, useEffect } from 'react';
+import { Crown, Trash2 } from 'lucide-react';
 
 export const AdminPanel = ({ socket }: any) => {
   const [users, setUsers] = useState<any[]>([]);
@@ -35,7 +36,7 @@ export const AdminPanel = ({ socket }: any) => {
 
   return (
     <div style={{ padding: '25px', maxWidth: '1000px', margin: '0 auto', fontFamily: 'sans-serif', color: 'white' }}>
-      <h2 style={{ color: '#a855f7', marginBottom: '20px' }}>👑 Panel de Administración de Perfiles</h2>
+      <h2 style={{ color: '#a855f7', marginBottom: '20px', display: 'flex', alignItems: 'center', gap: '8px' }}><Crown size={24} /> Panel de Administración de Perfiles</h2>
 
       {errorMsg && (
         <div style={{ background: '#ef4444', color: 'white', padding: '10px', borderRadius: '6px', marginBottom: '20px' }}>
@@ -90,9 +91,9 @@ export const AdminPanel = ({ socket }: any) => {
                   <button
                     onClick={() => handleDelete(u.id)}
                     disabled={u.username === 'admin'}
-                    style={{ background: u.username === 'admin' ? '#475569' : '#ef4444', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '4px', cursor: u.username === 'admin' ? 'not-allowed' : 'pointer' }}
+                    style={{ background: u.username === 'admin' ? '#475569' : '#ef4444', color: 'white', border: 'none', padding: '8px 12px', borderRadius: '4px', cursor: u.username === 'admin' ? 'not-allowed' : 'pointer', display: 'flex', alignItems: 'center', gap: '6px', margin: '0 auto' }}
                   >
-                    🗑️ Eliminar
+                    <Trash2 size={16} /> Eliminar
                   </button>
                 </td>
               </tr>

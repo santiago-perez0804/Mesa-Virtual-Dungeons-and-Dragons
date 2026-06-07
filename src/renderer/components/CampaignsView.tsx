@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { Bot, Star, Check, BookOpen, OctagonX, Camera, Tent, X } from 'lucide-react';
 
 interface Campaign {
   id: number;
@@ -205,7 +206,7 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
           <div style={{ marginTop: '10px' }}>
             <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
               <input type="checkbox" checked={isAiDm} onChange={e => setIsAiDm(e.target.checked)} style={{ transform: 'scale(1.2)' }} />
-              <span style={{ color: 'var(--accent-gold)', fontWeight: 'bold' }}>🤖 Activar DM con Inteligencia Artificial (Permite a los jugadores jugar sin DM humano)</span>
+              <span style={{ color: 'var(--accent-gold)', fontWeight: 'bold' }}><Bot className="w-4 h-4 inline-block mr-2" /> Activar DM con Inteligencia Artificial (Permite a los jugadores jugar sin DM humano)</span>
             </label>
           </div>
 
@@ -241,16 +242,16 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <h1 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: 0 }}>{selectedCampaign.name}</h1>
                 {selectedCampaign.is_ai_dm === 1 && (
-                  <span style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', border: '1px solid #3b82f6' }}>🤖 DM IA</span>
+                  <span style={{ background: 'rgba(59, 130, 246, 0.2)', color: '#3b82f6', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', border: '1px solid #3b82f6' }}><Bot className="w-3 h-3 inline-block mr-1" /> DM IA</span>
                 )}
                 {selectedCampaign.is_active === 1 && (
-                  <span style={{ background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', border: '1px solid #22c55e' }}>⭐ Activa</span>
+                  <span style={{ background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', border: '1px solid #22c55e' }}><Star className="w-3 h-3 inline-block mr-1" /> Activa</span>
                 )}
               </div>
               {userRole === 'dm' && (
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={() => socket.emit('campaign:set_active', selectedCampaign.id)} style={{ background: selectedCampaign.is_active === 1 ? 'var(--natural-green)' : '#444', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}>
-                    {selectedCampaign.is_active === 1 ? '✅ Activa' : 'Establecer Activa'}
+                    {selectedCampaign.is_active === 1 ? <><Check className="w-4 h-4 inline-block mr-1" /> Activa</> : 'Establecer Activa'}
                   </button>
                   <button onClick={() => { 
                     setName(selectedCampaign.name); 
@@ -283,16 +284,16 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
         {/* DIARIO DE CAMPAÑA */}
         <div style={{ background: 'var(--bg-surface)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid #444', paddingBottom: '10px', marginBottom: '20px' }}>
-            <h2 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: 0 }}>📖 Diario de Campaña</h2>
+            <h2 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: 0 }}><BookOpen className="w-6 h-6 inline-block mr-2" /> Diario de Campaña</h2>
             
             {selectedCampaign.is_ai_dm === 1 && (
               isAiActive ? (
                 <button onClick={() => socket.emit('ai:end_session', selectedCampaign.id)} style={{ background: 'var(--combat-red)', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}>
-                  🛑 Terminar Sesión IA
+                  <OctagonX className="w-4 h-4 inline-block mr-2" /> Terminar Sesión IA
                 </button>
               ) : (
                 <button onClick={() => socket.emit('ai:start_session', selectedCampaign.id)} style={{ background: '#3b82f6', color: 'white', border: 'none', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                  🤖 Iniciar Sesión IA
+                  <Bot className="w-4 h-4 inline-block mr-2" /> Iniciar Sesión IA
                 </button>
               )
             )}
@@ -327,7 +328,7 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
               <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                 <input type="file" accept="image/*" onChange={e => handleImageUpload(e, setNewDiaryImage)} id="diary-img-upload" style={{ display: 'none' }} />
                 <label htmlFor="diary-img-upload" style={{ background: '#333', color: 'white', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.9rem' }}>
-                  📷 Adjuntar Imagen
+                  <Camera className="w-4 h-4 inline-block mr-2" /> Adjuntar Imagen
                 </label>
                 {newDiaryImage && <span style={{ color: 'var(--natural-green)', fontSize: '0.9rem' }}>✓ Imagen adjunta</span>}
               </div>
@@ -380,14 +381,14 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
                 {campaign.image ? (
                   <img src={campaign.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                 ) : (
-                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: '2rem' }}>🏕️</div>
+                  <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#555', fontSize: '2rem' }}><Tent className="w-10 h-10 m-auto" /></div>
                 )}
               </div>
               <div style={{ padding: '15px' }}>
                 <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
                   <h3 className="font-cinzel" style={{ margin: 0, color: 'var(--accent-gold)' }}>{campaign.name}</h3>
-                  {campaign.is_ai_dm === 1 && <span title="DM IA" style={{ fontSize: '1.2rem' }}>🤖</span>}
-                  {campaign.is_active === 1 && <span title="Activa" style={{ fontSize: '1.2rem' }}>⭐</span>}
+                  {campaign.is_ai_dm === 1 && <span title="DM IA" style={{ fontSize: '1.2rem' }}><Bot className="w-5 h-5 m-auto" /></span>}
+                  {campaign.is_active === 1 && <span title="Activa" style={{ fontSize: '1.2rem' }}><Star className="w-5 h-5 m-auto" /></span>}
                 </div>
                 <p style={{ margin: 0, color: '#aaa', fontSize: '0.9rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: '15px' }}>
                   {campaign.description || 'Sin descripción'}
@@ -397,7 +398,7 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
                     onClick={(e) => { e.stopPropagation(); socket.emit('campaign:set_active', campaign.id); }} 
                     style={{ background: campaign.is_active === 1 ? 'var(--natural-green)' : '#444', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', width: '100%' }}
                   >
-                    {campaign.is_active === 1 ? '✅ Campaña Activa' : 'Establecer Activa'}
+                    {campaign.is_active === 1 ? <><Check className="w-4 h-4 inline-block mr-1" /> Campaña Activa</> : 'Establecer Activa'}
                   </button>
                 )}
               </div>

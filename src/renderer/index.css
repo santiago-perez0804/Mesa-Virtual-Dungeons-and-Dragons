@@ -1,16 +1,54 @@
-@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Crimson+Pro:ital,wght@0,400;0,700;1,400&family=JetBrains+Mono:wght@400;700&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Cinzel:wght@400;700;900&family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;700&display=swap');
 
 :root {
-  --bg-base: #0e0c09;
-  --bg-surface: #1a1610;
+  /* Fondos */
+  --bg-void: #0a0a0b;
+  --bg-base: #111114;
+  --bg-surface: #1a1a1f;
+  --bg-raised: #222228;
+
+  /* Dorado */
+  --gold-primary: #c9a227;
+  --gold-muted: #8a6e1a;
+  --gold-dim: #3d3010;
+  --border-gold-subtle: rgba(201, 162, 39, 0.12);
+  --border-gold-active: rgba(201, 162, 39, 0.35);
+
+  /* Semánticos de combate */
+  --hp-full: #27ae60;
+  --hp-mid: #e67e22;
+  --hp-low: #c0392b;
+  --blue-action: #2980b9;
+
+  /* Texto */
+  --text-primary: #e8e0cc;
+  --text-secondary: #8a8070;
+  --text-dim: #4a4540;
+
+  /* Bordes generales */
+  --border-subtle: rgba(255, 255, 255, 0.06);
+  --border-normal: rgba(255, 255, 255, 0.12);
+
+  /* Radios */
+  --radius-sm: 4px;
+  --radius-md: 6px;
+  --radius-lg: 8px;
+  --radius-xl: 12px;
+
+  /* Sombras */
+  --shadow-card: 0 2px 8px rgba(0, 0, 0, 0.6);
+  --shadow-modal: 0 8px 32px rgba(0, 0, 0, 0.8);
+
+  /* Compatibilidad Legacy (mantener por si acaso mientras refactorizamos todo) */
   --border-color: #3d3020;
   --accent-gold: #c8872a;
   --text-parchment: #f4e6d4;
-  --text-secondary: #b5a896;
   --combat-red: #8b2020;
   --natural-green: #2d5e3a;
+
+  /* Fuentes */
   --font-display: 'Cinzel', serif;
-  --font-body: 'Crimson Pro', serif;
+  --font-body: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
 }
 

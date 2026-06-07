@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
+import { Ghost, HeartCrack, Flame, Snowflake, Moon, Shield, Zap, Biohazard, Activity, X, User, Backpack, Ruler, Triangle, Circle, Square, Dices, StickyNote, Box, Lock, Coins } from 'lucide-react';
 import { ChatPanel } from './ChatPanel';
 
 const CELL_PX = 50;
@@ -110,6 +111,25 @@ const getLineCells = (x0: number, y0: number, x1: number, y1: number) => {
     if (e2 < dx) { err += dx; y0 += sy; }
   }
   return cells;
+};
+
+
+const renderConditionIcon = (emo) => {
+  switch (emo) {
+    case '😵': return <Ghost className="w-4 h-4 m-auto" />;
+    case '😨': return <HeartCrack className="w-4 h-4 m-auto" />;
+    case '🔥': return <Flame className="w-4 h-4 m-auto" />;
+    case '❄️': return <Snowflake className="w-4 h-4 m-auto" />;
+    case '💤': return <Moon className="w-4 h-4 m-auto" />;
+    case '🛡️': return <Shield className="w-4 h-4 m-auto" />;
+    case '⚡': return <Zap className="w-4 h-4 m-auto" />;
+    case '🤢': return <Biohazard className="w-4 h-4 m-auto" />;
+    case '😡': return <Activity className="w-4 h-4 m-auto" />;
+    case '🤸': return <Activity className="w-4 h-4 m-auto" />;
+    case '❌': return <X className="w-3 h-3 m-auto" />;
+    case '': return <X className="w-4 h-4 m-auto" />;
+    default: return emo;
+  }
 };
 
 export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, characters, monsters, chatMessages, compendium = [], onOpenCharacterSheet, onOpenMonsterSheet }: any) => {
@@ -1412,7 +1432,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                     
                     <div style={{ display: 'flex', alignItems: 'center', gap: '12px' }}>
                       <div style={{ position: 'relative', width: '42px', height: '42px', border: `2px solid ${t.teamColor || 'var(--border-color)'}`, overflow: 'hidden', flexShrink: 0, borderRadius: '4px' }}>
-                        {t.image ? <img src={t.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '1.2rem' }}>{isChar ? '👤' : '👾'}</span>}
+                        {t.image ? <img src={t.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '1.2rem' }}>{isChar ? <User className="w-full h-full p-2" /> : <Ghost className="w-full h-full p-2" />}</span>}
                       {t.condition && (
                         <div style={{ position: 'absolute', bottom: '-2px', right: '-2px', background: 'rgba(0,0,0,0.8)', borderRadius: '50%', fontSize: '0.8rem', padding: '2px', border: '1px solid var(--accent-gold)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                           {t.condition}
@@ -1609,7 +1629,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
               })}
               {boardTokens.filter((t: any) => t.type === 'chest' || t.type === 'item' || t.type === 'note').length === 0 && (
                 <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem', padding: '30px 20px', opacity: 0.6 }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '8px' }}>🎒</div>
+                  <div style={{ fontSize: '2rem', marginBottom: '8px' }}><Backpack className="w-10 h-10 m-auto" /></div>
                   Sin objetos en el mapa
                 </div>
               )}
@@ -1795,10 +1815,10 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
           
           {/* BOTONES FLOTANTES AoE */}
           <div style={{ position: 'absolute', bottom: '20px', right: '20px', zIndex: 200, display: 'flex', flexDirection: 'column', gap: '10px' }} onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
-            <button title="Línea" onClick={() => { setAoeForm({...aoeForm, shape: 'line'}); setIsCreatingAoe(true); }} className="torch-glow" style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.5)', fontSize: '1.4rem', padding: 0 }}>📏</button>
-            <button title="Cono" onClick={() => { setAoeForm({...aoeForm, shape: 'cone'}); setIsCreatingAoe(true); }} className="torch-glow" style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.5)', fontSize: '1.4rem', padding: 0 }}>📐</button>
-            <button title="Círculo" onClick={() => { setAoeForm({...aoeForm, shape: 'circle'}); setIsCreatingAoe(true); }} className="torch-glow" style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.5)', fontSize: '1.4rem', padding: 0 }}>⭕</button>
-            <button title="Cubo" onClick={() => { setAoeForm({...aoeForm, shape: 'cube'}); setIsCreatingAoe(true); }} className="torch-glow" style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.5)', fontSize: '1.4rem', padding: 0 }}>🔲</button>
+            <button title="Línea" onClick={() => { setAoeForm({...aoeForm, shape: 'line'}); setIsCreatingAoe(true); }} className="torch-glow" style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.5)', fontSize: '1.4rem', padding: 0 }}><Ruler className="w-6 h-6 m-auto" /></button>
+            <button title="Cono" onClick={() => { setAoeForm({...aoeForm, shape: 'cone'}); setIsCreatingAoe(true); }} className="torch-glow" style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.5)', fontSize: '1.4rem', padding: 0 }}><Triangle className="w-6 h-6 m-auto" /></button>
+            <button title="Círculo" onClick={() => { setAoeForm({...aoeForm, shape: 'circle'}); setIsCreatingAoe(true); }} className="torch-glow" style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.5)', fontSize: '1.4rem', padding: 0 }}><Circle className="w-6 h-6 m-auto" /></button>
+            <button title="Cubo" onClick={() => { setAoeForm({...aoeForm, shape: 'cube'}); setIsCreatingAoe(true); }} className="torch-glow" style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.5)', fontSize: '1.4rem', padding: 0 }}><Square className="w-6 h-6 m-auto" /></button>
           </div>
 
           <div
@@ -2152,7 +2172,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
               {/* MODAL HEADER */}
               <div style={{ padding: '25px 30px', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '20px', alignItems: 'center', background: 'rgba(0,0,0,0.2)' }}>
                 <div style={{ width: '80px', height: '80px', border: '2px solid var(--accent-gold)', overflow: 'hidden', flexShrink: 0 }}>
-                  {item.image ? <img src={item.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '2.5rem' }}>{isChar ? '👤' : '👾'}</span>}
+                  {item.image ? <img src={item.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: '100%', fontSize: '2.5rem' }}>{isChar ? <User className="w-full h-full p-2" /> : <Ghost className="w-full h-full p-2" />}</span>}
                 </div>
                 <div style={{ flex: 1 }}>
                   <h2 className="font-cinzel" style={{ margin: 0, fontSize: '2rem', color: 'var(--accent-gold)' }}>{item.name}</h2>
@@ -2195,7 +2215,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
 
                   return (
                     <div>
-                      <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', marginBottom: '12px' }}>🎲 HABILIDADES</h4>
+                      <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', marginBottom: '12px' }}><Dices className="w-5 h-5 inline-block mr-2" /> HABILIDADES</h4>
                       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
                         {phList.map(s => {
                           const baseMod = Math.floor(((stats[s.key] || 10) - 10) / 2);
@@ -2216,7 +2236,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
 
                 {/* Descripción */}
                 <div>
-                  <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', marginBottom: '12px' }}>📜 DESCRIPCIÓN</h4>
+                  <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '8px', marginBottom: '12px' }}><StickyNote className="w-4 h-4 inline-block mr-2" /> DESCRIPCIÓN</h4>
                   <div style={{ color: 'var(--text-parchment)', lineHeight: '1.6', fontSize: '1rem', whiteSpace: 'pre-wrap' }}>
                     {Array.isArray(description) ? description.join('\n') : description}
                   </div>
@@ -2534,7 +2554,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
       {isCreatingChest && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001 }} onClick={() => setIsCreatingChest(false)}>
           <div className="clipped-frame" style={{ background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', width: '100%', maxWidth: '400px', padding: '30px', boxShadow: '0 0 50px rgba(0,0,0,0.9)' }} onClick={e => e.stopPropagation()}>
-            <h3 className="font-cinzel" style={{ margin: '0 0 20px 0', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>📦 CREAR COFRE</h3>
+            <h3 className="font-cinzel" style={{ margin: '0 0 20px 0', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}><Box className="w-5 h-5 inline-block mr-2" /> CREAR COFRE</h3>
             <form onSubmit={handleCreateChestSubmit}>
               <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>CONTRASEÑA DEL COFRE</label>
               <input
@@ -2633,7 +2653,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
       {passwordPromptChest && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001 }} onClick={() => setPasswordPromptChest(null)}>
           <div className="clipped-frame" style={{ background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', width: '100%', maxWidth: '400px', padding: '30px', boxShadow: '0 0 50px rgba(0,0,0,0.9)' }} onClick={e => e.stopPropagation()}>
-            <h3 className="font-cinzel" style={{ margin: '0 0 20px 0', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>🔒 COFRE CERRADO</h3>
+            <h3 className="font-cinzel" style={{ margin: '0 0 20px 0', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}><Lock className="w-5 h-5 inline-block mr-2" /> COFRE CERRADO</h3>
             <form onSubmit={handleVerifyPasswordSubmit}>
               <p style={{ color: 'var(--text-parchment)', fontSize: '0.9rem', lineHeight: '1.5', margin: '0 0 20px 0' }}>Este cofre está cerrado bajo contraseña. Para abrirlo y tomar su botín debes ingresar la contraseña establecida por el DM.</p>
               <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>CONTRASEÑA</label>
@@ -2717,7 +2737,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                 
                 {/* Lado Izquierdo: Slots 3x3 */}
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: '0 0 15px 0', fontSize: '1rem', letterSpacing: '1.5px', textTransform: 'uppercase', alignSelf: 'flex-start' }}>📦 Compartimentos (3x3)</h4>
+                  <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: '0 0 15px 0', fontSize: '1rem', letterSpacing: '1.5px', textTransform: 'uppercase', alignSelf: 'flex-start' }}><Box className="w-4 h-4 inline-block mr-2" /> Compartimentos (3x3)</h4>
                   
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '12px', background: 'rgba(0,0,0,0.3)', padding: '16px', border: '1px solid var(--border-color)', borderRadius: '8px', width: 'fit-content' }}>
                     {slots.map((slot: any, idx: number) => {
@@ -2809,7 +2829,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
 
                 {/* Lado Derecho: Monedas */}
                 <div style={{ display: 'flex', flexDirection: 'column' }}>
-                  <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: '0 0 15px 0', fontSize: '1rem', letterSpacing: '1.5px', textTransform: 'uppercase' }}>🪙 Monedas en el cofre</h4>
+                  <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: '0 0 15px 0', fontSize: '1rem', letterSpacing: '1.5px', textTransform: 'uppercase' }}><Coins className="w-4 h-4 inline-block mr-2" /> Monedas en el cofre</h4>
                   
                   <div style={{ background: 'rgba(0,0,0,0.2)', padding: '20px', border: '1px solid var(--border-color)', borderRadius: '8px', display: 'flex', flexDirection: 'column', gap: '15px', flex: 1, justifyContent: 'space-between' }}>
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
@@ -2868,7 +2888,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                           width: '100%'
                         }}
                       >
-                        🪙 TOMAR TODAS LAS MONEDAS
+                        <Coins className="w-4 h-4 inline-block mr-1" /> TOMAR TODAS LAS MONEDAS
                       </button>
                     )}
                   </div>
@@ -2890,7 +2910,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10002 }} onClick={() => setCompendiumSlotIndex(null)}>
           <div className="clipped-frame" style={{ background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', width: '100%', maxWidth: '500px', height: '550px', display: 'flex', flexDirection: 'column', boxShadow: '0 0 50px rgba(0,0,0,0.9)' }} onClick={e => e.stopPropagation()}>
             <div style={{ padding: '25px', borderBottom: '1px solid var(--border-color)' }}>
-              <h3 className="font-cinzel" style={{ margin: '0 0 15px 0', color: 'var(--accent-gold)' }}>📦 CARGAR OBJETO A COFRE</h3>
+              <h3 className="font-cinzel" style={{ margin: '0 0 15px 0', color: 'var(--accent-gold)' }}><Box className="w-5 h-5 inline-block mr-2" /> CARGAR OBJETO A COFRE</h3>
               <input
                 type="text"
                 value={itemSearchQuery}
@@ -2955,7 +2975,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
       {isCreatingNote && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001 }} onClick={() => setIsCreatingNote(false)}>
           <div className="clipped-frame" style={{ background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', width: '100%', maxWidth: '450px', padding: '30px', boxShadow: '0 0 50px rgba(0,0,0,0.9)' }} onClick={e => e.stopPropagation()}>
-            <h3 className="font-cinzel" style={{ margin: '0 0 20px 0', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>📝 CREAR NOTA EN MAPA</h3>
+            <h3 className="font-cinzel" style={{ margin: '0 0 20px 0', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}><StickyNote className="w-5 h-5 inline-block mr-2" /> CREAR NOTA EN MAPA</h3>
             <form onSubmit={handleCreateNoteSubmit}>
               <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', display: 'block', marginBottom: '8px' }}>CONTENIDO DE LA NOTA</label>
               <textarea
@@ -3153,7 +3173,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
               {/* BODY */}
               <div style={{ padding: '30px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', background: 'var(--bg-surface)' }}>
                 <div>
-                  <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '10px', fontSize: '0.9rem' }}>📜 DESCRIPCIÓN</h4>
+                  <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '10px', fontSize: '0.9rem' }}><StickyNote className="w-4 h-4 inline-block mr-2" /> DESCRIPCIÓN</h4>
                   <p style={{ color: 'var(--text-parchment)', fontSize: '0.95rem', lineHeight: '1.5', margin: 0, whiteSpace: 'pre-wrap' }}>
                     {item.description || 'Sin descripción disponible.'}
                   </p>
@@ -3162,7 +3182,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                 {myChars.length > 0 && (
                   <div style={{ marginTop: '10px', background: 'rgba(0,0,0,0.2)', padding: '15px', border: '1px solid var(--border-color)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                     <div>
-                      <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: '0 0 4px 0', fontSize: '0.9rem' }}>🎒 RECOGER OBJETO</h4>
+                      <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: '0 0 4px 0', fontSize: '0.9rem' }}><Backpack className="w-4 h-4 inline-block mr-2" /> RECOGER OBJETO</h4>
                       <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0 }}>Se agregará directamente a tu inventario y desaparecerá del mapa.</p>
                     </div>
                     
@@ -3256,7 +3276,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
               {/* HEADER */}
               <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '14px' }}>
                 <div style={{ width: '40px', height: '40px', borderRadius: '8px', overflow: 'hidden', border: '2px solid var(--accent-gold)', flexShrink: 0, background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-                  {healthModalToken.image ? <img src={healthModalToken.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '1.4rem' }}>{healthModalToken.type === 'character' ? '👤' : '👾'}</span>}
+                  {healthModalToken.image ? <img src={healthModalToken.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <span style={{ fontSize: '1.4rem' }}>{healthModalToken.type === 'character' ? <User className="w-6 h-6 m-auto" /> : <Ghost className="w-6 h-6 m-auto" />}</span>}
                 </div>
                 <div style={{ flex: 1 }}>
                   <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontWeight: 'bold', fontSize: '1rem' }}>{healthModalToken.name}</div>
@@ -3372,7 +3392,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                       onClick={() => setConditionInput(emo)}
                       title={emo || 'Sin estado'}
                       style={{ width: '34px', height: '34px', borderRadius: '6px', background: conditionInput === emo ? 'rgba(200,135,42,0.25)' : 'var(--bg-base)', border: conditionInput === emo ? '2px solid var(--accent-gold)' : '1px solid var(--border-color)', cursor: 'pointer', fontSize: '1.2rem', padding: 0, transition: 'all 0.15s', boxShadow: conditionInput === emo ? '0 0 8px rgba(200,135,42,0.4)' : 'none' }}
-                    >{emo || '✕'}</button>
+                    >{renderConditionIcon(emo)}</button>
                   ))}
                 </div>
                 <div style={{ display: 'flex', gap: '8px' }}>
