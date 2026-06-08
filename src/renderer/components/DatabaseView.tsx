@@ -159,9 +159,58 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
     subclassTraitLevel, setSubclassTraitLevel,
     subclassTraitDesc, setSubclassTraitDesc,
 
-    resetForm,
-    handleEditClick
+    resetForm
   } = formState;
+
+  const handleEditClick = (item: any) => {
+    resetForm();
+    setIsCreating(true);
+    setEditingId(item.id);
+    setCreateType(item.type);
+    setCreateName(item.name || '');
+    setCreateDesc(item.desc || '');
+    setCreateImage(item.image || '');
+    
+    if (item.type === 'monster') {
+      const data = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
+      setCreateHp(data.hp || '10');
+      setCreateAc(data.ac || 10);
+      setCreateCr(data.cr || '');
+      setCreateSpeed(data.speed || '30 ft.');
+      setCreateStats(data.stats || { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 });
+      setCreateAttacks(data.attacks || []);
+      setCreateTraits(data.traits || []);
+      setCreateVuln(data.vulnerabilities || []);
+      setCreateRes(data.resistances || []);
+      setCreateImm(data.immunities || []);
+    } else if (item.type === 'spell') {
+      const data = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
+      setCreateShortDesc(data.short_description || '');
+      setCreateSpellLevel(data.level || 0);
+      setCreateSpellComponents(data.components || { V: false, S: false, M: false });
+      setCreateSpellRange(data.range || '');
+      setCreateSpellDuration(data.duration || 'instantaneo');
+      setCreateSpellConcentration(data.concentration || false);
+    } else if (item.type === 'item') {
+      const data = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
+      setCreateRarity(data.rarity || 'Común');
+      setIsDamageItem(data.isDamage || false);
+      setItemAttackBonus(data.attackBonus || '');
+      setItemDamageFormula(data.damageFormula || '');
+      setItemDamageType(data.damageType || 'cortante');
+      setCreateTags(data.tags || []);
+      setIsProtectItem(data.isProtect || false);
+      setItemDefenseBonus(data.defenseBonus || '');
+      setItemAttackName(data.attackName || '');
+      setItemStatMod(data.statMod || '');
+      setItemStatSelection(data.statSelection || 'FUE');
+      setItemTargetsCount(data.targetsCount || '1');
+      setItemCritDamage(data.critDamage || '');
+      setCreateArmorType(data.armorType || 'ligera');
+      setCreateRequiresAttunement(data.requiresAttunement || false);
+      setCreateWeight(data.weight || '');
+    }
+  };
 
 
   // --- ESTADOS ADICIONALES PARA COMPENDIO DE CLASES ---

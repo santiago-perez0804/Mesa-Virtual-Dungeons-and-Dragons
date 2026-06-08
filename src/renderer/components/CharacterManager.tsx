@@ -8,6 +8,11 @@ import elCoin from '../assets/el_coin_icon.png';
 import poCoin from '../assets/po_coin_icon.png';
 import ptCoin from '../assets/pt_coin_icon.png';
 
+import { CharacterInventoryTab } from './character/CharacterInventoryTab';
+import { CharacterTraitsTab } from './character/CharacterTraitsTab';
+import { CharacterSpellsTab } from './character/CharacterSpellsTab';
+import { CharacterStatsPanel } from './character/CharacterStatsPanel';
+
 import { classDesc, classHitDice, raceDesc, raceBonuses, skillList, statDescriptions, subraces } from '../modules/character/character.constants';
 import { getPointCost, calcMod, getModStr, getProficiencyBonus, safeParseJSON, safeParseInventory, safeParseStats } from '../modules/character/character.utils';
 
@@ -1353,7 +1358,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
 
                     if (activeTabToRender === 'hoja') {
                       return <CharacterInventoryTab character={selectedCharacter} setActiveSlotIndex={setActiveSlotIndex} />;
-                     else if (activeTabToRender === 'rasgos') {
+                    } else if (activeTabToRender === 'rasgos') {
                       return (
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
                           <section>
@@ -1364,7 +1369,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                           </section>
                           <section>
                             <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '15px' }}>⚔️ RASGOS DE CLASE</h4>
-                            {renderRasgos()}
+                            <CharacterTraitsTab character={selectedCharacter} classFeatures={classFeatures} activeFeaturesClass={activeFeaturesClass} featuresLoading={featuresLoading} fetchClassFeatures={fetchClassFeatures} />
                           </section>
                         </div>
                       );
