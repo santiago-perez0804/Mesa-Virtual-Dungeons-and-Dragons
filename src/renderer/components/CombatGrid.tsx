@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Ghost, HeartCrack, Flame, Snowflake, Moon, Shield, Zap, Biohazard, Activity, X, User, Backpack, Ruler, Triangle, Circle, Square, Dices, StickyNote, Box, Lock, Coins, Swords, ArrowRight } from 'lucide-react';
+import { Ghost, HeartCrack, Flame, Snowflake, Moon, Shield, Zap, Biohazard, Activity, X, User, Backpack, Dices, StickyNote, Box, Lock, Coins, Swords, ArrowRight } from 'lucide-react';
 import { ChatPanel } from './ChatPanel';
 import { NoteTokenIcon, ImageTokenIcon, ClosedChestIcon, OpenChestIcon, ItemDropIcon, CompassIcon, LineAoeIcon, ConeAoeIcon, CircleAoeIcon, SquareAoeIcon, getAoeIcon } from '../shared/components/icons';
 

@@ -1,55 +1,38 @@
-
 import { useState } from 'react';
 
 export const useDatabaseForms = () => {
   const [isCreating, setIsCreating] = useState(false);
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [createType, setCreateType] = useState<'monster' | 'item' | 'class' | 'subclass' | 'race' | 'subrace' | 'condition' | 'spell'>('monster');
+  
+  const [createType, setCreateType] = useState('monster');
   const [createName, setCreateName] = useState('');
   const [createImage, setCreateImage] = useState('');
   const [createDesc, setCreateDesc] = useState('');
-
-  // Spell stats
-  const [createShortDesc, setCreateShortDesc] = useState('');
-  const [createSpellLevel, setCreateSpellLevel] = useState<number>(0);
-  const [createSpellComponents, setCreateSpellComponents] = useState({ V: false, S: false, M: false });
-  const [createSpellRange, setCreateSpellRange] = useState('');
-  const [createSpellDuration, setCreateSpellDuration] = useState('instantaneo');
-  const [createSpellConcentration, setCreateSpellConcentration] = useState(false);
-
-  // Monster stats
-  const [createHp, setCreateHp] = useState<string>('10');
-  const [createAc, setCreateAc] = useState(10);
-  const [createCr, setCreateCr] = useState('');
+  
+  const [createHp, setCreateHp] = useState('10');
+  const [createAc, setCreateAc] = useState<number | string>(10);
+  const [createCr, setCreateCr] = useState('1/4');
   const [createSpeed, setCreateSpeed] = useState('30 ft.');
   const [createStats, setCreateStats] = useState({ str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 });
-  const [createAttacks, setCreateAttacks] = useState([{ 
-    name: '', desc: '', isAttack: false, actionType: 'Acción', 
-    attackBonus: '', damageFormula: '', damageType: 'cortante', range: '' 
-  }]);
+  const [createAttacks, setCreateAttacks] = useState<any[]>([]);
+  const [createTraits, setCreateTraits] = useState<any[]>([]);
   const [createVuln, setCreateVuln] = useState<string[]>([]);
   const [createRes, setCreateRes] = useState<string[]>([]);
   const [createImm, setCreateImm] = useState<string[]>([]);
   const [createSize, setCreateSize] = useState('Mediano');
-  const [createTraits, setCreateTraits] = useState([{ name: '', desc: '' }]);
-
-  // Item stats
-  const [createRarity, setCreateRarity] = useState('Común');
+  
+  const [createShortDesc, setCreateShortDesc] = useState('');
+  const [createSpellLevel, setCreateSpellLevel] = useState(0);
+  const [createSpellComponents, setCreateSpellComponents] = useState({ V: false, S: false, M: false });
+  const [createSpellRange, setCreateSpellRange] = useState('');
+  const [createSpellDuration, setCreateSpellDuration] = useState('instantaneo');
+  const [createSpellConcentration, setCreateSpellConcentration] = useState(false);
+  
   const [isDamageItem, setIsDamageItem] = useState(false);
   const [itemAttackBonus, setItemAttackBonus] = useState('');
   const [itemDamageFormula, setItemDamageFormula] = useState('');
   const [itemDamageType, setItemDamageType] = useState('cortante');
   const [createTags, setCreateTags] = useState<string[]>([]);
-  const [createArmorType, setCreateArmorType] = useState<string>('ligera');
-  const [createRequiresAttunement, setCreateRequiresAttunement] = useState<boolean>(false);
-  const [createWeight, setCreateWeight] = useState<string>('');
-  const [imageZoom, setImageZoom] = useState<number>(1);
-  const [imagePosX, setImagePosX] = useState<number>(0);
-  const [imagePosY, setImagePosY] = useState<number>(0);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [dragStart, setDragStart] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
-
-  // Nuevos estados para items (Daño y Protección avanzados)
   const [isProtectItem, setIsProtectItem] = useState(false);
   const [itemDefenseBonus, setItemDefenseBonus] = useState('');
   const [itemAttackName, setItemAttackName] = useState('');
@@ -57,36 +40,36 @@ export const useDatabaseForms = () => {
   const [itemStatSelection, setItemStatSelection] = useState('FUE');
   const [itemTargetsCount, setItemTargetsCount] = useState('1');
   const [itemCritDamage, setItemCritDamage] = useState('');
-
-
+  const [createArmorType, setCreateArmorType] = useState('ligera');
+  const [createRequiresAttunement, setCreateRequiresAttunement] = useState(false);
+  const [createWeight, setCreateWeight] = useState('');
+  
   const [isCreatingClass, setIsCreatingClass] = useState(false);
   const [classWizardStep, setClassWizardStep] = useState(1);
   const [cName, setCName] = useState('');
   const [cDesc, setCDesc] = useState('');
   const [cHitDie, setCHitDie] = useState('d8');
   const [cSubclassLvl, setCSubclassLvl] = useState(3);
-  const [cSubclassTitle, setCSubclassTitle] = useState('Arquetipo');
-  
+  const [cSubclassTitle, setCSubclassTitle] = useState('Arquetipo Marcial');
   const [cArmors, setCArmors] = useState<string[]>([]);
   const [cWeapons, setCWeapons] = useState<string[]>([]);
   const [cTools, setCTools] = useState('');
   const [cSaves, setCSaves] = useState<string[]>([]);
   const [cSkills, setCSkills] = useState<string[]>([]);
   const [cSkillsLimit, setCSkillsLimit] = useState(2);
-  
   const [cResourceName, setCResourceName] = useState('');
-  const [cResourceProg, setCResourceProg] = useState<string[]>(Array(20).fill(''));
+  const [cResourceProg, setCResourceProg] = useState('');
   
-
   const [isAddingSubclass, setIsAddingSubclass] = useState(false);
   const [subclassName, setSubclassName] = useState('');
   const [subclassDesc, setSubclassDesc] = useState('');
   const [subclassTraits, setSubclassTraits] = useState<any[]>([]);
-  
-  // Rasgo temporal de subclase
   const [subclassTraitName, setSubclassTraitName] = useState('');
   const [subclassTraitLevel, setSubclassTraitLevel] = useState(3);
   const [subclassTraitDesc, setSubclassTraitDesc] = useState('');
+
+  const [createRarity, setCreateRarity] = useState('Com�n');
+
 
   const resetForm = () => {
     setIsCreating(false);
@@ -94,32 +77,27 @@ export const useDatabaseForms = () => {
     setCreateName('');
     setCreateDesc('');
     setCreateImage('');
-    setCreateType('monster');
     setCreateHp('10');
     setCreateAc(10);
-    setCreateCr('');
+    setCreateCr('1/4');
     setCreateSpeed('30 ft.');
     setCreateStats({ str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 });
-    setCreateAttacks([{ name: '', desc: '', isAttack: false, actionType: 'Acción', attackBonus: '', damageFormula: '', damageType: 'cortante', range: '' }]);
-    setCreateTraits([{ name: '', desc: '' }]);
+    setCreateAttacks([]);
+    setCreateTraits([]);
     setCreateVuln([]);
     setCreateRes([]);
     setCreateImm([]);
-    setIsDamageItem(false);
-    setItemAttackBonus('');
-    setItemDamageFormula('');
-    setItemDamageType('cortante');
-    setCreateTags([]);
-
-    // Reset spell states
     setCreateShortDesc('');
     setCreateSpellLevel(0);
     setCreateSpellComponents({ V: false, S: false, M: false });
     setCreateSpellRange('');
     setCreateSpellDuration('instantaneo');
     setCreateSpellConcentration(false);
-
-    // Reset item states
+    setIsDamageItem(false);
+    setItemAttackBonus('');
+    setItemDamageFormula('');
+    setItemDamageType('cortante');
+    setCreateTags([]);
     setIsProtectItem(false);
     setItemDefenseBonus('');
     setItemAttackName('');
@@ -130,177 +108,51 @@ export const useDatabaseForms = () => {
     setCreateArmorType('ligera');
     setCreateRequiresAttunement(false);
     setCreateWeight('');
-  const [isCreating, setIsCreating] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [createType, setCreateType] = useState<'monster' | 'item' | 'class' | 'subclass' | 'race' | 'subrace' | 'condition' | 'spell'>('monster');
-  const [createName, setCreateName] = useState('');
-  const [createImage, setCreateImage] = useState('');
-  const [createDesc, setCreateDesc] = useState('');
-
-  // Spell stats
-  const [createShortDesc, setCreateShortDesc] = useState('');
-  const [createSpellLevel, setCreateSpellLevel] = useState<number>(0);
-  const [createSpellComponents, setCreateSpellComponents] = useState({ V: false, S: false, M: false });
-  const [createSpellRange, setCreateSpellRange] = useState('');
-  const [createSpellDuration, setCreateSpellDuration] = useState('instantaneo');
-  const [createSpellConcentration, setCreateSpellConcentration] = useState(false);
-
-  // Monster stats
-  const [createHp, setCreateHp] = useState<string>('10');
-  const [createAc, setCreateAc] = useState(10);
-  const [createCr, setCreateCr] = useState('');
-  const [createSpeed, setCreateSpeed] = useState('30 ft.');
-  const [createStats, setCreateStats] = useState({ str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 });
-  const [createAttacks, setCreateAttacks] = useState([{ 
-    name: '', desc: '', isAttack: false, actionType: 'Acción', 
-    attackBonus: '', damageFormula: '', damageType: 'cortante', range: '' 
-  }]);
-  const [createVuln, setCreateVuln] = useState<string[]>([]);
-  const [createRes, setCreateRes] = useState<string[]>([]);
-  const [createImm, setCreateImm] = useState<string[]>([]);
-  const [createSize, setCreateSize] = useState('Mediano');
-  const [createTraits, setCreateTraits] = useState([{ name: '', desc: '' }]);
-
-  // Item stats
-  const [createRarity, setCreateRarity] = useState('Común');
-  const [isDamageItem, setIsDamageItem] = useState(false);
-  const [itemAttackBonus, setItemAttackBonus] = useState('');
-  const [itemDamageFormula, setItemDamageFormula] = useState('');
-  const [itemDamageType, setItemDamageType] = useState('cortante');
-  const [createTags, setCreateTags] = useState<string[]>([]);
-  const [createArmorType, setCreateArmorType] = useState<string>('ligera');
-  const [createRequiresAttunement, setCreateRequiresAttunement] = useState<boolean>(false);
-  const [createWeight, setCreateWeight] = useState<string>('');
-  const [imageZoom, setImageZoom] = useState<number>(1);
-  const [imagePosX, setImagePosX] = useState<number>(0);
-  const [imagePosY, setImagePosY] = useState<number>(0);
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-  const [dragStart, setDragStart] = useState<{ x: number, y: number }>({ x: 0, y: 0 });
-
-  // Nuevos estados para items (Daño y Protección avanzados)
-  const [isProtectItem, setIsProtectItem] = useState(false);
-  const [itemDefenseBonus, setItemDefenseBonus] = useState('');
-  const [itemAttackName, setItemAttackName] = useState('');
-  const [itemStatMod, setItemStatMod] = useState('');
-  const [itemStatSelection, setItemStatSelection] = useState('FUE');
-  const [itemTargetsCount, setItemTargetsCount] = useState('1');
-  const [itemCritDamage, setItemCritDamage] = useState('');
-
-
-  const [isCreatingClass, setIsCreatingClass] = useState(false);
-  const [classWizardStep, setClassWizardStep] = useState(1);
-  const [cName, setCName] = useState('');
-  const [cDesc, setCDesc] = useState('');
-  const [cHitDie, setCHitDie] = useState('d8');
-  const [cSubclassLvl, setCSubclassLvl] = useState(3);
-  const [cSubclassTitle, setCSubclassTitle] = useState('Arquetipo');
-  
-  const [cArmors, setCArmors] = useState<string[]>([]);
-  const [cWeapons, setCWeapons] = useState<string[]>([]);
-  const [cTools, setCTools] = useState('');
-  const [cSaves, setCSaves] = useState<string[]>([]);
-  const [cSkills, setCSkills] = useState<string[]>([]);
-  const [cSkillsLimit, setCSkillsLimit] = useState(2);
-  
-  const [cResourceName, setCResourceName] = useState('');
-  const [cResourceProg, setCResourceProg] = useState<string[]>(Array(20).fill(''));
-  
-
-  const [isAddingSubclass, setIsAddingSubclass] = useState(false);
-  const [subclassName, setSubclassName] = useState('');
-  const [subclassDesc, setSubclassDesc] = useState('');
-  const [subclassTraits, setSubclassTraits] = useState<any[]>([]);
-  
-  // Rasgo temporal de subclase
-  const [subclassTraitName, setSubclassTraitName] = useState('');
-  const [subclassTraitLevel, setSubclassTraitLevel] = useState(3);
-  const [subclassTraitDesc, setSubclassTraitDesc] = useState('');
-
-  const resetForm = () => {
-    setIsCreating(false);
-    setEditingId(null);
-    setCreateName('');
-    setCreateDesc('');
-    setCreateImage('');
-    setCreateType('monster');
-    setCreateHp('10');
-    setCreateAc(10);
-    setCreateCr('');
-    setCreateSpeed('30 ft.');
-    setCreateStats({ str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 });
-    setCreateAttacks([{ name: '', desc: '', isAttack: false, actionType: 'Acción', attackBonus: '', damageFormula: '', damageType: 'cortante', range: '' }]);
-    setCreateTraits([{ name: '', desc: '' }]);
-    setCreateVuln([]);
-    setCreateRes([]);
-    setCreateImm([]);
-    setIsDamageItem(false);
-    setItemAttackBonus('');
-    setItemDamageFormula('');
-    setItemDamageType('cortante');
-    setCreateTags([]);
-
-    // Reset spell states
-    setCreateShortDesc('');
-    setCreateSpellLevel(0);
-    setCreateSpellComponents({ V: false, S: false, M: false });
-    setCreateSpellRange('');
-    setCreateSpellDuration('instantaneo');
-    setCreateSpellConcentration(false);
-
-    // Reset item states
-    setIsProtectItem(false);
-    setItemDefenseBonus('');
-    setItemAttackName('');
-    setItemStatMod('');
-    setItemStatSelection('FUE');
-    setItemTargetsCount('1');
-    setItemCritDamage('');
-    setCreateArmorType('ligera');
-    setCreateRequiresAttunement(false);
-    setCreateWeight('');
-    setImageZoom(1);
-    setImagePosX(0);
-    setImagePosY(0);
+    setCreateRarity('Com�n');
   };
+  
+  const [imageZoom, setImageZoom] = useState(1);
+  const [imagePosX, setImagePosX] = useState(0);
+  const [imagePosY, setImagePosY] = useState(0);
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
 
   return {
+
+    imageZoom, setImageZoom,
+    imagePosX, setImagePosX,
+    imagePosY, setImagePosY,
+    isDragging, setIsDragging,
+    dragStart, setDragStart,
+
     isCreating, setIsCreating,
     editingId, setEditingId,
     createType, setCreateType,
     createName, setCreateName,
     createImage, setCreateImage,
     createDesc, setCreateDesc,
-    createShortDesc, setCreateShortDesc,
-    createSpellLevel, setCreateSpellLevel,
-    createSpellComponents, setCreateSpellComponents,
-    createSpellRange, setCreateSpellRange,
-    createSpellDuration, setCreateSpellDuration,
-    createSpellConcentration, setCreateSpellConcentration,
     createHp, setCreateHp,
     createAc, setCreateAc,
     createCr, setCreateCr,
     createSpeed, setCreateSpeed,
     createStats, setCreateStats,
     createAttacks, setCreateAttacks,
+    createTraits, setCreateTraits,
     createVuln, setCreateVuln,
     createRes, setCreateRes,
     createImm, setCreateImm,
     createSize, setCreateSize,
-    createTraits, setCreateTraits,
-    createRarity, setCreateRarity,
+    createShortDesc, setCreateShortDesc,
+    createSpellLevel, setCreateSpellLevel,
+    createSpellComponents, setCreateSpellComponents,
+    createSpellRange, setCreateSpellRange,
+    createSpellDuration, setCreateSpellDuration,
+    createSpellConcentration, setCreateSpellConcentration,
     isDamageItem, setIsDamageItem,
     itemAttackBonus, setItemAttackBonus,
     itemDamageFormula, setItemDamageFormula,
     itemDamageType, setItemDamageType,
     createTags, setCreateTags,
-    createArmorType, setCreateArmorType,
-    createRequiresAttunement, setCreateRequiresAttunement,
-    createWeight, setCreateWeight,
-    imageZoom, setImageZoom,
-    imagePosX, setImagePosX,
-    imagePosY, setImagePosY,
-    isDragging, setIsDragging,
-    dragStart, setDragStart,
     isProtectItem, setIsProtectItem,
     itemDefenseBonus, setItemDefenseBonus,
     itemAttackName, setItemAttackName,
@@ -308,7 +160,10 @@ export const useDatabaseForms = () => {
     itemStatSelection, setItemStatSelection,
     itemTargetsCount, setItemTargetsCount,
     itemCritDamage, setItemCritDamage,
-
+    createArmorType, setCreateArmorType,
+    createRequiresAttunement, setCreateRequiresAttunement,
+    createWeight, setCreateWeight,
+    createRarity, setCreateRarity,
     isCreatingClass, setIsCreatingClass,
     classWizardStep, setClassWizardStep,
     cName, setCName,
@@ -324,7 +179,6 @@ export const useDatabaseForms = () => {
     cSkillsLimit, setCSkillsLimit,
     cResourceName, setCResourceName,
     cResourceProg, setCResourceProg,
-
     isAddingSubclass, setIsAddingSubclass,
     subclassName, setSubclassName,
     subclassDesc, setSubclassDesc,
@@ -332,7 +186,6 @@ export const useDatabaseForms = () => {
     subclassTraitName, setSubclassTraitName,
     subclassTraitLevel, setSubclassTraitLevel,
     subclassTraitDesc, setSubclassTraitDesc,
-
     resetForm
   };
 };

@@ -50,7 +50,7 @@ export const SubclassModal = ({ formState, parentClass, socket }: any) => {
     };
 
     const removeSubclassTrait = (idx: number) => {
-      setSubclassTraits(subclassTraits.filter((_, i) => i !== idx));
+      setSubclassTraits(subclassTraits.filter((_: any, i: number) => i !== idx));
     };
 
     const handleSaveSubclass = () => {
@@ -127,7 +127,7 @@ export const SubclassModal = ({ formState, parentClass, socket }: any) => {
             <div>
               <h4 className="font-cinzel" style={{ margin: '0 0 10px 0', color: 'var(--text-parchment)', fontSize: '0.95rem' }}>Rasgos de Subclase definidos ({subclassTraits.length})</h4>
               <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                {subclassTraits.map((t, idx) => (
+                {subclassTraits.map((t: any, idx: number) => (
                   <div key={idx} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'rgba(255,255,255,0.02)', border: '1px solid var(--border-color)', padding: '8px 12px', fontSize: '0.85rem' }}>
                     <div>
                       <span className="font-cinzel" style={{ fontWeight: 'bold', color: 'var(--accent-gold)' }}>Nivel {t.level} ÔÇö {t.name}</span>

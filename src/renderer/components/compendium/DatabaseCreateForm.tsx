@@ -20,7 +20,9 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave, u
     isProtectItem, setIsProtectItem, itemDefenseBonus, setItemDefenseBonus,
     itemAttackName, setItemAttackName, itemStatMod, setItemStatMod,
     itemStatSelection, setItemStatSelection, itemTargetsCount, setItemTargetsCount,
-    itemCritDamage, setItemCritDamage
+    itemCritDamage, setItemCritDamage,
+    imageZoom, setImageZoom, imagePosX, setImagePosX, imagePosY, setImagePosY,
+    isDragging, setIsDragging, dragStart, setDragStart
   } = formState;
 
   return (
@@ -518,7 +520,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave, u
                                     <button onClick={() => setCreateTraits([...createTraits, { name: '', desc: '' }])} style={{ background: 'transparent', border: 'none', color: 'var(--accent-gold)', fontSize: '0.75rem', cursor: 'pointer' }}>+ A├▒adir Rasgo</button>
                                   </div>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                    {createTraits.map((t, idx) => (
+                                    {createTraits.map((t: any, idx: number) => (
                                       <div key={idx} style={{ display: 'flex', gap: '10px' }}>
                                         <input placeholder="Nombre (Ej: Anf├¡bio)" style={{ flex: 1, padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} value={t.name} onChange={e => {
                                           const list = [...createTraits];
@@ -531,7 +533,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave, u
                                           setCreateTraits(list);
                                         }} />
                                         {createTraits.length > 1 && (
-                                          <button onClick={() => setCreateTraits(createTraits.filter((_, i) => i !== idx))} style={{ background: 'transparent', border: 'none', color: 'var(--combat-red)', cursor: 'pointer' }}>Ô£ò</button>
+                                          <button onClick={() => setCreateTraits(createTraits.filter((_: any, i: number) => i !== idx))} style={{ background: 'transparent', border: 'none', color: 'var(--combat-red)', cursor: 'pointer' }}>Ô£ò</button>
                                         )}
                                       </div>
                                     ))}
@@ -544,7 +546,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave, u
                                     <button onClick={() => setCreateAttacks([...createAttacks, { name: '', desc: '', isAttack: false, actionType: 'Acci├│n', attackBonus: '', damageFormula: '', damageType: 'cortante', range: '' }])} style={{ background: 'transparent', border: 'none', color: 'var(--accent-gold)', fontSize: '0.75rem', cursor: 'pointer' }}>+ A├▒adir Acci├│n</button>
                                   </div>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                                    {createAttacks.map((a, idx) => (
+                                    {createAttacks.map((a: any, idx: number) => (
                                       <div key={idx} className="clipped-frame" style={{ background: 'rgba(0,0,0,0.2)', padding: '15px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                         <div style={{ display: 'flex', gap: '10px' }}>
                                           <input placeholder="Nombre de la Acci├│n (Ej: Mordisco)" style={{ flex: 2, padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} value={a.name} onChange={e => {
@@ -560,7 +562,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave, u
                                             {ACTION_TYPES.map(act => <option key={act} value={act}>{act}</option>)}
                                           </select>
                                           {createAttacks.length > 1 && (
-                                            <button onClick={() => setCreateAttacks(createAttacks.filter((_, i) => i !== idx))} style={{ background: 'transparent', border: 'none', color: 'var(--combat-red)', cursor: 'pointer' }}>Ô£ò</button>
+                                            <button onClick={() => setCreateAttacks(createAttacks.filter((_: any, i: number) => i !== idx))} style={{ background: 'transparent', border: 'none', color: 'var(--combat-red)', cursor: 'pointer' }}>Ô£ò</button>
                                           )}
                                         </div>
                                         <textarea placeholder="Descripci├│n del ataque o efecto..." style={{ width: '100%', height: '50px', padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white', resize: 'vertical' }} value={a.desc} onChange={e => {

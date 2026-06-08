@@ -1,4 +1,4 @@
-import React from 'react';
+
 import { formatDescription } from '../../utils/format';
 import { Ghost, Scroll, Swords, Link } from 'lucide-react';
 import { typeIcons } from '../DatabaseView';
@@ -243,7 +243,11 @@ export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onClo
                                       }} 
                                     />
                                   ) : (
-                                    <div style={{ fontSize: '5rem', opacity: 0.2 }}>{typeIcons[selectedItem.type]?.split(' ')[0]}</div>
+                                    <div style={{ fontSize: '5rem', opacity: 0.2 }}>
+                                      {selectedItem.type === 'monster' ? <Ghost size={80} /> : 
+                                       selectedItem.type === 'spell' ? <Scroll size={80} /> : 
+                                       <Swords size={80} />}
+                                    </div>
                                   )}
                                 </div>
                                 <div style={{ position: 'absolute', bottom: '-10px', left: '10px', right: '10px', height: '4px', background: 'var(--accent-gold)', boxShadow: '0 0 15px var(--accent-gold)' }} />

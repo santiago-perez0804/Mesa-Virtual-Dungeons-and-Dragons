@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Socket } from 'socket.io-client';
 
-export const DiceRoller = ({ socket, user, sendTo = 'all', blockRolls = false }: { socket: Socket, user: any, sendTo?: string, blockRolls?: boolean }) => {
+export const DiceRoller = ({ socket, sendTo = 'all', blockRolls = false }: { socket: Socket, user: any, sendTo?: string, blockRolls?: boolean }) => {
   const [isWaiting, setIsWaiting] = useState(false);
   const dice = [4, 6, 8, 10, 12, 20];
 

@@ -2,11 +2,7 @@ import { useState, useEffect } from 'react';
 import { User, Shield, Backpack, X, Link, Scale } from 'lucide-react';
 import { HeroCard } from './ui/HeroCard';
 import { formatDescription } from '../utils/format';
-import pcCoin from '../assets/pc_coin_icon.png';
-import plCoin from '../assets/pl_coin_icon.png';
-import elCoin from '../assets/el_coin_icon.png';
-import poCoin from '../assets/po_coin_icon.png';
-import ptCoin from '../assets/pt_coin_icon.png';
+import { getPointCost, calcMod, getModStr, getProficiencyBonus, safeParseInventory, safeParseStats } from '../modules/character/character.utils';
 
 import { CharacterInventoryTab } from './character/CharacterInventoryTab';
 import { CharacterTraitsTab } from './character/CharacterTraitsTab';
@@ -14,7 +10,6 @@ import { CharacterSpellsTab } from './character/CharacterSpellsTab';
 import { CharacterStatsPanel } from './character/CharacterStatsPanel';
 
 import { classDesc, classHitDice, raceDesc, raceBonuses, skillList, statDescriptions, subraces } from '../modules/character/character.constants';
-import { getPointCost, calcMod, getModStr, getProficiencyBonus, safeParseJSON, safeParseInventory, safeParseStats } from '../modules/character/character.utils';
 
 export const CharacterManager = ({ socket, characters, compendium, userRole, triggerDiceRoll, isOverlay, forceOpenId, onCloseOverlay }: any) => {
   // --- ESTADOS DEL FORMULARIO DE CREACIÓN ---
@@ -66,7 +61,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [isLevelingUp, setIsLevelingUp] = useState(false);
 
   // --- TABS DE LA FICHA DE PERSONAJE ---
-  const [charDetailTab, setCharDetailTab] = useState<'hoja' | 'inventario' | 'conjuros' | 'trasfondo'>('hoja');
+  const [charDetailTab, setCharDetailTab] = useState<'hoja' | 'inventario' | 'conjuros' | 'trasfondo' | 'rasgos'>('hoja');
   const [classFeatures, setClassFeatures] = useState<any[]>([]);
   const [featuresLoading, setFeaturesLoading] = useState(false);
   const [activeFeaturesClass, setActiveFeaturesClass] = useState<string>('');

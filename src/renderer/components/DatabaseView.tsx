@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Ghost, Scroll, Swords, Shield, Sparkles, Footprints, Dna, AlertTriangle, Zap, ClipboardList, BarChart, BookOpen, Camera, Search, RefreshCw, Link } from 'lucide-react';
+import { Ghost, Scroll, Swords, Shield, Sparkles, Footprints, Dna, AlertTriangle, Zap, BarChart, BookOpen } from 'lucide-react';
 import { FeatureTooltip } from './FeatureTooltip';
 import { CompendiumCard } from './ui/CompendiumCard';
 import { DatabaseDetail } from './compendium/DatabaseDetail';
@@ -71,6 +71,7 @@ const cleanNameForMatching = (name: string): string => {
   return s;
 };
 
+const safeStr = (val: any) => val != null ? String(val) : '';
 export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpenId, onCloseOverlay }: any) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState<'all' | 'monster' | 'spell' | 'item' | 'class' | 'subclass' | 'race' | 'subrace' | 'condition' | 'features'>('all');
@@ -122,11 +123,11 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
     createArmorType, setCreateArmorType,
     createRequiresAttunement, setCreateRequiresAttunement,
     createWeight, setCreateWeight,
-    imageZoom, setImageZoom,
-    imagePosX, setImagePosX,
-    imagePosY, setImagePosY,
-    isDragging, setIsDragging,
-    dragStart, setDragStart,
+    
+    
+    
+    
+    
     isProtectItem, setIsProtectItem,
     itemDefenseBonus, setItemDefenseBonus,
     itemAttackName, setItemAttackName,
@@ -135,82 +136,44 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
     itemTargetsCount, setItemTargetsCount,
     itemCritDamage, setItemCritDamage,
 
-    isCreatingClass, setIsCreatingClass,
-    classWizardStep, setClassWizardStep,
-    cName, setCName,
-    cDesc, setCDesc,
-    cHitDie, setCHitDie,
-    cSubclassLvl, setCSubclassLvl,
-    cSubclassTitle, setCSubclassTitle,
-    cArmors, setCArmors,
-    cWeapons, setCWeapons,
-    cTools, setCTools,
-    cSaves, setCSaves,
-    cSkills, setCSkills,
-    cSkillsLimit, setCSkillsLimit,
-    cResourceName, setCResourceName,
-    cResourceProg, setCResourceProg,
+    setImageZoom,
+    
+    
+    
+    
 
+    isCreatingClass, setIsCreatingClass,
+
+    setImagePosX,
+    setImagePosY,
+    setClassWizardStep,
+    setCName,
+    setCDesc,
+    setCHitDie,
+    setCSubclassLvl,
+    setCSubclassTitle,
+    setCArmors,
+    setCWeapons,
+    setCTools,
+    setCSaves,
+    setCSkills,
+    setCSkillsLimit,
+    setCResourceName,
+    setCResourceProg,
+    setSubclassName,
+    setSubclassDesc,
+    setSubclassTraits,
     isAddingSubclass, setIsAddingSubclass,
-    subclassName, setSubclassName,
-    subclassDesc, setSubclassDesc,
-    subclassTraits, setSubclassTraits,
-    subclassTraitName, setSubclassTraitName,
-    subclassTraitLevel, setSubclassTraitLevel,
-    subclassTraitDesc, setSubclassTraitDesc,
+    
+    
+    
+    
+    
+    
 
     resetForm
   } = formState;
 
-  const handleEditClick = (item: any) => {
-    resetForm();
-    setIsCreating(true);
-    setEditingId(item.id);
-    setCreateType(item.type);
-    setCreateName(item.name || '');
-    setCreateDesc(item.desc || '');
-    setCreateImage(item.image || '');
-    
-    if (item.type === 'monster') {
-      const data = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
-      setCreateHp(data.hp || '10');
-      setCreateAc(data.ac || 10);
-      setCreateCr(data.cr || '');
-      setCreateSpeed(data.speed || '30 ft.');
-      setCreateStats(data.stats || { str: 10, dex: 10, con: 10, int: 10, wis: 10, cha: 10 });
-      setCreateAttacks(data.attacks || []);
-      setCreateTraits(data.traits || []);
-      setCreateVuln(data.vulnerabilities || []);
-      setCreateRes(data.resistances || []);
-      setCreateImm(data.immunities || []);
-    } else if (item.type === 'spell') {
-      const data = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
-      setCreateShortDesc(data.short_description || '');
-      setCreateSpellLevel(data.level || 0);
-      setCreateSpellComponents(data.components || { V: false, S: false, M: false });
-      setCreateSpellRange(data.range || '');
-      setCreateSpellDuration(data.duration || 'instantaneo');
-      setCreateSpellConcentration(data.concentration || false);
-    } else if (item.type === 'item') {
-      const data = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
-      setCreateRarity(data.rarity || 'Común');
-      setIsDamageItem(data.isDamage || false);
-      setItemAttackBonus(data.attackBonus || '');
-      setItemDamageFormula(data.damageFormula || '');
-      setItemDamageType(data.damageType || 'cortante');
-      setCreateTags(data.tags || []);
-      setIsProtectItem(data.isProtect || false);
-      setItemDefenseBonus(data.defenseBonus || '');
-      setItemAttackName(data.attackName || '');
-      setItemStatMod(data.statMod || '');
-      setItemStatSelection(data.statSelection || 'FUE');
-      setItemTargetsCount(data.targetsCount || '1');
-      setItemCritDamage(data.critDamage || '');
-      setCreateArmorType(data.armorType || 'ligera');
-      setCreateRequiresAttunement(data.requiresAttunement || false);
-      setCreateWeight(data.weight || '');
-    }
-  };
 
 
   // --- ESTADOS ADICIONALES PARA COMPENDIO DE CLASES ---
@@ -421,9 +384,9 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
     let data: any = { description: createDesc };
     if (createImage) {
       data.image = createImage;
-      data.imageZoom = imageZoom;
-      data.imagePosX = imagePosX;
-      data.imagePosY = imagePosY;
+      
+      
+      
     }
 
     if (createType === 'monster') {
@@ -488,6 +451,8 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
 
 
 
+  const handleEditClick = (item: any) => {
+    resetForm();
     setSelectedItem(null);
     setIsCreating(true);
     setEditingId(item.id);
@@ -503,12 +468,15 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
     } catch { data = {}; }
     if (!data) data = {};
 
-    setImageZoom(data.imageZoom ?? 1);
-    setImagePosX(data.imagePosX ?? 0);
-    setImagePosY(data.imagePosY ?? 0);
+    
+    
+    
 
     setCreateDesc(safeStr(data.description ?? data.desc ?? ''));
     setCreateImage(safeStr(data.image ?? ''));
+    setImageZoom(data.imageZoom ?? 1);
+    setImagePosX(data.imagePosX ?? 0);
+    setImagePosY(data.imagePosY ?? 0);
 
     if (item.type === 'monster') {
       let parsedAc = 10;
@@ -800,7 +768,7 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
     // setCTraits(cData.traits || []);
 
     setClassWizardStep(1);
-    setIsCreatingClass(true);
+    setIsCreatingClass!(true);
   };
 
   const generateTableMarkdown = (resourceName: string, resourceProg: string[], traitsList: any[]) => {
@@ -1041,10 +1009,10 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
               setCSkills([]);
               setCSkillsLimit(2);
               setCResourceName('');
-              setCResourceProg(Array(20).fill(''));
+              setCResourceProg('');
               // setCTraits([]);
               setClassWizardStep(1);
-              setIsCreatingClass(true);
+              setIsCreatingClass!(true);
             };
           } else if (category === 'spell') {
             btnText = '+ NUEVO HECHIZO';
@@ -1166,9 +1134,9 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
                               setEditingClassId(null);
                               setCName(''); setCDesc(''); setCHitDie('d8'); setCSubclassLvl(3); setCSubclassTitle('Arquetipo');
                               setCArmors([]); setCWeapons([]); setCTools(''); setCSaves([]); setCSkills([]); setCSkillsLimit(2);
-                              setCResourceName(''); setCResourceProg(Array(20).fill('')); // setCTraits([]);
+                              setCResourceName(''); setCResourceProg(''); // setCTraits([]);
                               setClassWizardStep(1);
-                              setIsCreatingClass(true);
+                              setIsCreatingClass!(true);
                             }}
                             className="font-cinzel"
                             style={{
@@ -1240,9 +1208,9 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
                               setEditingClassId(null);
                               setCName(''); setCDesc(''); setCHitDie('d8'); setCSubclassLvl(3); setCSubclassTitle('Arquetipo');
                               setCArmors([]); setCWeapons([]); setCTools(''); setCSaves([]); setCSkills([]); setCSkillsLimit(2);
-                              setCResourceName(''); setCResourceProg(Array(20).fill('')); // setCTraits([]);
+                              setCResourceName(''); setCResourceProg(''); // setCTraits([]);
                               setClassWizardStep(1);
-                              setIsCreatingClass(true);
+                              setIsCreatingClass!(true);
                             }}
                             style={{ width: '100%', padding: '12px', background: 'var(--accent-gold)', color: 'white', border: 'none', fontWeight: 'bold', cursor: 'pointer', letterSpacing: '1px' }}
                           >
@@ -1792,39 +1760,15 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
                 </>
               )}
 
-              {selectedItem && category !== 'class' && (() => {
-                let d: any = {};
-                try {
-                  d = selectedItem.data ? (typeof selectedItem.data === 'string' ? JSON.parse(selectedItem.data) : selectedItem.data) : {};
-                } catch { d = {}; }
-                if (!d) d = {};
-                
-                const isMonster = selectedItem.type === 'monster';
-                // const hp = d.hp || d.hit_points || '—';
-                // const ac = d.ac || d.armor_class || '—';
-                const cr = d.cr || d.challenge_rating || '—';
-                // const speed = d.speed || '—';
-                // const desc = d.description || d.desc || '';
-                
-                // const stats = [
-                //   { label: 'STR', val: d.strength || d.str || 10 },
-                //   { label: 'DEX', val: d.dexterity || d.dex || 10 },
-                //   { label: 'CON', val: d.constitution || d.con || 10 },
-                //   { label: 'INT', val: d.intelligence || d.int || 10 },
-                //   { label: 'WIS', val: d.wisdom || d.wis || 10 },
-                //   { label: 'CHA', val: d.charisma || d.cha || 10 }
-                // ];
-
-                // const getMod = (val: number) => {
-                //   const mod = Math.floor((val - 10) / 2);
-                //   return mod >= 0 ? `+${mod}` : `${mod}`;
-                // };
-
+              {selectedItem && category !== 'class' && (
                 <DatabaseDetail selectedItem={selectedItem} setSelectedItem={setSelectedItem} isOverlay={isOverlay} onCloseOverlay={onCloseOverlay} userRole={userRole} />
+              )}
               {/* MODAL DE DETALLE DE RASGO */}
               <FeatureDetail selectedFeature={selectedFeature} setSelectedFeature={setSelectedFeature} openEditFeatureForm={openEditFeatureForm} handleDeleteFeature={handleDeleteFeature} userRole={userRole} />
             </div>
           </div>
         </div>
       );
-    };
+    ;
+
+};

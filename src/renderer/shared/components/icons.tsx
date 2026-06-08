@@ -1,4 +1,4 @@
-import React from 'react';
+
 
 export const NoteTokenIcon = () => (
   <svg viewBox="0 0 64 64" style={{ width: '100%', height: '100%', display: 'block' }}>

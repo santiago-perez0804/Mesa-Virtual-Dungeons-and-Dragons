@@ -4,7 +4,7 @@ import { formatDescription } from '../../utils/format';
 export const FeatureDetail = ({ selectedFeature, setSelectedFeature, openEditFeatureForm, handleDeleteFeature, userRole }: any) => {
   if (!selectedFeature) return null;
   return (
-              {selectedFeature && (
+              <>
                 <div 
                   style={{ 
                     position: 'fixed', 
@@ -101,7 +101,7 @@ export const FeatureDetail = ({ selectedFeature, setSelectedFeature, openEditFea
                     )}
                   </div>
                 </div>
-              )}
+              </>
 
   );
 };
