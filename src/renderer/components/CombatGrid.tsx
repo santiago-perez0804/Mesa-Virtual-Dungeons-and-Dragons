@@ -95,6 +95,49 @@ const ItemDropIcon = ({ rarity }: { rarity: string }) => {
   );
 };
 
+const CompassIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+    <path d="m12 3-8 18M12 3l8 18M12 3v9M7 15h10" />
+  </svg>
+);
+
+const LineAoeIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+    <line x1="19" y1="5" x2="5" y2="19" />
+    <line x1="14" y1="5" x2="19" y2="10" />
+    <line x1="9" y1="10" x2="14" y2="15" />
+    <line x1="5" y1="14" x2="10" y2="19" />
+  </svg>
+);
+
+const ConeAoeIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+    <path d="M12 3L4 21h16L12 3z" />
+  </svg>
+);
+
+const CircleAoeIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+    <circle cx="12" cy="12" r="9" />
+  </svg>
+);
+
+const SquareAoeIcon = () => (
+  <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ display: 'block' }}>
+    <rect x="3" y="3" width="18" height="18" rx="2" />
+  </svg>
+);
+
+const getAoeIcon = (shape: string | null) => {
+  switch (shape) {
+    case 'line': return <LineAoeIcon />;
+    case 'cone': return <ConeAoeIcon />;
+    case 'circle': return <CircleAoeIcon />;
+    case 'cube': return <SquareAoeIcon />;
+    default: return <CompassIcon />;
+  }
+};
+
 const getLineCells = (x0: number, y0: number, x1: number, y1: number) => {
   const cells: [number, number][] = [];
   let dx = Math.abs(x1 - x0);
@@ -182,6 +225,8 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
   const [aoeForm, setAoeForm] = useState({ shape: 'circle', size1: 3, size2: 1, color: '#ef4444' });
   const [selectedAoeToken, setSelectedAoeToken] = useState<any>(null);
   const [activeActionMenu, setActiveActionMenu] = useState<'PH' | 'TS' | null>(null);
+  const [isRadialOpen, setIsRadialOpen] = useState(false);
+  const [activeAoeTool, setActiveAoeTool] = useState<string | null>(null);
 
   useEffect(() => {
     setActiveActionMenu(null);
@@ -1043,195 +1088,388 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
     <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-base)', position: 'relative' }} onClick={() => { setActiveTokenId(null); setContextMenu(null); }}>
 
       {/* TOOLBAR SUPERIOR */}
-      <div style={{ padding: '8px 20px', background: 'rgba(0,0,0,0.4)', borderBottom: '1px solid var(--border-color)', display: 'flex', flexWrap: 'wrap', gap: '12px', justifyContent: 'space-between', alignItems: 'center', zIndex: 100 }}>
+      <div style={{ padding: '8px 0px', background: 'rgba(0,0,0,0.4)', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '15px', alignItems: 'center', zIndex: 100 }}>
         
-        {/* LADO IZQUIERDO: COMBATE, URL, APLICAR, LIMPIAR, EDITAR */}
-        <div style={{ display: 'flex', gap: '15px', alignItems: 'center', flexWrap: 'wrap' }}>
+        {/* COLUMNA 1 — Panel de personajes (izquierda fija, alineada con panel lateral) */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '15px', 
+          alignItems: 'center', 
+          flexShrink: 0,
+          width: isSidebarOpen ? '320px' : '190px',
+          paddingLeft: '20px',
+          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          boxSizing: 'border-box',
+          overflow: 'hidden',
+          whiteSpace: 'nowrap'
+        }}>
           <h2 className="font-cinzel" style={{ margin: 0, color: 'var(--accent-gold)', fontSize: '1.2rem', letterSpacing: '1px' }}>COMBATE</h2>
+          
           <button
             onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-            className="font-cinzel torch-glow"
+            className="torch-glow"
             style={{
-              background: isSidebarOpen ? 'rgba(200,135,42,0.15)' : 'transparent',
-              border: '1px solid var(--border-color)',
+              position: 'relative',
+              background: isSidebarOpen ? 'rgba(200,135,42,0.15)' : 'rgba(0,0,0,0.5)',
+              border: `1.5px solid ${isSidebarOpen ? 'var(--accent-gold)' : 'var(--border-color)'}`,
               color: isSidebarOpen ? 'var(--accent-gold)' : 'var(--text-secondary)',
-              padding: '4px 10px',
-              borderRadius: '4px',
+              width: '40px',
+              height: '32px',
+              padding: 0,
+              borderRadius: '6px',
               cursor: 'pointer',
-              fontSize: '0.75rem',
-              fontWeight: 'bold',
-              transition: 'all 0.2s'
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s',
+              boxShadow: isSidebarOpen ? '0 0 8px rgba(201,168,76,0.4)' : 'none',
+              flexShrink: 0
             }}
             title={isSidebarOpen ? "Ocultar panel de combatientes" : "Mostrar panel de combatientes"}
           >
-            {isSidebarOpen ? '◀ Fichas' : '▶ Fichas'}
+            {isSidebarOpen ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-gold)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+                <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--accent-gold)', display: 'block' }} />
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+                  <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                  <circle cx="9" cy="7" r="4"></circle>
+                  <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                  <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+                </svg>
+              </div>
+            )}
           </button>
-          {(userRole === 'dm' || userRole === 'admin') && (
-            <div style={{ display: 'flex', gap: '8px' }}>
-              <input
-                className="mono"
-                style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white', padding: '6px 12px', fontSize: '0.75rem', width: '200px' }}
-                placeholder="URL del Mapa..."
-                value={bgInputUrl}
-                onChange={(e) => setBgInputUrl(e.target.value)}
-              />
-              <button
-                onClick={() => { if (bgInputUrl) socket.emit('grid:set-bg', bgInputUrl); }}
-                className="torch-glow"
-                style={{ background: 'var(--accent-gold)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}
-              >
-                APLICAR
-              </button>
-              <button onClick={() => socket.emit('board:clear')} className="torch-glow" style={{ background: 'var(--combat-red)', color: 'white', border: 'none', padding: '6px 12px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer' }}>Limpiar Mapa</button>
-              <button 
-                onClick={() => setIsEditingSurface(!isEditingSurface)} 
-                className="torch-glow" 
-                style={{ background: isEditingSurface ? 'var(--accent-gold)' : 'transparent', color: isEditingSurface ? '#000' : 'white', border: '1px solid var(--accent-gold)', padding: '6px 12px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold' }}
-              >
-                {isEditingSurface ? 'Terminar Edición' : 'Editar Superficie'}
-              </button>
-            </div>
-          )}
         </div>
 
-        {/* LADO DERECHO: TURNOS, DIA/NOCHE, GRILLA, RESET */}
-        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-          
-          {/* TURNOS */}
-          {(userRole === 'dm' || userRole === 'admin') && (
-            <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-              <button
-                onClick={() => {
-                  if (combatState.turnModeActive) {
-                    socket.emit('combat:toggle-turn-mode', false);
-                  } else {
-                    if (allCombatantsRolled) {
-                      socket.emit('combat:toggle-turn-mode', true);
-                    }
-                  }
-                }}
-                disabled={!combatState.turnModeActive && !allCombatantsRolled}
-                className="font-cinzel torch-glow"
-                style={{
-                  background: combatState.turnModeActive ? 'var(--combat-red)' : 'var(--accent-gold)',
-                  color: 'white',
-                  border: 'none',
-                  padding: '6px 14px',
-                  borderRadius: '4px',
-                  cursor: (!combatState.turnModeActive && !allCombatantsRolled) ? 'not-allowed' : 'pointer',
-                  opacity: (!combatState.turnModeActive && !allCombatantsRolled) ? 0.5 : 1,
-                  fontSize: '0.75rem',
-                  fontWeight: 'bold'
-                }}
-              >
-                {combatState.turnModeActive ? 'Terminar Combate' : 'Modo Turnos'}
-              </button>
-              
-              {combatState.turnModeActive && (
+        {/* Separador 1 */}
+        <div className="divider" style={{ width: '1px', height: '24px', background: 'rgba(201,168,76,0.3)', alignSelf: 'center', flexShrink: 0 }} />
+
+        {/* COLUMNA 2 — Controles principales (centro, flex-grow: 1) */}
+        <div style={{ display: 'flex', flexGrow: 1, justifyContent: 'space-between', alignItems: 'center', gap: '15px' }}>
+          {/* Lado izquierdo de Columna 2 */}
+          <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+            {(userRole === 'dm' || userRole === 'admin') && (
+              <>
+                <input
+                  className="mono"
+                  style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white', padding: '6px 12px', fontSize: '0.75rem', width: '200px' }}
+                  placeholder="URL del Mapa..."
+                  value={bgInputUrl}
+                  onChange={(e) => setBgInputUrl(e.target.value)}
+                />
+                
+                {/* APLICAR (Checkmark icon) */}
                 <button
-                  onClick={() => socket.emit('combat:next-turn')}
-                  className="font-cinzel torch-glow"
-                  style={{ background: 'var(--natural-green)', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
+                  onClick={() => { if (bgInputUrl) socket.emit('grid:set-bg', bgInputUrl); }}
+                  className="torch-glow"
+                  style={{ 
+                    background: 'var(--accent-gold)', 
+                    color: 'white', 
+                    border: 'none', 
+                    width: '32px', 
+                    height: '30px', 
+                    borderRadius: '4px', 
+                    cursor: 'pointer', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    padding: 0 
+                  }}
+                  title="APLICAR"
                 >
-                  Siguiente ➡️
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="20 6 9 17 4 12" />
+                  </svg>
                 </button>
-              )}
-            </div>
-          )}
 
-          {/* Pasar Turno para Jugadores */}
-          {(userRole !== 'dm' && userRole !== 'admin') && combatState.turnModeActive && (() => {
-            const currentTurnTokenId = combatState.initiativeOrder[combatState.currentTurnIndex]?.tokenId;
-            const currentToken = boardTokens.find((t: any) => t.instanceId === currentTurnTokenId);
-            const isMyTurn = currentToken && currentToken.owner === currentUser?.name;
-            
-            // Para jugadores que no es su turno, igual renderizamos un botón deshabilitado o invisible para que sepan de quién es el turno
-            // Pero según el requerimiento: "a los jugadores en ese lugar les aparecerá un boton con forma de flecha que no hará nada al tocarse, se usará mas adelante"
-            return (
-              <button
-                onClick={() => {
-                  if (isMyTurn) socket.emit('combat:next-turn');
-                }}
-                disabled={!isMyTurn}
-                className="font-cinzel torch-glow"
-                style={{ 
-                  background: isMyTurn ? 'var(--natural-green)' : 'rgba(255,255,255,0.1)', 
-                  color: isMyTurn ? 'white' : 'var(--text-secondary)', 
-                  border: '1px solid ' + (isMyTurn ? 'var(--natural-green)' : 'var(--border-color)'), 
-                  padding: '6px 14px', 
-                  borderRadius: '4px', 
-                  cursor: isMyTurn ? 'pointer' : 'default', 
-                  fontSize: '0.75rem', 
-                  fontWeight: 'bold', 
-                  animation: isMyTurn ? 'pulse 2s infinite' : 'none' 
-                }}
-              >
-                {isMyTurn ? 'Terminar mi Turno ➡️' : 'Turno de otro ➡️'}
-              </button>
-            );
-          })()}
+                {/* LIMPIAR MAPA (Trash icon, neutral color) */}
+                <button 
+                  onClick={() => { if (confirm("¿Limpiar todo el mapa?")) socket.emit('board:clear'); }} 
+                  className="torch-glow" 
+                  style={{ 
+                    background: 'rgba(255,255,255,0.05)', 
+                    color: 'var(--text-secondary)', 
+                    border: '1px solid var(--border-color)', 
+                    width: '32px', 
+                    height: '30px', 
+                    borderRadius: '4px', 
+                    cursor: 'pointer', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    padding: 0 
+                  }}
+                  title="LIMPIAR MAPA"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                    <polyline points="3 6 5 6 21 6" />
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2" />
+                    <line x1="10" y1="11" x2="10" y2="17" />
+                    <line x1="14" y1="11" x2="14" y2="17" />
+                  </svg>
+                </button>
 
-          <div style={{ width: '1px', height: '24px', background: 'var(--border-color)' }} />
-
-          {/* DIA / NOCHE */}
-          {(userRole === 'dm' || userRole === 'admin') && (
-            <div style={{ display: 'flex', alignItems: 'center', gap: '8px', userSelect: 'none' }}>
-              <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Día</span>
-              <button
-                onClick={() => socket.emit('grid:set-night', !isNightMode)}
-                style={{
-                  position: 'relative', width: '46px', height: '24px', borderRadius: '12px',
-                  background: isNightMode ? '#1e293b' : '#f59e0b',
-                  border: '1px solid ' + (isNightMode ? '#334155' : '#fbbf24'),
-                  cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: isNightMode ? 'inset 0 2px 4px rgba(0,0,0,0.6)' : 'inset 0 2px 4px rgba(255,255,255,0.3)',
-                  overflow: 'hidden'
-                }}
-                title={isNightMode ? 'Modo Noche activo' : 'Modo Día activo'}
-              >
-                <div style={{
-                  position: 'absolute', left: isNightMode ? '24px' : '2px', width: '18px', height: '18px',
-                  borderRadius: '50%', background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center',
-                  fontSize: '10px', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
-                }}>
-                  {isNightMode ? '🌙' : '☀️'}
-                </div>
-              </button>
-              <span style={{ fontSize: '0.75rem', fontWeight: 'bold', color: 'var(--text-secondary)' }}>Noche</span>
-            </div>
-          )}
-
-          <div style={{ width: '1px', height: '24px', background: 'var(--border-color)', display: (userRole === 'dm' || userRole === 'admin') ? 'block' : 'none' }} />
-
-          {/* GRILLA, RESET */}
-          <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-            <button onClick={() => setShowGridLines(!showGridLines)} className="font-cinzel"
-              style={{ background: showGridLines ? 'var(--accent-gold)' : 'rgba(255,255,255,0.05)', color: 'white', border: '1px solid var(--border-color)', padding: '6px 14px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>
-              {showGridLines ? '👁️ Grilla' : '🙈 Grilla'}
-            </button>
-            <button onClick={() => { setPan({ x: 0, y: 0 }); setZoom(1); }} className="font-cinzel"
-              style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', padding: '6px 14px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem' }}>🎯 Reset</button>
-            <button
-              onClick={() => setIsChatOpen(!isChatOpen)}
-              className="font-cinzel torch-glow"
-              style={{
-                background: isChatOpen ? 'rgba(200,135,42,0.15)' : 'transparent',
-                border: '1px solid var(--border-color)',
-                color: isChatOpen ? 'var(--accent-gold)' : 'var(--text-secondary)',
-                padding: '6px 14px',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontSize: '0.75rem',
-                fontWeight: 'bold',
-                transition: 'all 0.2s'
-              }}
-              title={isChatOpen ? "Ocultar chat" : "Mostrar chat"}
-            >
-              {isChatOpen ? 'Chat ◀' : 'Chat ▶'}
-            </button>
+                {/* EDITAR SUPERFICIE (Pencil icon + short text) */}
+                <button 
+                  onClick={() => setIsEditingSurface(!isEditingSurface)} 
+                  className="torch-glow" 
+                  style={{ 
+                    background: isEditingSurface ? 'var(--accent-gold)' : 'transparent', 
+                    color: isEditingSurface ? '#000' : 'white', 
+                    border: '1px solid var(--accent-gold)', 
+                    padding: '6px 12px', 
+                    borderRadius: '4px', 
+                    fontSize: '0.75rem', 
+                    cursor: 'pointer', 
+                    fontWeight: 'bold',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '6px'
+                  }}
+                >
+                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                    <path d="M12 20h9" />
+                    <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
+                  </svg>
+                  {isEditingSurface ? 'TERMINAR SUP.' : 'EDITAR SUP.'}
+                </button>
+              </>
+            )}
           </div>
+
+          {/* Lado derecho de Columna 2 */}
+          <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
+            {/* TURNOS */}
+            {(userRole === 'dm' || userRole === 'admin') && (
+              <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
+                <button
+                  onClick={() => {
+                    if (combatState.turnModeActive) {
+                      socket.emit('combat:toggle-turn-mode', false);
+                    } else {
+                      if (allCombatantsRolled) {
+                        socket.emit('combat:toggle-turn-mode', true);
+                      }
+                    }
+                  }}
+                  disabled={!combatState.turnModeActive && !allCombatantsRolled}
+                  className="font-cinzel torch-glow"
+                  style={{
+                    background: combatState.turnModeActive ? 'var(--combat-red)' : 'var(--accent-gold)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '6px 14px',
+                    borderRadius: '4px',
+                    cursor: (!combatState.turnModeActive && !allCombatantsRolled) ? 'not-allowed' : 'pointer',
+                    opacity: (!combatState.turnModeActive && !allCombatantsRolled) ? 0.5 : 1,
+                    fontSize: '0.75rem',
+                    fontWeight: 'bold'
+                  }}
+                >
+                  {combatState.turnModeActive ? 'Terminar Combate' : 'Modo Turnos'}
+                </button>
+                
+                {combatState.turnModeActive && (
+                  <button
+                    onClick={() => socket.emit('combat:next-turn')}
+                    className="font-cinzel torch-glow"
+                    style={{ background: 'var(--natural-green)', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
+                  >
+                    Siguiente ➡️
+                  </button>
+                )}
+              </div>
+            )}
+
+            {/* Pasar Turno para Jugadores */}
+            {(userRole !== 'dm' && userRole !== 'admin') && combatState.turnModeActive && (() => {
+              const currentTurnTokenId = combatState.initiativeOrder[combatState.currentTurnIndex]?.tokenId;
+              const currentToken = boardTokens.find((t: any) => t.instanceId === currentTurnTokenId);
+              const isMyTurn = currentToken && currentToken.owner === currentUser?.name;
+              
+              return (
+                <button
+                  onClick={() => {
+                    if (isMyTurn) socket.emit('combat:next-turn');
+                  }}
+                  disabled={!isMyTurn}
+                  className="font-cinzel torch-glow"
+                  style={{ 
+                    background: isMyTurn ? 'var(--natural-green)' : 'rgba(255,255,255,0.1)', 
+                    color: isMyTurn ? 'white' : 'var(--text-secondary)', 
+                    border: '1px solid ' + (isMyTurn ? 'var(--natural-green)' : 'var(--border-color)'), 
+                    padding: '6px 14px', 
+                    borderRadius: '4px', 
+                    cursor: isMyTurn ? 'pointer' : 'default', 
+                    fontSize: '0.75rem', 
+                    fontWeight: 'bold', 
+                    animation: isMyTurn ? 'pulse 2s infinite' : 'none' 
+                  }}
+                >
+                  {isMyTurn ? 'Terminar mi Turno ➡️' : 'Turno de otro ➡️'}
+                </button>
+              );
+            })()}
+
+            {/* DIA / NOCHE */}
+            {(userRole === 'dm' || userRole === 'admin') && (
+              <div style={{ display: 'flex', alignItems: 'center', gap: '8px', userSelect: 'none' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: isNightMode ? 0.4 : 1, transition: 'opacity 0.3s ease', display: 'block' }}>
+                  <circle cx="12" cy="12" r="5" />
+                  <line x1="12" y1="1" x2="12" y2="3" />
+                  <line x1="12" y1="21" x2="12" y2="23" />
+                  <line x1="4.22" y1="4.22" x2="5.64" y2="5.64" />
+                  <line x1="18.36" y1="18.36" x2="19.78" y2="19.78" />
+                  <line x1="1" y1="12" x2="3" y2="12" />
+                  <line x1="21" y1="12" x2="23" y2="12" />
+                  <line x1="4.22" y1="19.78" x2="5.64" y2="18.36" />
+                  <line x1="18.36" y1="5.64" x2="19.78" y2="4.22" />
+                </svg>
+
+                <button
+                  onClick={() => socket.emit('grid:set-night', !isNightMode)}
+                  style={{
+                    position: 'relative', width: '46px', height: '24px', borderRadius: '12px',
+                    background: isNightMode ? '#1e293b' : '#f59e0b',
+                    border: '1px solid ' + (isNightMode ? '#334155' : '#fbbf24'),
+                    cursor: 'pointer', padding: 0, display: 'flex', alignItems: 'center',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: isNightMode ? 'inset 0 2px 4px rgba(0,0,0,0.6)' : 'inset 0 2px 4px rgba(255,255,255,0.3)',
+                    overflow: 'hidden'
+                  }}
+                  title={isNightMode ? 'Modo Noche activo' : 'Modo Día activo'}
+                >
+                  <div style={{
+                    position: 'absolute', left: isNightMode ? '24px' : '2px', width: '18px', height: '18px',
+                    borderRadius: '50%', background: '#ffffff', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                    fontSize: '10px', transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    boxShadow: '0 2px 4px rgba(0,0,0,0.3)'
+                  }}>
+                    {isNightMode ? '🌙' : '☀️'}
+                  </div>
+                </button>
+
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#C9A84C" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: isNightMode ? 1 : 0.4, transition: 'opacity 0.3s ease', display: 'block' }}>
+                  <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                </svg>
+              </div>
+            )}
+          </div>
+        </div>
+
+        {/* Separador 2 */}
+        <div className="divider" style={{ width: '1px', height: '24px', background: 'rgba(201,168,76,0.3)', alignSelf: 'center', flexShrink: 0 }} />
+
+        {/* COLUMNA 3 — Panel de mesa/chat (derecha fija, alineada con panel de chat) */}
+        <div style={{ 
+          display: 'flex', 
+          gap: '10px', 
+          alignItems: 'center', 
+          justifyContent: 'flex-end',
+          flexShrink: 0,
+          width: isChatOpen ? '300px' : '130px',
+          paddingRight: '20px',
+          transition: 'width 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+          boxSizing: 'border-box',
+          overflow: 'hidden',
+          whiteSpace: 'nowrap'
+        }}>
+          {/* GRILLA (Grid icon, no text) */}
+          <button
+            onClick={() => setShowGridLines(!showGridLines)}
+            className="torch-glow"
+            style={{
+              position: 'relative',
+              background: 'rgba(0,0,0,0.5)',
+              border: `1.5px solid ${showGridLines ? 'var(--accent-gold)' : 'var(--border-color)'}`,
+              color: showGridLines ? 'var(--accent-gold)' : 'var(--text-secondary)',
+              width: '40px',
+              height: '32px',
+              padding: 0,
+              borderRadius: '6px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s',
+              boxShadow: showGridLines ? '0 0 8px rgba(201,168,76,0.4)' : 'none',
+              flexShrink: 0
+            }}
+            title={showGridLines ? "Ocultar grilla" : "Mostrar grilla"}
+          >
+            {showGridLines ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-gold)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <line x1="9" y1="3" x2="9" y2="21" />
+                  <line x1="15" y1="3" x2="15" y2="21" />
+                  <line x1="3" y1="9" x2="21" y2="9" />
+                  <line x1="3" y1="15" x2="21" y2="15" />
+                </svg>
+                <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--accent-gold)', display: 'block' }} />
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+                  <rect x="3" y="3" width="18" height="18" rx="2" />
+                  <line x1="9" y1="3" x2="9" y2="21" />
+                  <line x1="15" y1="3" x2="15" y2="21" />
+                  <line x1="3" y1="9" x2="21" y2="9" />
+                  <line x1="3" y1="15" x2="21" y2="15" />
+                  <line x1="3" y1="3" x2="21" y2="21" stroke="var(--text-secondary)" strokeWidth="2" />
+                </svg>
+              </div>
+            )}
+          </button>
+          
+          {/* CHAT TOGGLE */}
+          <button
+            onClick={() => setIsChatOpen(!isChatOpen)}
+            className="torch-glow"
+            style={{
+              position: 'relative',
+              background: 'rgba(0,0,0,0.5)',
+              border: `1.5px solid ${isChatOpen ? 'var(--accent-gold)' : 'var(--border-color)'}`,
+              color: isChatOpen ? 'var(--accent-gold)' : 'var(--text-secondary)',
+              width: '40px',
+              height: '32px',
+              padding: 0,
+              borderRadius: '6px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'all 0.2s',
+              boxShadow: isChatOpen ? '0 0 8px rgba(201,168,76,0.4)' : 'none',
+              flexShrink: 0
+            }}
+            title={isChatOpen ? "Ocultar chat" : "Mostrar chat"}
+          >
+            {isChatOpen ? (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '2px' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--accent-gold)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                </svg>
+                <span style={{ width: '4px', height: '4px', borderRadius: '50%', background: 'var(--accent-gold)', display: 'block' }} />
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="var(--text-secondary)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" style={{ opacity: 0.5 }}>
+                  <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+                  <line x1="3" y1="3" x2="21" y2="21" stroke="var(--text-secondary)" strokeWidth="2" />
+                </svg>
+              </div>
+            )}
+          </button>
         </div>
       </div>
 
@@ -1813,12 +2051,79 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
             );
           })()}
           
-          {/* BOTONES FLOTANTES AoE */}
-          <div style={{ position: 'absolute', bottom: '20px', right: '20px', zIndex: 200, display: 'flex', flexDirection: 'column', gap: '10px' }} onMouseDown={e => e.stopPropagation()} onClick={e => e.stopPropagation()}>
-            <button title="Línea" onClick={() => { setAoeForm({...aoeForm, shape: 'line'}); setIsCreatingAoe(true); }} className="torch-glow" style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.5)', fontSize: '1.4rem', padding: 0 }}><Ruler className="w-6 h-6 m-auto" /></button>
-            <button title="Cono" onClick={() => { setAoeForm({...aoeForm, shape: 'cone'}); setIsCreatingAoe(true); }} className="torch-glow" style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.5)', fontSize: '1.4rem', padding: 0 }}><Triangle className="w-6 h-6 m-auto" /></button>
-            <button title="Círculo" onClick={() => { setAoeForm({...aoeForm, shape: 'circle'}); setIsCreatingAoe(true); }} className="torch-glow" style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.5)', fontSize: '1.4rem', padding: 0 }}><Circle className="w-6 h-6 m-auto" /></button>
-            <button title="Cubo" onClick={() => { setAoeForm({...aoeForm, shape: 'cube'}); setIsCreatingAoe(true); }} className="torch-glow" style={{ width: '45px', height: '45px', borderRadius: '50%', background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', color: 'white', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', boxShadow: '0 4px 10px rgba(0,0,0,0.5)', fontSize: '1.4rem', padding: 0 }}><Square className="w-6 h-6 m-auto" /></button>
+          {/* BOTONES FLOTANTES AoE (MENÚ RADIAL) */}
+          <div 
+            className="radial-container"
+            style={{ position: 'absolute', bottom: '20px', right: '20px', zIndex: 200 }} 
+            onMouseDown={e => e.stopPropagation()} 
+            onClick={e => e.stopPropagation()}
+          >
+            {/* Child 1: Línea */}
+            <button 
+              title="Línea" 
+              onClick={() => { setAoeForm({...aoeForm, shape: 'line'}); setActiveAoeTool('line'); setIsCreatingAoe(true); setIsRadialOpen(false); }} 
+              className={`radial-child torch-glow ${isRadialOpen ? 'open' : ''}`} 
+              style={{ left: '-100px', top: '0px', transitionDelay: isRadialOpen ? '0ms' : '0ms', padding: 0 }}
+            >
+              <LineAoeIcon />
+            </button>
+            
+            {/* Child 2: Cono */}
+            <button 
+              title="Cono" 
+              onClick={() => { setAoeForm({...aoeForm, shape: 'cone'}); setActiveAoeTool('cone'); setIsCreatingAoe(true); setIsRadialOpen(false); }} 
+              className={`radial-child torch-glow ${isRadialOpen ? 'open' : ''}`} 
+              style={{ left: '-86.6px', top: '-50px', transitionDelay: isRadialOpen ? '70ms' : '0ms', padding: 0 }}
+            >
+              <ConeAoeIcon />
+            </button>
+            
+            {/* Child 3: Círculo */}
+            <button 
+              title="Círculo" 
+              onClick={() => { setAoeForm({...aoeForm, shape: 'circle'}); setActiveAoeTool('circle'); setIsCreatingAoe(true); setIsRadialOpen(false); }} 
+              className={`radial-child torch-glow ${isRadialOpen ? 'open' : ''}`} 
+              style={{ left: '-50px', top: '-86.6px', transitionDelay: isRadialOpen ? '140ms' : '0ms', padding: 0 }}
+            >
+              <CircleAoeIcon />
+            </button>
+            
+            {/* Child 4: Cuadrado / Cubo */}
+            <button 
+              title="Cubo" 
+              onClick={() => { setAoeForm({...aoeForm, shape: 'cube'}); setActiveAoeTool('cube'); setIsCreatingAoe(true); setIsRadialOpen(false); }} 
+              className={`radial-child torch-glow ${isRadialOpen ? 'open' : ''}`} 
+              style={{ left: '0px', top: '-100px', transitionDelay: isRadialOpen ? '210ms' : '0ms', padding: 0 }}
+            >
+              <SquareAoeIcon />
+            </button>
+
+            {/* Parent Button */}
+            <button
+              title="Herramientas de Medición AoE"
+              onClick={() => setIsRadialOpen(!isRadialOpen)}
+              className="torch-glow"
+              style={{
+                position: 'absolute',
+                top: 0,
+                left: 0,
+                width: '45px',
+                height: '45px',
+                borderRadius: '50%',
+                background: 'var(--bg-surface)',
+                border: '2px solid var(--accent-gold)',
+                color: 'white',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                cursor: 'pointer',
+                boxShadow: '0 4px 10px rgba(0,0,0,0.5)',
+                zIndex: 201,
+                padding: 0
+              }}
+            >
+              {getAoeIcon(activeAoeTool)}
+            </button>
           </div>
 
           <div
