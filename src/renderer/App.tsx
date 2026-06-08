@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { Palette, AlertTriangle, LogOut } from 'lucide-react';
 import { io } from 'socket.io-client';
+import { Palette, AlertTriangle, LogOut, Search } from 'lucide-react';
 import LoginScreen from './components/LoginScreen';
 import DiceVisualizer from './components/DiceVisualizer';
 import { CharacterManager } from './components/CharacterManager.tsx';
@@ -349,45 +349,198 @@ function App() {
               </section>
 
               {(user.role === 'dm' || user.role === 'admin') && (
-                <div className="dm-quick-sections" style={{ display: 'grid', gap: '25px' }}>
+                <div className="dm-quick-sections" style={{
+                  display: 'grid', 
+                  gridTemplateColumns: '1fr 1fr', 
+                  gap: '0', 
+                  background: 'var(--bg-primary, #111)',
+                  borderTop: '1px solid rgba(201,168,76,0.12)'
+                }}>
+                  <style>{`
+                    .monster-row { transition: background 0.15s ease; }
+                    .monster-row:hover { background: rgba(201,168,76,0.07); }
+                    .monster-row .add-btn { opacity: 0.35; transition: all 0.2s ease; }
+                    .monster-row:hover .add-btn { opacity: 1; }
+                    .monster-row .add-btn:hover { background: rgba(201,168,76,0.15) !important; border-color: rgba(201,168,76,0.9) !important; }
+                    
+                    .hero-row { transition: background 0.15s ease; }
+                    .hero-row:hover { background: rgba(201,168,76,0.06); }
+                    .hero-row .invoke-btn { transition: all 0.15s ease; }
+                    .hero-row:hover .invoke-btn, .hero-row .invoke-btn:hover { background: rgba(201,168,76,0.1) !important; border-color: rgba(201,168,76,0.7) !important; color: rgba(201,168,76,1) !important; }
+
+                    .custom-scrollbar::-webkit-scrollbar { width: 3px; }
+                    .custom-scrollbar::-webkit-scrollbar-track { background: transparent; }
+                    .custom-scrollbar::-webkit-scrollbar-thumb { background: rgba(201,168,76,0.25); border-radius: 3px; }
+                  `}</style>
+                  
                   {/* BESTIARIO */}
-                  <section style={{ background: '#111', borderRadius: '12px', padding: '20px', border: '1px solid #444', height: '350px', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 15px rgba(0,0,0,0.5)' }}>
-                    <h3 style={{ color: '#ef4444', marginTop: 0, borderBottom: '1px solid #333', paddingBottom: '10px' }}>Bestiario Rápido</h3>
-                    <input
-                      style={{ padding: '12px', background: '#0f172a', border: '1px solid #334155', borderRadius: '8px', color: 'white', width: '100%', marginBottom: '15px', boxSizing: 'border-box' }}
-                      placeholder="Buscar monstruo..."
-                      value={monsterSearch}
-                      onChange={(e) => setMonsterSearch(e.target.value)}
-                    />
-                    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '5px' }}>
-                      {monsters.filter((m: any) => m.name.toLowerCase().includes(monsterSearch.toLowerCase())).slice(0, 20).map((m: any) => (
-                        <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: '#1c1c1c', borderRadius: '8px', border: '1px solid #333' }}>
-                          <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>{m.name}</span>
-                          <button
-                            onClick={() => spawnMonster(m)}
-                            style={{ background: '#ef4444', border: 'none', color: 'white', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', transition: 'transform 0.1s' }}
-                            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
-                            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
-                          >
-                            +
-                          </button>
-                        </div>
-                      ))}
+                  <section style={{ 
+                    padding: '14px 16px', 
+                    borderRight: '1px solid rgba(201,168,76,0.12)',
+                    display: 'flex', 
+                    flexDirection: 'column' 
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <h3 className="font-cinzel" style={{ 
+                        margin: 0, 
+                        fontSize: '10px', 
+                        letterSpacing: '0.18em', 
+                        textTransform: 'uppercase', 
+                        color: 'rgba(201,168,76,0.55)', 
+                        fontWeight: 500 
+                      }}>
+                        Bestiario Rápido
+                      </h3>
+                      <span style={{
+                        background: 'rgba(201,168,76,0.08)',
+                        border: '1px solid rgba(201,168,76,0.18)',
+                        borderRadius: '10px',
+                        padding: '1px 7px',
+                        fontSize: '10px',
+                        color: 'rgba(201,168,76,0.5)'
+                      }}>
+                        {monsters.length}
+                      </span>
+                    </div>
+
+                    <div style={{ position: 'relative', marginBottom: '10px' }}>
+                      <Search size={14} style={{ position: 'absolute', left: '10px', top: '50%', transform: 'translateY(-50%)', color: 'rgba(201,168,76,0.4)' }} />
+                      <input
+                        style={{ 
+                          width: '100%', 
+                          background: 'rgba(255,255,255,0.04)', 
+                          border: '1px solid rgba(201,168,76,0.18)', 
+                          borderRadius: '4px', 
+                          padding: '6px 10px 6px 30px', 
+                          color: '#ccc', 
+                          boxSizing: 'border-box',
+                          outline: 'none',
+                          fontSize: '12px',
+                          transition: 'border-color 0.2s ease'
+                        }}
+                        onFocus={(e) => e.target.style.borderColor = 'rgba(201,168,76,0.45)'}
+                        onBlur={(e) => e.target.style.borderColor = 'rgba(201,168,76,0.18)'}
+                        placeholder="Buscar monstruo..."
+                        value={monsterSearch}
+                        onChange={(e) => setMonsterSearch(e.target.value)}
+                      />
+                    </div>
+
+                    <div className="custom-scrollbar" style={{ flex: 1, maxHeight: '148px', overflowY: 'auto', display: 'flex', flexDirection: 'column', paddingRight: '4px' }}>
+                      {monsters.filter((m: any) => m.name.toLowerCase().includes(monsterSearch.toLowerCase())).slice(0, 20).map((m: any) => {
+                        let mData: any = {};
+                        try { mData = JSON.parse(m.data); } catch (e) {}
+                        const subtitle = [mData.type, mData.challenge_rating ? `CR ${mData.challenge_rating}` : null].filter(Boolean).join(' • ');
+
+                        return (
+                          <div key={m.id} className="monster-row" style={{ 
+                            display: 'flex', 
+                            justifyContent: 'space-between', 
+                            alignItems: 'center', 
+                            padding: '7px 6px', 
+                            borderBottom: '1px solid rgba(201,168,76,0.07)', 
+                            borderRadius: '3px', 
+                            cursor: 'pointer' 
+                          }}>
+                            <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, paddingRight: '8px' }}>
+                              <span style={{ fontSize: '12.5px', color: '#ddd', fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{m.name}</span>
+                              {subtitle && <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.3)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{subtitle}</span>}
+                            </div>
+                            <button
+                              className="add-btn"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                spawnMonster(m);
+                              }}
+                              style={{ 
+                                width: '22px', 
+                                height: '22px', 
+                                borderRadius: '50%', 
+                                border: '1px solid rgba(201,168,76,0.5)', 
+                                background: 'transparent', 
+                                color: 'rgba(201,168,76,0.8)', 
+                                cursor: 'pointer', 
+                                display: 'flex', 
+                                alignItems: 'center', 
+                                justifyContent: 'center',
+                                padding: 0,
+                                flexShrink: 0
+                              }}
+                            >
+                              <span style={{ marginTop: '-1px', fontSize: '16px', lineHeight: 1 }}>+</span>
+                            </button>
+                          </div>
+                        );
+                      })}
                     </div>
                   </section>
 
                   {/* HEROES DE RESERVA */}
-                  <section style={{ background: '#111', borderRadius: '12px', padding: '20px', border: '1px solid #444', height: '350px', display: 'flex', flexDirection: 'column', boxShadow: '0 4px 15px rgba(0,0,0,0.5)' }}>
-                    <h3 style={{ color: '#3b82f6', marginTop: 0, borderBottom: '1px solid #333', paddingBottom: '10px' }}>Héroes de Reserva</h3>
-                    <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '8px', paddingRight: '5px' }}>
+                  <section style={{ 
+                    padding: '14px 16px', 
+                    display: 'flex', 
+                    flexDirection: 'column' 
+                  }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '12px' }}>
+                      <h3 className="font-cinzel" style={{ 
+                        margin: 0, 
+                        fontSize: '10px', 
+                        letterSpacing: '0.18em', 
+                        textTransform: 'uppercase', 
+                        color: 'rgba(201,168,76,0.55)', 
+                        fontWeight: 500 
+                      }}>
+                        Héroes de Reserva
+                      </h3>
+                      <span style={{
+                        background: 'rgba(201,168,76,0.08)',
+                        border: '1px solid rgba(201,168,76,0.18)',
+                        borderRadius: '10px',
+                        padding: '1px 7px',
+                        fontSize: '10px',
+                        color: 'rgba(201,168,76,0.5)'
+                      }}>
+                        {characters.length}
+                      </span>
+                    </div>
+
+                    <div className="custom-scrollbar" style={{ flex: 1, maxHeight: '148px', overflowY: 'auto', display: 'flex', flexDirection: 'column', paddingRight: '4px' }}>
                       {characters.map((c: any) => (
-                        <div key={c.id} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '10px', background: '#1c1c1c', borderRadius: '8px', border: '1px solid #333' }}>
-                          <div style={{ display: 'flex', flexDirection: 'column' }}>
-                            <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: '#e2e8f0' }}>{c.name}</span>
-                            <span style={{ fontSize: '0.75rem', color: '#94a3b8' }}>{c.owner}</span>
+                        <div key={c.id} className="hero-row" style={{ 
+                          display: 'flex', 
+                          alignItems: 'center', 
+                          gap: '0', 
+                          padding: '8px 6px', 
+                          borderBottom: '1px solid rgba(201,168,76,0.07)', 
+                          borderRadius: '3px', 
+                          cursor: 'pointer' 
+                        }}>
+                          <div style={{
+                            width: '28px',
+                            height: '28px',
+                            background: 'rgba(201,168,76,0.12)',
+                            border: '1px solid rgba(201,168,76,0.3)',
+                            borderRadius: '50%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            marginRight: '10px',
+                            flexShrink: 0
+                          }}>
+                            <span className="font-cinzel" style={{ fontSize: '11px', fontWeight: 600, color: 'rgba(201,168,76,0.8)' }}>
+                              {c.name ? c.name.charAt(0).toUpperCase() : '?'}
+                            </span>
                           </div>
+                          
+                          <div style={{ display: 'flex', flexDirection: 'column', minWidth: 0, flex: 1, paddingRight: '8px' }}>
+                            <span style={{ fontSize: '12.5px', color: '#ddd', fontWeight: 400, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>{c.name}</span>
+                            <span style={{ fontSize: '10px', color: 'rgba(255,255,255,0.28)' }}>{c.owner}</span>
+                          </div>
+
                           <button
-                            onClick={() => {
+                            className="invoke-btn"
+                            onClick={(e) => {
+                              e.stopPropagation();
                               // Verificar si el jugador ya tiene un personaje en el tablero
                               const yaInvocado = boardTokens.some(t => t.type === 'character' && t.owner === c.owner);
                               if (yaInvocado) {
@@ -406,15 +559,25 @@ function App() {
                                 owner: c.owner
                               });
                             }}
-                            style={{ background: '#3b82f6', border: 'none', color: 'white', padding: '6px 12px', borderRadius: '6px', cursor: 'pointer', fontWeight: 'bold', transition: 'transform 0.1s' }}
-                            onMouseDown={(e) => e.currentTarget.style.transform = 'scale(0.95)'}
-                            onMouseUp={(e) => e.currentTarget.style.transform = 'scale(1)'}
+                            style={{ 
+                              background: 'transparent', 
+                              border: '1px solid rgba(201,168,76,0.3)', 
+                              color: 'rgba(201,168,76,0.6)', 
+                              padding: '3px 8px', 
+                              borderRadius: '3px', 
+                              cursor: 'pointer',
+                              fontFamily: 'var(--font-title, Cinzel, serif)',
+                              fontSize: '10px',
+                              letterSpacing: '0.12em',
+                              textTransform: 'uppercase',
+                              flexShrink: 0
+                            }}
                           >
                             Invocar
                           </button>
                         </div>
                       ))}
-                      {characters.length === 0 && <div style={{ color: '#64748b', fontSize: '0.9rem', textAlign: 'center', marginTop: '20px' }}>No hay héroes creados</div>}
+                      {characters.length === 0 && <div style={{ color: 'rgba(201,168,76,0.4)', fontSize: '11px', textAlign: 'center', marginTop: '20px', fontStyle: 'italic' }}>No hay héroes creados</div>}
                     </div>
                   </section>
                 </div>
