@@ -1,5 +1,5 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Ghost, HeartCrack, Flame, Snowflake, Moon, Shield, Zap, Biohazard, Activity, X, User, Backpack, Ruler, Triangle, Circle, Square, Dices, StickyNote, Box, Lock, Coins } from 'lucide-react';
+import { Ghost, HeartCrack, Flame, Snowflake, Moon, Shield, Zap, Biohazard, Activity, X, User, Backpack, Ruler, Triangle, Circle, Square, Dices, StickyNote, Box, Lock, Coins, Swords, ArrowRight } from 'lucide-react';
 import { ChatPanel } from './ChatPanel';
 import { NoteTokenIcon, ImageTokenIcon, ClosedChestIcon, OpenChestIcon, ItemDropIcon, CompassIcon, LineAoeIcon, ConeAoeIcon, CircleAoeIcon, SquareAoeIcon, getAoeIcon } from '../shared/components/icons';
 
@@ -1120,41 +1120,69 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
             {/* TURNOS */}
             {(userRole === 'dm' || userRole === 'admin') && (
               <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
-                <button
-                  onClick={() => {
-                    if (combatState.turnModeActive) {
-                      socket.emit('combat:toggle-turn-mode', false);
-                    } else {
+                {!combatState.turnModeActive ? (
+                  <button
+                    onClick={() => {
                       if (allCombatantsRolled) {
                         socket.emit('combat:toggle-turn-mode', true);
                       }
-                    }
-                  }}
-                  disabled={!combatState.turnModeActive && !allCombatantsRolled}
-                  className="font-cinzel torch-glow"
-                  style={{
-                    background: combatState.turnModeActive ? 'var(--combat-red)' : 'var(--accent-gold)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '6px 14px',
-                    borderRadius: '4px',
-                    cursor: (!combatState.turnModeActive && !allCombatantsRolled) ? 'not-allowed' : 'pointer',
-                    opacity: (!combatState.turnModeActive && !allCombatantsRolled) ? 0.5 : 1,
-                    fontSize: '0.75rem',
-                    fontWeight: 'bold'
-                  }}
-                >
-                  {combatState.turnModeActive ? 'Terminar Combate' : 'Modo Turnos'}
-                </button>
-                
-                {combatState.turnModeActive && (
-                  <button
-                    onClick={() => socket.emit('combat:next-turn')}
-                    className="font-cinzel torch-glow"
-                    style={{ background: 'var(--natural-green)', color: 'white', border: 'none', padding: '6px 14px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.75rem', fontWeight: 'bold' }}
+                    }}
+                    disabled={!allCombatantsRolled}
+                    className="torch-glow"
+                    style={{
+                      background: 'var(--accent-gold)',
+                      color: 'var(--bg-base)',
+                      border: 'none',
+                      padding: '6px 10px',
+                      borderRadius: '4px',
+                      cursor: !allCombatantsRolled ? 'not-allowed' : 'pointer',
+                      opacity: !allCombatantsRolled ? 0.5 : 1,
+                      display: 'flex',
+                      alignItems: 'center',
+                      justifyContent: 'center'
+                    }}
+                    title="Modo Turnos"
                   >
-                    Siguiente ➡️
+                    <Swords className="w-5 h-5" />
                   </button>
+                ) : (
+                  <>
+                    <button
+                      onClick={() => socket.emit('combat:toggle-turn-mode', false)}
+                      className="font-cinzel torch-glow"
+                      style={{
+                        background: 'transparent',
+                        color: 'var(--accent-gold)',
+                        border: '1px solid var(--accent-gold)',
+                        padding: '6px 14px',
+                        borderRadius: '4px',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        fontWeight: 'bold',
+                        letterSpacing: '1px'
+                      }}
+                    >
+                      FINALIZAR
+                    </button>
+                    <button
+                      onClick={() => socket.emit('combat:next-turn')}
+                      className="torch-glow"
+                      style={{ 
+                        background: 'transparent', 
+                        color: 'var(--natural-green)', 
+                        border: '1px solid var(--natural-green)', 
+                        padding: '6px 10px', 
+                        borderRadius: '4px', 
+                        cursor: 'pointer',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}
+                      title="Siguiente Turno"
+                    >
+                      <ArrowRight className="w-5 h-5" />
+                    </button>
+                  </>
                 )}
               </div>
             )}
