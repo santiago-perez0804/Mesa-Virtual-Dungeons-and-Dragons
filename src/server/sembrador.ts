@@ -1,4 +1,10 @@
 import db from './bd.js';
+import fs from 'node:fs';
+import path from 'node:path';
+import { fileURLToPath } from 'node:url';
+
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
 
 const API_BASE = 'https://api.open5e.com/v1';
 
@@ -55,11 +61,36 @@ export const runFullImport = async (): Promise<void> => {
       return;
     }
 
-    console.log("🛠️ Iniciando Seed del SRD oficial...");
+    const seedPath = path.join(__dirname, 'semillas/compendio_semilla.json');
+    let imported = false;
 
-    await fetchAll('monsters', 'monster');
-    await fetchAll('spells', 'spell');
-    await fetchAll('magicitems', 'item');
+    if (fs.existsSync(seedPath)) {
+      try {
+        console.log("🌱 Detectada semilla JSON. Importando compendio traducido (monstruos, hechizos, ítems)...");
+        const semilla = JSON.parse(fs.readFileSync(seedPath, 'utf-8'));
+        
+        if (semilla.content_items && semilla.content_items.length > 0) {
+          const insert = db.prepare('INSERT INTO content_items (name, type, data, source) VALUES (?, ?, ?, ?)');
+          const transaction = db.transaction((items: any[]) => {
+            for (const item of items) {
+              insert.run(item.name, item.type, item.data, item.source);
+            }
+          });
+          transaction(semilla.content_items);
+          console.log(`✅ Se importaron ${semilla.content_items.length} elementos de compendio desde la semilla JSON.`);
+          imported = true;
+        }
+      } catch (err) {
+        console.error("❌ Error importando semilla JSON para content_items:", err);
+      }
+    }
+
+    if (!imported) {
+      console.log("🛠️ Semilla JSON no encontrada o vacía. Iniciando descarga del SRD oficial desde Open5e...");
+      await fetchAll('monsters', 'monster');
+      await fetchAll('spells', 'spell');
+      await fetchAll('magicitems', 'item');
+    }
 
     console.log("✨ PROCESO FINALIZADO: Datos listos.");
   } catch (error) {

@@ -1,21 +1,39 @@
-# Logs
+# Logs e informes de error
 logs
 *.log
 npm-debug.log*
 yarn-debug.log*
-yarn-error.log*
 pnpm-debug.log*
 lerna-debug.log*
 
-node_modules
-dist
-dist-ssr
+# Dependencias
+node_modules/
+
+# Directorios de compilación y empaquetado (Vite y Electron)
+dist/
+dist-ssr/
+out/
+release/
 *.local
 
-# Editor directories and files
+# Configuración sensible e información local
+.env
+.env.production
+.env.local
+.env.development.local
+
+# Archivos de la base de datos local SQLite (¡Importante!)
+vtt_database.bd
+vtt_database.db
+*.bd
+*.db
+*.sqlite
+*.sqlite3
+
+# Archivos del editor
 .vscode/*
 !.vscode/extensions.json
-.idea
+.idea/
 .DS_Store
 *.suo
 *.ntvs*
@@ -23,14 +41,9 @@ dist-ssr
 *.sln
 *.sw?
 
-# Sensitive config
-.env
-
-# Temporary files
+# Archivos temporales y de pruebas
 temp_*
-temp_read_logs.py
 scratch/
-
-# Database
-vtt_database.db
+temp_read_logs.py
 *.tmp
+*.bak
