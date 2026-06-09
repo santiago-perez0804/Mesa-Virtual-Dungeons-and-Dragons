@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { Dices } from 'lucide-react';
-import { DiceRoller } from './DiceRoller';
+import { DiceRoller } from './LanzadorDados';
 
 export const ChatPanel = ({ socket, currentUser, characters, messages, blockRolls = false }: any) => {
   const [inputValue, setInputValue] = useState('');
@@ -106,8 +106,9 @@ export const ChatPanel = ({ socket, currentUser, characters, messages, blockRoll
             display: 'flex',
             alignItems: 'center',
             justifyContent: 'center',
-            transition: 'color 0.2s, opacity 0.2s',
-            opacity: showDice ? 1 : 0.6
+            transition: 'color 0.3s ease, opacity 0.3s ease, transform 0.4s cubic-bezier(0.4, 0, 0.2, 1)',
+            opacity: showDice ? 1 : 0.6,
+            transform: showDice ? 'rotate(180deg)' : 'rotate(0deg)'
           }}
           title="Mostrar/Ocultar Dados Rápidos"
         >
@@ -115,11 +116,20 @@ export const ChatPanel = ({ socket, currentUser, characters, messages, blockRoll
         </button>
       </div>
 
-      {showDice && (
-        <div style={{ padding: '10px', background: '#111', borderBottom: '1px solid #333' }}>
+      <div 
+        style={{ 
+          overflow: 'hidden', 
+          transition: 'all 0.4s cubic-bezier(0.4, 0, 0.2, 1)', 
+          maxHeight: showDice ? '250px' : '0px',
+          opacity: showDice ? 1 : 0,
+          background: '#111',
+          borderBottom: showDice ? '1px solid #333' : '0px solid transparent'
+        }}
+      >
+        <div style={{ padding: '10px' }}>
           <DiceRoller socket={socket} user={currentUser} sendTo={sendTo} blockRolls={blockRolls} />
         </div>
-      )}
+      </div>
 
       <div ref={chatContainerRef} style={{ flex: 1, padding: '15px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '10px' }}>
         {messages.map((m: any) => {

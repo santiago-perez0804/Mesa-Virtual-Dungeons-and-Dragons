@@ -1,5 +1,5 @@
 import React from 'react';
-import { ProgressBar } from './ProgressBar';
+import { ProgressBar } from './BarraProgreso';
 import { Skull } from 'lucide-react';
 
 interface CombatantCardProps extends React.HTMLAttributes<HTMLDivElement> {

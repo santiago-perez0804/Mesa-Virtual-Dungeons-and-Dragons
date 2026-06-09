@@ -18,7 +18,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.join(__dirname, '../vtt_database.db');
+const dbPath = path.join(__dirname, '../vtt_database.bd');
 
 // ---- CONFIG ----
 const GEMINI_API_KEY = process.env.GEMINI_API_KEY || 'AIzaSyA-nKRgmWgDr2XXzWPCUwUWaj6QHTf4uKo';

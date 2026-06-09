@@ -8,7 +8,7 @@
     "dev:frontend": "vite --host --port 5173",
     "dev:electron": "wait-on http://localhost:5173 && cross-env NODE_OPTIONS=--import=tsx electron .",
     "dev": "concurrently \"npm run dev:frontend\" \"npm run dev:electron\"",
-    "migrate:s3": "tsx src/server/migrateToS3.ts",
+    "migrate:s3": "tsx src/server/migrarAS3.ts",
     "postinstall": "electron-rebuild -f -w better-sqlite3"
   },
   "dependencies": {

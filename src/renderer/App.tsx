@@ -1,15 +1,15 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
 import { Palette, AlertTriangle, LogOut, Search } from 'lucide-react';
-import LoginScreen from './components/LoginScreen';
-import DiceVisualizer from './components/DiceVisualizer';
-import { CharacterManager } from './components/CharacterManager.tsx';
-import { CombatGrid } from './components/CombatGrid.tsx';
-import { DatabaseView } from './components/DatabaseView.tsx';
-import { AdminPanel } from './components/AdminPanel.tsx';
-// import { ChatPanel } from './components/ChatPanel.tsx';
-import { CampaignsView } from './components/CampaignsView.tsx';
-import { parseAndRollHP } from './utils/diceUtils';
+import LoginScreen from './components/PantallaLogin';
+import DiceVisualizer from './components/VisualizadorDados';
+import { CharacterManager } from './components/GestorPersonajes.tsx';
+import { CombatGrid } from './components/GrillaCombate.tsx';
+import { DatabaseView } from './components/VistaCompendio.tsx';
+import { AdminPanel } from './components/PanelAdmin.tsx';
+// import { ChatPanel } from './components/PanelChat.tsx';
+import { CampaignsView } from './components/VistaCampanas.tsx';
+import { parseAndRollHP } from './utils/utilidadesDados';
 
 type DiceType = 'd3' | 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20';
 

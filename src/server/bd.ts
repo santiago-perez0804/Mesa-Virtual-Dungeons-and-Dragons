@@ -7,7 +7,7 @@ const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
 // Ruta a la raíz del proyecto para el archivo .db
-const dbPath = path.join(__dirname, '../../vtt_database.db');
+const dbPath = path.join(__dirname, '../../vtt_database.bd');
 
 // 2. Instancia de la base de datos
 export const db = new Database(dbPath);

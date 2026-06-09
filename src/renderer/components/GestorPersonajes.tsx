@@ -1,15 +1,16 @@
 import { useState, useEffect } from 'react';
 import { User, Shield, Backpack, X, Link, Scale } from 'lucide-react';
-import { HeroCard } from './ui/HeroCard';
-import { formatDescription } from '../utils/format';
-import { getPointCost, calcMod, getModStr, getProficiencyBonus, safeParseInventory, safeParseStats } from '../modules/character/character.utils';
+import { HeroCard } from './ui/CartaHeroe';
+import { formatDescription } from '../utils/formateador';
+import { getPointCost, calcMod, getModStr, getProficiencyBonus, safeParseInventory, safeParseStats } from '../modules/personaje/personaje.utilidades';
 
-import { CharacterInventoryTab } from './character/CharacterInventoryTab';
-import { CharacterTraitsTab } from './character/CharacterTraitsTab';
-import { CharacterSpellsTab } from './character/CharacterSpellsTab';
-import { CharacterStatsPanel } from './character/CharacterStatsPanel';
+import { CharacterInventoryTab } from './personaje/PestanaInventarioPersonaje';
+import { CharacterTraitsTab } from './personaje/PestanaRasgosPersonaje';
+import { CharacterSpellsTab } from './personaje/PestanaHechizosPersonaje';
+import { CharacterStatsPanel } from './personaje/PanelEstadisticasPersonaje';
+import { ACModifierModal } from './personaje/ACModifierModal';
 
-import { classDesc, classHitDice, raceDesc, raceBonuses, skillList, statDescriptions, subraces } from '../modules/character/character.constants';
+import { classDesc, classHitDice, raceDesc, raceBonuses, skillList, statDescriptions, subraces } from '../modules/personaje/personaje.constantes';
 
 export const CharacterManager = ({ socket, characters, compendium, userRole, triggerDiceRoll, isOverlay, forceOpenId, onCloseOverlay }: any) => {
   // --- ESTADOS DEL FORMULARIO DE CREACIÓN ---
@@ -56,6 +57,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [viewingItemDetail, setViewingItemDetail] = useState<any>(null);
   const [unequippingSlotIndex, setUnequippingSlotIndex] = useState<number | null>(null);
   const [unequipQuantity, setUnequipQuantity] = useState<number>(1);
+  const [showACModal, setShowACModal] = useState(false);
 
 
   const [isLevelingUp, setIsLevelingUp] = useState(false);
@@ -1309,75 +1311,8 @@ Modificador de CON: ${getModStr(charStats.con)}.
                 </div>
               </div>
 
-              {/* [C] DASHBOARD DE COMBATE */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
-                <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center' }}>
-                  <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Clase de Armadura</div>
-                  <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--gold-primary)', fontWeight: 'bold' }}>{selectedCharacter.ac || (10 + calcMod(charStats.dex || 10))}</div>
-                </div>
-                {(() => {
-                  const initMod = calcMod(charStats.dex || 10);
-                  const initColor = initMod >= 0 ? '#27ae60' : '#e74c3c';
-                  const initStr = initMod >= 0 ? `+${initMod}` : `${initMod}`;
-                  return (
-                    <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center' }}>
-                      <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Iniciativa</div>
-                      <div className="mono" style={{ fontSize: '1.8rem', color: initColor, fontWeight: 'bold' }}>{initStr}</div>
-                    </div>
-                  );
-                })()}
-                <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center' }}>
-                  <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Velocidad</div>
-                  <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--text-parchment)', fontWeight: 'bold' }}>{selectedCharacter.speed || '6c'}</div>
-                </div>
-                <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center' }}>
-                  <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Competencia</div>
-                  <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--text-parchment)', fontWeight: 'bold' }}>+{getProficiencyBonus(selectedCharacter.level || 1)}</div>
-                </div>
-              </div>
-
-              {/* [D] CUERPO */}
-              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '30px' }}>
-                {/* Columna Izquierda (Stats Panel) */}
-                <CharacterStatsPanel character={selectedCharacter} charStats={charStats} selectedSavingThrows={selectedSavingThrows} selectedSkills={selectedSkills} />
-                {/* Columna Derecha (Narrativa e Inventario / Tabs) */}
-                <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '30px' }}>
-                  {(() => {
-                    const activeTab = charDetailTab === 'hoja' || charDetailTab === 'inventario' ? 'hoja' : (charDetailTab === 'rasgos' || charDetailTab === 'trasfondo' ? 'rasgos' : 'conjuros');
-                    const isSpellcaster = Object.keys(parsedClasses).some(c => SPELLCASTING_CLASSES.includes(c));
-                    const activeTabToRender = activeTab === 'conjuros' && !isSpellcaster ? 'hoja' : activeTab;
-
-                    ;
-
-                    ;
-
-                    if (activeTabToRender === 'hoja') {
-                      return <CharacterInventoryTab character={selectedCharacter} setActiveSlotIndex={setActiveSlotIndex} />;
-                    } else if (activeTabToRender === 'rasgos') {
-                      return (
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-                          <section>
-                            <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '15px' }}>📜 LEYENDA (TRASFONDO)</h4>
-                            <div style={{ background: 'var(--bg-surface)', padding: '20px', border: '1px solid var(--border-color)', borderRadius: '4px' }}>
-                              <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: '1.6', fontSize: '0.9rem', fontStyle: selectedCharacter.description ? 'normal' : 'italic' }} dangerouslySetInnerHTML={{ __html: formatDescription(selectedCharacter.description || "Esta leyenda aún no ha sido escrita...") }} />
-                            </div>
-                          </section>
-                          <section>
-                            <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '15px' }}>⚔️ RASGOS DE CLASE</h4>
-                            <CharacterTraitsTab character={selectedCharacter} classFeatures={classFeatures} activeFeaturesClass={activeFeaturesClass} featuresLoading={featuresLoading} fetchClassFeatures={fetchClassFeatures} />
-                          </section>
-                        </div>
-                      );
-                    } else if (activeTabToRender === 'conjuros') {
-                      return <CharacterSpellsTab character={selectedCharacter} />;
-                    }
-                    return null;
-                  })()}
-                </div>
-              </div>
-
-              {/* [E] TABS INFERIORES */}
-              <div style={{ display: 'flex', gap: '20px', borderTop: '1px solid var(--border-color)', marginTop: '20px', paddingTop: '15px', overflowX: 'auto', justifyContent: 'center' }}>
+              {/* [E] TABS (MOVIDAS ARRIBA Y STICKY) */}
+              <div style={{ display: 'flex', gap: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '15px', overflowX: 'auto', justifyContent: 'center', position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 50, margin: '0 -40px', padding: '15px 40px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
                 {[
                   { id: 'hoja', label: 'HOJA' },
                   { id: 'rasgos', label: 'RASGOS' },
@@ -1409,6 +1344,92 @@ Modificador de CON: ${getModStr(charStats.con)}.
                   );
                 })}
               </div>
+
+              {/* CONTENIDO PRINCIPAL BASADO EN TAB */}
+              {(() => {
+                const activeTab = charDetailTab === 'hoja' || charDetailTab === 'inventario' ? 'hoja' : (charDetailTab === 'rasgos' || charDetailTab === 'trasfondo' ? 'rasgos' : 'conjuros');
+                const isSpellcaster = Object.keys(parsedClasses).some(c => SPELLCASTING_CLASSES.includes(c));
+                const activeTabToRender = activeTab === 'conjuros' && !isSpellcaster ? 'hoja' : activeTab;
+
+                if (activeTabToRender === 'hoja') {
+                  return (
+                    <>
+                      {/* [C] DASHBOARD DE COMBATE */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+                        <div 
+                          onClick={() => setShowACModal(true)}
+                          style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                          onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-gold)'}
+                          onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+                          title="Editar Clase de Armadura"
+                        >
+                          <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Clase de Armadura</div>
+                          <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--gold-primary)', fontWeight: 'bold' }}>{selectedCharacter.ac || (10 + calcMod(charStats.dex || 10))}</div>
+                        </div>
+                        {(() => {
+                          const initMod = calcMod(charStats.dex || 10);
+                          const initColor = initMod >= 0 ? '#27ae60' : '#e74c3c';
+                          const initStr = initMod >= 0 ? `+${initMod}` : `${initMod}`;
+                          return (
+                            <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center' }}>
+                              <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Iniciativa</div>
+                              <div className="mono" style={{ fontSize: '1.8rem', color: initColor, fontWeight: 'bold' }}>{initStr}</div>
+                            </div>
+                          );
+                        })()}
+                        <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center' }}>
+                          <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Velocidad</div>
+                          <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--text-parchment)', fontWeight: 'bold' }}>{selectedCharacter.speed || '6c'}</div>
+                        </div>
+                        <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center' }}>
+                          <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Competencia</div>
+                          <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--text-parchment)', fontWeight: 'bold' }}>+{getProficiencyBonus(selectedCharacter.level || 1)}</div>
+                        </div>
+                      </div>
+
+                      {/* [D] CUERPO */}
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '30px' }}>
+                        {/* Columna Izquierda (Stats Panel) */}
+                        <CharacterStatsPanel character={selectedCharacter} charStats={charStats} selectedSavingThrows={selectedSavingThrows} selectedSkills={selectedSkills} />
+                        {/* Columna Derecha (Inventario) */}
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '30px' }}>
+                          <CharacterInventoryTab character={selectedCharacter} setActiveSlotIndex={setActiveSlotIndex} />
+                        </div>
+                      </div>
+                    </>
+                  );
+                } else if (activeTabToRender === 'rasgos') {
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', width: '100%' }}>
+                      <section>
+                        <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '15px' }}>📜 LEYENDA (TRASFONDO)</h4>
+                        <div style={{ background: 'var(--bg-surface)', padding: '20px', border: '1px solid var(--border-color)', borderRadius: '4px' }}>
+                          <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: '1.6', fontSize: '0.9rem', fontStyle: selectedCharacter.description ? 'normal' : 'italic' }} dangerouslySetInnerHTML={{ __html: formatDescription(selectedCharacter.description || "Esta leyenda aún no ha sido escrita...") }} />
+                        </div>
+                      </section>
+                      <section>
+                        <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '15px' }}>⚔️ RASGOS DE CLASE</h4>
+                        <CharacterTraitsTab character={selectedCharacter} classFeatures={classFeatures} activeFeaturesClass={activeFeaturesClass} featuresLoading={featuresLoading} fetchClassFeatures={fetchClassFeatures} />
+                      </section>
+                    </div>
+                  );
+                } else if (activeTabToRender === 'conjuros') {
+                  return (
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', width: '100%' }}>
+                      <CharacterSpellsTab character={selectedCharacter} />
+                    </div>
+                  );
+                }
+                return null;
+              })()}
+
+              {showACModal && (
+                <ACModifierModal 
+                  character={selectedCharacter} 
+                  socket={socket} 
+                  onClose={() => setShowACModal(false)} 
+                />
+              )}
 
             </div>
           </div>

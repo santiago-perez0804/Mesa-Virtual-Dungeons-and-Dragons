@@ -1,17 +1,17 @@
 import { useState, useEffect, useMemo } from 'react';
 import { Ghost, Scroll, Swords, Shield, Sparkles, Footprints, Dna, AlertTriangle, Zap, BarChart, BookOpen } from 'lucide-react';
-import { FeatureTooltip } from './FeatureTooltip';
-import { CompendiumCard } from './ui/CompendiumCard';
-import { DatabaseDetail } from './compendium/DatabaseDetail';
-import { DatabaseCreateForm } from './compendium/DatabaseCreateForm';
-import { ClassWizardModal } from './compendium/ClassWizardModal';
-import { SubclassModal } from './compendium/SubclassModal';
+import { FeatureTooltip } from './TooltipRasgos';
+import { CompendiumCard } from './ui/CartaCompendio';
+import { DatabaseDetail } from './compendium/DetalleBaseDatos';
+import { DatabaseCreateForm } from './compendium/FormularioCrearBaseDatos';
+import { ClassWizardModal } from './compendium/ModalAsistenteClases';
+import { SubclassModal } from './compendium/ModalSubclase';
 
-import { FeatureDetail } from './compendium/FeatureDetail';
-import { formatDescription } from '../utils/format';
-import { useDatabaseForms } from '../modules/compendium/hooks/useDatabaseForms';
+import { FeatureDetail } from './compendium/DetalleRasgo';
+import { formatDescription } from '../utils/formateador';
+import { useDatabaseForms } from '../modules/compendium/hooks/useFormulariosBaseDatos';
 
-import { ACTION_TYPES, DAMAGE_TYPES, EMERGENCY_SRD_CLASSES } from '../modules/compendium/compendium.translations';
+import { ACTION_TYPES, DAMAGE_TYPES, EMERGENCY_SRD_CLASSES } from '../modules/compendium/compendio.traducciones';
 
 export const typeIcons: Record<string, React.ReactNode> = {
   monster: <><Ghost className="w-4 h-4 inline-block mr-1" /> Monstruos</>,

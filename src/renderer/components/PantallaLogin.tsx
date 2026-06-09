@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { ProfileCard } from './ui/ProfileCard';
+import { ProfileCard } from './ui/CartaPerfil';
 import { Eye, EyeOff, Shield, UserRound, Swords } from 'lucide-react';
 
 interface LoginProps {

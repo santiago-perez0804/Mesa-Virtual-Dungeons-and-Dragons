@@ -1,7 +1,7 @@
 
-import { formatDescription } from '../../utils/format';
+import { formatDescription } from '../../utils/formateador';
 import { Ghost, Scroll, Swords, Link } from 'lucide-react';
-import { typeIcons } from '../DatabaseView';
+import { typeIcons } from '../VistaCompendio';
 export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onCloseOverlay, userRole }: any) => {
   const d = selectedItem.data ? (typeof selectedItem.data === 'string' ? JSON.parse(selectedItem.data) : selectedItem.data) : {};
   const isMonster = selectedItem.type === 'monster';

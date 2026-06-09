@@ -1,5 +1,5 @@
 const fs = require('fs');
-const content = fs.readFileSync('src/renderer/components/compendium/DatabaseDetail.tsx', 'utf8');
+const content = fs.readFileSync('src/renderer/components/compendium/DetalleBaseDatos.tsx', 'utf8');
 const lines = content.split('\n');
 
 lines.forEach((l, i) => {

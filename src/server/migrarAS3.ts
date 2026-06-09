@@ -1,6 +1,6 @@
 import 'dotenv/config';
-import { db } from './db.js';
-import { uploadToS3 } from './services/s3Service.js';
+import { db } from './bd.js';
+import { uploadToS3 } from './services/servicioS3.js';
 
 async function processImage(base64DataUrl: string, folder: string, prefixName: string): Promise<string> {
   if (!base64DataUrl || !base64DataUrl.startsWith('data:image/')) return base64DataUrl;

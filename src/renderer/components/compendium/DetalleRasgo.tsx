@@ -1,5 +1,5 @@
 import React from 'react';
-import { formatDescription } from '../../utils/format';
+import { formatDescription } from '../../utils/formateador';
 
 export const FeatureDetail = ({ selectedFeature, setSelectedFeature, openEditFeatureForm, handleDeleteFeature, userRole }: any) => {
   if (!selectedFeature) return null;

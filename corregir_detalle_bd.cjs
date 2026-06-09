@@ -1,5 +1,5 @@
 const fs = require('fs');
-const content = fs.readFileSync('src/renderer/components/compendium/DatabaseDetail.tsx', 'utf8');
+const content = fs.readFileSync('src/renderer/components/compendium/DetalleBaseDatos.tsx', 'utf8');
 
 const lines = content.split('\n');
 const newContent = lines.slice(0, 434).join('\n') + `
@@ -15,5 +15,5 @@ const newContent = lines.slice(0, 434).join('\n') + `
                 );
 };
 `;
-fs.writeFileSync('src/renderer/components/compendium/DatabaseDetail.tsx', newContent);
+fs.writeFileSync('src/renderer/components/compendium/DetalleBaseDatos.tsx', newContent);
 console.log("Fixed DatabaseDetail.tsx");

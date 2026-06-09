@@ -12,7 +12,7 @@ export interface DiceVisualizerProps {
   height?: number;
 }
 
-import { createDiceFaceTexture, createD10Geometry, groupGeometryByFaceNormal } from '../modules/dice/dice.materials';
+import { createDiceFaceTexture, createD10Geometry, groupGeometryByFaceNormal } from '../modules/dice/dados.materiales';
 // ---------------------------------------------------------------------
 // Componente de Visualizador de Dados 3D React
 // ---------------------------------------------------------------------

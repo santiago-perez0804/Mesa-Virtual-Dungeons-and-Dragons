@@ -5,7 +5,7 @@ import translate from 'google-translate-api-x';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
-const dbPath = path.join(__dirname, '../../vtt_database.db');
+const dbPath = path.join(__dirname, '../../vtt_database.bd');
 
 let db: Database.Database;
 try {

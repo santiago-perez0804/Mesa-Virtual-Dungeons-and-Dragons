@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { safeParseStats, safeParseInventory } from '../../utils/character';
+import { safeParseStats, safeParseInventory } from '../../utils/personaje';
 
 export const CharacterInventoryTab = ({ character, setActiveSlotIndex }: any) => {
   const charStats = safeParseStats(character.stats);

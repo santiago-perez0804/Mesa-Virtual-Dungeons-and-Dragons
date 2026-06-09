@@ -1,5 +1,5 @@
 import React from 'react';
-import { calcMod, getProficiencyBonus } from '../../modules/character/character.utils';
+import { calcMod, getProficiencyBonus } from '../../modules/personaje/personaje.utilidades';
 
 export const CharacterStatsPanel = ({
   character,

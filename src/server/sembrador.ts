@@ -1,4 +1,4 @@
-import db from './db.js';
+import db from './bd.js';
 
 const API_BASE = 'https://api.open5e.com/v1';
 

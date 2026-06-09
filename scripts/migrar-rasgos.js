@@ -12,7 +12,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const dbPath = path.join(__dirname, '../vtt_database.db');
+const dbPath = path.join(__dirname, '../vtt_database.bd');
 
 const db = new Database(dbPath);
 

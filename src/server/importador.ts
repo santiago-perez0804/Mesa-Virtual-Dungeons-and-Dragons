@@ -1,4 +1,4 @@
-import db from './db.js';
+import db from './bd.js';
 
 // 1. Agregamos /v1 al final de la URL base
 const API_URL = 'https://api.open5e.com/v1';

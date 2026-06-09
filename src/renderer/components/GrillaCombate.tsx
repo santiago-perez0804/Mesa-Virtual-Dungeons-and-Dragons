@@ -1,7 +1,7 @@
 import React, { useEffect, useState, useRef } from 'react';
 import { Ghost, HeartCrack, Flame, Snowflake, Moon, Shield, Zap, Biohazard, Activity, X, User, Backpack, Dices, StickyNote, Box, Lock, Coins, Swords, ArrowRight } from 'lucide-react';
-import { ChatPanel } from './ChatPanel';
-import { NoteTokenIcon, ImageTokenIcon, ClosedChestIcon, OpenChestIcon, ItemDropIcon, CompassIcon, LineAoeIcon, ConeAoeIcon, CircleAoeIcon, SquareAoeIcon, getAoeIcon } from '../shared/components/icons';
+import { ChatPanel } from './PanelChat';
+import { NoteTokenIcon, ImageTokenIcon, ClosedChestIcon, OpenChestIcon, ItemDropIcon, CompassIcon, LineAoeIcon, ConeAoeIcon, CircleAoeIcon, SquareAoeIcon, getAoeIcon } from '../shared/components/iconos';
 
 const CELL_PX = 50;
 const GRID_SIZE = 30;
@@ -1023,14 +1023,14 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
         <div className="divider" style={{ width: '1px', height: '24px', background: 'rgba(201,168,76,0.3)', alignSelf: 'center', flexShrink: 0 }} />
 
         {/* COLUMNA 2 — Controles principales (centro, flex-grow: 1) */}
-        <div style={{ display: 'flex', flexGrow: 1, justifyContent: 'space-between', alignItems: 'center', gap: '15px' }}>
+        <div style={{ display: 'flex', flexGrow: 1, justifyContent: 'space-between', alignItems: 'center', gap: '8px', overflowX: 'auto', paddingRight: '10px' }}>
           {/* Lado izquierdo de Columna 2 */}
           <div style={{ display: 'flex', gap: '8px', alignItems: 'center' }}>
             {(userRole === 'dm' || userRole === 'admin') && (
               <>
                 <input
                   className="mono"
-                  style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white', padding: '6px 12px', fontSize: '0.75rem', width: '200px' }}
+                  style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white', padding: '6px 10px', fontSize: '0.75rem', width: 'clamp(90px, 12vw, 180px)' }}
                   placeholder="URL del Mapa..."
                   value={bgInputUrl}
                   onChange={(e) => setBgInputUrl(e.target.value)}
@@ -1087,29 +1087,29 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                   </svg>
                 </button>
 
-                {/* EDITAR SUPERFICIE (Pencil icon + short text) */}
+                {/* EDITAR SUPERFICIE (Pencil icon) */}
                 <button 
                   onClick={() => setIsEditingSurface(!isEditingSurface)} 
                   className="torch-glow" 
                   style={{ 
-                    background: isEditingSurface ? 'var(--accent-gold)' : 'transparent', 
-                    color: isEditingSurface ? '#000' : 'white', 
-                    border: '1px solid var(--accent-gold)', 
-                    padding: '6px 12px', 
+                    background: isEditingSurface ? 'var(--accent-gold)' : 'rgba(255,255,255,0.05)', 
+                    color: isEditingSurface ? 'var(--bg-base)' : 'var(--text-secondary)', 
+                    border: '1px solid var(--border-color)', 
+                    width: '32px', 
+                    height: '30px', 
                     borderRadius: '4px', 
-                    fontSize: '0.75rem', 
                     cursor: 'pointer', 
-                    fontWeight: 'bold',
-                    display: 'flex',
-                    alignItems: 'center',
-                    gap: '6px'
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    padding: 0 
                   }}
+                  title={isEditingSurface ? 'Terminar Edición de Superficie' : 'Editar Superficie del Mapa'}
                 >
-                  <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
                     <path d="M12 20h9" />
                     <path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z" />
                   </svg>
-                  {isEditingSurface ? 'TERMINAR SUP.' : 'EDITAR SUP.'}
                 </button>
               </>
             )}
@@ -1671,7 +1671,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
           })()}
               {boardTokens.filter(canSeeInSidebar).length === 0 && (
                 <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem', padding: '30px 20px', opacity: 0.6 }}>
-                  <div style={{ fontSize: '2rem', marginBottom: '8px' }}>⚔️</div>
+                  <div style={{ marginBottom: '8px' }}><Swords size={32} style={{ margin: '0 auto', opacity: 0.5, color: 'var(--text-secondary)' }} /></div>
                   Sin combatientes en el mapa
                 </div>
               )}

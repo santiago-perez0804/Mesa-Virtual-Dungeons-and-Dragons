@@ -3,7 +3,7 @@ import { useState } from 'react';
 
 // Tipos requeridos si no est�n exportados (puedes ajustarlos luego)
 
-export const useCharacterManager = () => {
+export const useGestorPersonajes = () => {
   const [name, setName] = useState('');
   const [charClass, setCharClass] = useState('Guerrero');
   const [race, setRace] = useState('Humano');

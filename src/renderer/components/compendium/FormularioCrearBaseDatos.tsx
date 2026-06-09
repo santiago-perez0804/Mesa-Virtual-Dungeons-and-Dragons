@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Ghost, Scroll, Swords, Plus, Trash, Link } from 'lucide-react';
-import { ACTION_TYPES, DAMAGE_TYPES } from '../../modules/compendium/compendium.translations';
+import { ACTION_TYPES, DAMAGE_TYPES } from '../../modules/compendium/compendio.traducciones';
 
 export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave, userRole }: any) => {
   const {

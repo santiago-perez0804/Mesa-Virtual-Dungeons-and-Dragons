@@ -2,12 +2,12 @@ import 'dotenv/config';
 import express from 'express';
 import { createServer } from 'http';
 import { Server } from 'socket.io';
-import { db, initDB, updateCompendiumItem } from './db.js';
-import { runFullImport } from './seeder.js';
-import { initAI, startAISession, sendChatMessageToAI, sendDiceRollToAI, endAISession, isAISessionActive } from './ai-dm.js';
-import { initImageAI, generateItemImage } from './ai-image.js';
+import { db, initDB, updateCompendiumItem } from './bd.js';
+import { runFullImport } from './sembrador.js';
+import { initAI, startAISession, sendChatMessageToAI, sendDiceRollToAI, endAISession, isAISessionActive } from './ia-dm.js';
+import { initImageAI, generateItemImage } from './ia-imagen.js';
 import multer from 'multer';
-import { uploadToS3 } from './services/s3Service.js';
+import { uploadToS3 } from './services/servicioS3.js';
 
 // Helpers de Parseo Seguro de JSON para prevenir double-serialization o spreads corruptos
 function safeParseJSON(field: any, defaultVal: any): any {

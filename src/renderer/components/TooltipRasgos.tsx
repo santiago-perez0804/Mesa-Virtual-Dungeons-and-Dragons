@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { formatDescription } from '../utils/format';
+import { formatDescription } from '../utils/formateador';
 
 interface FeatureTooltipProps {
   featureName: string;
