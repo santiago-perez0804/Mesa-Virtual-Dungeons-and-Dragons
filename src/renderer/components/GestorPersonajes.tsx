@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { User, Shield, Backpack, X, Link, Scale, Lock, RefreshCw } from 'lucide-react';
+import { User, Shield, Backpack, X, Link, Scale, Lock, RefreshCw, ChevronLeft, ChevronRight, Check } from 'lucide-react';
 import { races, classes, backgrounds, alignments } from '../../data/dnd-datos';
 import type { CharacterDraft, AlignmentType, AttributeKey } from '../../data/dnd-datos';
 import { calcMod, calculateHP, calculateAC, getRandomItem } from '../../utils/dnd-calculos';
@@ -627,8 +627,9 @@ Modificador de CON: ${getModStr(charStats.con)}.
       {/* MODAL DE FORJA / EDICIÓN */}
       {isCreating && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, padding: '40px' }}>
-          <div style={{ ...styles.card, width: '100%', maxWidth: '1400px', height: '90vh', maxHeight: '90vh', display: 'flex', flexDirection: 'column', border: '2px solid var(--accent-gold)', padding: 0, overflow: 'hidden', position: 'relative' }} className="clipped-frame" onClick={e => e.stopPropagation()}>
-            <button onClick={() => resetForm()} style={{ position: 'absolute', top: '15px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '2.5rem', cursor: 'pointer', zIndex: 10 }}><X className="w-6 h-6 m-auto" /></button>
+          <div style={{ position: 'relative', width: '100%', maxWidth: '1400px', height: '90vh', maxHeight: '90vh' }} onClick={e => e.stopPropagation()}>
+            <div style={{ ...styles.card, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', border: '2px solid var(--accent-gold)', padding: 0, overflow: 'hidden', position: 'relative' }} className="clipped-frame">
+              <button onClick={() => resetForm()} style={{ position: 'absolute', top: '15px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '2.5rem', cursor: 'pointer', zIndex: 10 }}><X className="w-6 h-6 m-auto" /></button>
 
             {/* INDICADOR DE PASOS (Stepper top fijo) */}
             <div style={{ display: 'flex', justifyContent: 'center', gap: '50px', padding: '25px 40px 20px 40px', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
@@ -1568,7 +1569,6 @@ Modificador de CON: ${getModStr(charStats.con)}.
                               onMouseEnter={e => e.currentTarget.style.background = 'rgba(200, 135, 42, 0.15)'}
                               onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                             >
-                              <span>{cls.icon}</span>
                               <strong style={{ color: 'var(--accent-gold)' }}>{cls.name}</strong>
                               <span style={{ fontSize: '0.75rem', marginLeft: 'auto', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-secondary)' }}>d{cls.hitDice}</span>
                             </div>
@@ -1590,7 +1590,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                 <>
                   <div style={{ background: 'rgba(0,0,0,0.3)', padding: '40px', border: '1px solid var(--border-color)' }} className="clipped-frame">
                     <h3 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: '0 0 30px 0', textAlign: 'center', fontSize: '1.4rem', letterSpacing: '2px' }}>
-                      📋 RESUMEN DE NIVEL 1
+                      RESUMEN DE NIVEL 1
                     </h3>
 
                     <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'start' }}>
@@ -1694,96 +1694,108 @@ Modificador de CON: ${getModStr(charStats.con)}.
               )}
             </div>
 
-            {/* BOTONES NAVEGACIÓN ATRÁS/SIGUIENTE (Footer pegado abajo) */}
-            <div
-              style={{
-                display: 'flex',
-                justifyContent: 'space-between',
-                alignItems: 'center',
-                padding: '20px 40px',
-                borderTop: '1px solid var(--border-color)',
-                background: 'rgba(26, 22, 16, 0.98)',
-                boxSizing: 'border-box'
-              }}
-            >
-              {/* Botón Izquierdo (Atrás / Cancelar) */}
-              {creationStep === 1 ? (
-                <button
-                  className="font-cinzel"
-                  onClick={() => resetForm()}
-                  style={{
-                    background: 'transparent',
-                    color: 'var(--text-secondary)',
-                    padding: '12px 25px',
-                    border: '1px solid var(--border-color)',
-                    cursor: 'pointer',
-                    fontSize: '0.85rem'
-                  }}
-                  onMouseEnter={e => e.currentTarget.style.color = 'var(--text-parchment)'}
-                  onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
-                >
-                  CANCELAR
-                </button>
-              ) : (
-                <button
-                  className="font-cinzel"
-                  onClick={() => setCreationStep(creationStep - 1)}
-                  style={{
-                    background: 'transparent',
-                    color: 'var(--accent-gold)',
-                    padding: '12px 25px',
-                    border: '1px solid var(--accent-gold)',
-                    cursor: 'pointer',
-                    fontSize: '0.85rem'
-                  }}
-                >
-                  ← ATRÁS
-                </button>
-              )}
-
-              {/* Botón Derecho (Siguiente / Guardar) */}
-              {creationStep === 3 ? (
-                <button
-                  className="font-cinzel torch-glow"
-                  onClick={handleSave}
-                  style={{
-                    background: 'var(--natural-green)',
-                    color: 'white',
-                    padding: '12px 40px',
-                    border: 'none',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    fontSize: '0.95rem',
-                    letterSpacing: '1px'
-                  }}
-                >
-                  {editingId ? 'CONFIRMAR CAMBIOS' : 'FINALIZAR Y FORJAR LEYENDA'}
-                </button>
-              ) : (
-                <button
-                  className="font-cinzel torch-glow"
-                  onClick={() => {
-                    if (creationStep === 1 && !draft.name) {
-                      alert("¡Tu héroe necesita un nombre!");
-                      return;
-                    }
-                    setCreationStep(creationStep + 1);
-                  }}
-                  style={{
-                    background: 'var(--accent-gold)',
-                    color: 'var(--bg-base)',
-                    padding: '12px 40px',
-                    border: 'none',
-                    fontWeight: 'bold',
-                    cursor: 'pointer',
-                    fontSize: '0.95rem',
-                    letterSpacing: '1px'
-                  }}
-                >
-                  SIGUIENTE: {creationStep === 1 ? 'COMPETENCIAS' : 'VITALIDAD'} →
-                </button>
-              )}
             </div>
+
+            {/* FLOATING SIDE NAVIGATION ARROWS (Outside the main modal card) */}
+            {creationStep > 1 && (
+              <button
+                type="button"
+                onClick={() => setCreationStep(creationStep - 1)}
+                style={{
+                  position: 'absolute',
+                  right: '100%',
+                  marginRight: '15px',
+                  top: '50%',
+                  transform: 'translateY(-50%)',
+                  zIndex: 100,
+                  background: 'rgba(15, 12, 8, 0.85)',
+                  border: '2px solid var(--accent-gold)',
+                  color: 'var(--accent-gold)',
+                  width: '50px',
+                  height: '50px',
+                  borderRadius: '50%',
+                  cursor: 'pointer',
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  boxShadow: '0 0 15px rgba(200, 135, 42, 0.2)',
+                  transition: 'all 0.2s ease',
+                  outline: 'none'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'var(--accent-gold)';
+                  e.currentTarget.style.color = 'var(--bg-base)';
+                  e.currentTarget.style.boxShadow = '0 0 25px rgba(200, 135, 42, 0.6)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'rgba(15, 12, 8, 0.85)';
+                  e.currentTarget.style.color = 'var(--accent-gold)';
+                  e.currentTarget.style.boxShadow = '0 0 15px rgba(200, 135, 42, 0.2)';
+                }}
+                title="Atrás"
+              >
+                <ChevronLeft className="w-6 h-6" />
+              </button>
+            )}
+
+            <button
+              type="button"
+              onClick={() => {
+                if (creationStep === 3) {
+                  handleSave();
+                } else {
+                  if (creationStep === 1 && !draft.name) {
+                    alert("¡Tu héroe necesita un nombre!");
+                    return;
+                  }
+                  setCreationStep(creationStep + 1);
+                }
+              }}
+              style={{
+                position: 'absolute',
+                left: '100%',
+                marginLeft: '15px',
+                top: '50%',
+                transform: 'translateY(-50%)',
+                zIndex: 100,
+                background: creationStep === 3 ? 'var(--natural-green)' : 'rgba(15, 12, 8, 0.85)',
+                border: creationStep === 3 ? '2px solid var(--natural-green)' : '2px solid var(--accent-gold)',
+                color: creationStep === 3 ? 'white' : 'var(--accent-gold)',
+                width: '50px',
+                height: '50px',
+                borderRadius: '50%',
+                cursor: 'pointer',
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'center',
+                boxShadow: creationStep === 3 ? '0 0 15px rgba(46, 117, 89, 0.4)' : '0 0 15px rgba(200, 135, 42, 0.2)',
+                transition: 'all 0.2s ease',
+                outline: 'none'
+              }}
+              onMouseEnter={e => {
+                if (creationStep === 3) {
+                  e.currentTarget.style.background = '#3db080';
+                  e.currentTarget.style.boxShadow = '0 0 25px rgba(46, 117, 89, 0.8)';
+                } else {
+                  e.currentTarget.style.background = 'var(--accent-gold)';
+                  e.currentTarget.style.color = 'var(--bg-base)';
+                  e.currentTarget.style.boxShadow = '0 0 25px rgba(200, 135, 42, 0.6)';
+                }
+              }}
+              onMouseLeave={e => {
+                if (creationStep === 3) {
+                  e.currentTarget.style.background = 'var(--natural-green)';
+                  e.currentTarget.style.boxShadow = '0 0 15px rgba(46, 117, 89, 0.4)';
+                } else {
+                  e.currentTarget.style.background = 'rgba(15, 12, 8, 0.85)';
+                  e.currentTarget.style.color = 'var(--accent-gold)';
+                  e.currentTarget.style.boxShadow = '0 0 15px rgba(200, 135, 42, 0.2)';
+                }
+              }}
+              title={creationStep === 3 ? (editingId ? 'Confirmar cambios' : 'Finalizar y forjar leyenda') : 'Siguiente'}
+            >
+              {creationStep === 3 ? <Check className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
+            </button>
 
           </div>
         </div>
