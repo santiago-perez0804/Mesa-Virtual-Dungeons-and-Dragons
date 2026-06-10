@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { User, Shield, Backpack, X, Link, Scale, Lock, RefreshCw, ChevronLeft, ChevronRight, Check } from 'lucide-react';
+import { User, Shield, Backpack, X, Link, Scale, Lock, RefreshCw, ChevronLeft, ChevronRight, Check, Dices } from 'lucide-react';
 import { races, classes, backgrounds, alignments } from '../../data/dnd-datos';
 import type { CharacterDraft, AlignmentType, AttributeKey } from '../../data/dnd-datos';
 import { calcMod, calculateHP, calculateAC, getRandomItem } from '../../utils/dnd-calculos';
@@ -29,6 +29,8 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     fue: 8, dex: 8, con: 8,
     int: 8, sab: 8, car: 8
   });
+  const [hitDieValue, setHitDieValue] = useState<number>(10);
+  const [showTraits, setShowTraits] = useState(false);
 
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
   const [selectedSavingThrows, setSelectedSavingThrows] = useState<string[]>([]);
@@ -152,6 +154,10 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     setSubraceQuery(draft.subrace || '');
     setClassQuery(draft.class || '');
   }, [draft.race, draft.subrace, draft.class]);
+
+  useEffect(() => {
+    setHitDieValue(classHitDice[charClass] || 10);
+  }, [charClass]);
 
   // --- ESTADOS DE VISTA ---
   
@@ -338,8 +344,8 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     const payloadLevel = 1;
 
     if (!editingId) {
-      // Creación: Vida máxima óptima
-      payloadMaxHp = classHitDice[charClass] + calcMod(stats.con);
+      // Creación: Vida configurada por el usuario (mínimo 1 de vida)
+      payloadMaxHp = Math.max(1, hitDieValue + calcMod(stats.con));
       // Guardamos la clase como JSON para soportar multiclase futura
       payloadClass = JSON.stringify({ [charClass]: 1 });
     }
@@ -408,6 +414,8 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     setSelectedSkills([]);
     setSelectedSavingThrows([]);
     setBackgroundItems(['', '']);
+    setHitDieValue(10);
+    setShowTraits(false);
     if (isOverlay && onCloseOverlay) {
       onCloseOverlay();
     }
@@ -1587,110 +1595,343 @@ Modificador de CON: ${getModStr(charStats.con)}.
                 </>
               )}
               {creationStep === 3 && (
-                <>
-                  <div style={{ background: 'rgba(0,0,0,0.3)', padding: '40px', border: '1px solid var(--border-color)' }} className="clipped-frame">
-                    <h3 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: '0 0 30px 0', textAlign: 'center', fontSize: '1.4rem', letterSpacing: '2px' }}>
-                      RESUMEN DE NIVEL 1
-                    </h3>
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '30px', padding: '20px 0' }}>
+                  
+                  {/* Title without emoji */}
+                  <h3 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: 0, textAlign: 'center', fontSize: '1.4rem', letterSpacing: '2px' }}>
+                    RESUMEN DE NIVEL 1
+                  </h3>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '40px', alignItems: 'start' }}>
+                  {/* Character Card (Icon, Name, and HP) */}
+                  <div
+                    className="clipped-frame"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.01)',
+                      border: '1px solid var(--border-color)',
+                      padding: '25px 35px',
+                      width: '100%',
+                      maxWidth: '700px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '25px',
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+                    }}
+                  >
+                    {/* Avatar Icon */}
+                    <div
+                      style={{
+                        width: '80px',
+                        height: '80px',
+                        borderRadius: '50%',
+                        border: '2px solid var(--accent-gold)',
+                        overflow: 'hidden',
+                        background: 'var(--bg-base)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        boxShadow: '0 0 15px rgba(200, 135, 42, 0.3)'
+                      }}
+                    >
+                      {draft.avatarUrl ? (
+                        <img src={draft.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <User className="w-10 h-10 text-secondary" style={{ opacity: 0.5 }} />
+                      )}
+                    </div>
 
-                      {/* Lado Izquierdo: Rasgos de Clase */}
-                      <div style={{ background: 'rgba(255,255,255,0.01)', padding: '25px', border: '1px solid var(--border-color)' }} className="clipped-frame">
-                        <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '1rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '20px', letterSpacing: '1px' }}>
-                          ✨ RASGOS DE {charClass.toUpperCase()} (NV 1)
-                        </h4>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', fontSize: '0.95rem', color: 'var(--text-parchment)', lineHeight: '1.5' }}>
-                            <span style={{ color: 'var(--accent-gold)', marginRight: '10px', fontSize: '1.1rem' }}>✦</span>
-                            <span>Competencia con <strong>{charClass === 'Mago' ? 'Dagas y Bastones' : 'Armas Marciales'}</strong>.</span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'flex-start', fontSize: '0.95rem', color: 'var(--text-parchment)', lineHeight: '1.5' }}>
-                            <span style={{ color: 'var(--accent-gold)', marginRight: '10px', fontSize: '1.1rem' }}>✦</span>
-                            <span>Competencia con salvaciones de <strong>{charClass === 'Guerrero' ? 'FUE y CON' : 'INT y SAB'}</strong>.</span>
-                          </div>
-                          <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-                            {featuresLoading ? (
-                              <div style={{ color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.85rem' }}>Cargando rasgos...</div>
-                            ) : classFeatures.filter(f => f.level_acquired === 1).length > 0 ? (
-                              classFeatures.filter(f => f.level_acquired === 1).map((f, idx) => (
-                                <div key={idx} style={{ display: 'flex', alignItems: 'flex-start', fontSize: '0.95rem', color: 'var(--text-parchment)', lineHeight: '1.5' }}>
-                                  <span style={{ color: 'var(--accent-gold)', marginRight: '10px', fontSize: '1.1rem' }}>◈</span>
-                                  <span><strong>{f.feature_name}:</strong> {f.description}</span>
-                                </div>
-                              ))
-                            ) : (
-                              <div style={{ display: 'flex', alignItems: 'flex-start', fontSize: '0.95rem', color: 'var(--text-parchment)', lineHeight: '1.5' }}>
-                                <span style={{ color: 'var(--accent-gold)', marginRight: '10px', fontSize: '1.1rem' }}>✦</span>
-                                <span style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>Sin rasgos registrados para Nivel 1.</span>
-                              </div>
-                            )}
-                          </div>
-                        </div>
-                      </div>
+                    {/* Name & Class info */}
+                    <div style={{ flex: 1 }}>
+                      <h4 className="font-cinzel" style={{ margin: 0, fontSize: '1.5rem', color: 'var(--accent-gold)', fontWeight: 'bold' }}>
+                        {draft.name || 'Héroe sin Nombre'}
+                      </h4>
+                      <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        {charClass} • {race} ({subrace})
+                      </p>
+                    </div>
 
-                      {/* Lado Derecho: Tarjetas CA y HP más grandes y centradas */}
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', justifyContent: 'center' }}>
-
-                        {/* Tarjeta CA */}
-                        <div
-                          className="clipped-frame torch-glow"
-                          style={{
-                            background: 'var(--bg-base)',
-                            padding: '30px 20px',
-                            border: '2px solid var(--border-color)',
-                            textAlign: 'center',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
-                          }}
-                        >
-                          <h4 className="font-cinzel" style={{ margin: '0 0 15px 0', fontSize: '0.95rem', color: 'var(--natural-green)', fontWeight: 'bold', letterSpacing: '1px' }}>
-                            <Shield className="w-4 h-4 inline-block mr-1" /> CLASE DE ARMADURA (CA)
-                          </h4>
-                          <div className="mono" style={{ fontSize: '3.5rem', fontWeight: 'bold', color: 'white', lineHeight: '1', marginBottom: '10px' }}>
-                            {10 + calcMod(stats.dex)}
-                          </div>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)' }}>
-                            Fórmula: 10 + Destreza ({getModStr(stats.dex)})
-                          </div>
-                        </div>
-
-                        {/* Tarjeta HP */}
-                        <div
-                          className="clipped-frame torch-glow"
-                          style={{
-                            background: 'var(--bg-base)',
-                            padding: '30px 20px',
-                            border: '2px solid var(--border-color)',
-                            textAlign: 'center',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
-                          }}
-                        >
-                          <h4 className="font-cinzel" style={{ margin: '0 0 15px 0', fontSize: '0.95rem', color: 'var(--combat-red)', fontWeight: 'bold', letterSpacing: '1px' }}>
-                            ❤️ PUNTOS DE GOLPE (HP)
-                          </h4>
-                          <div className="mono" style={{ fontSize: '3.5rem', fontWeight: 'bold', color: 'white', lineHeight: '1', marginBottom: '10px' }}>
-                            {classHitDice[charClass] + calcMod(stats.con)}
-                          </div>
-                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '12px' }}>
-                            Fórmula: Máximo d{classHitDice[charClass]} ({classHitDice[charClass]}) + Constitución ({getModStr(stats.con)})
-                          </div>
-                          <p style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', margin: 0, fontStyle: 'italic', opacity: 0.85 }}>
-                            * A partir del Nivel 2 lanzarás dados de vida.
-                          </p>
-                        </div>
-
+                    {/* Calculated HP Next to Name */}
+                    <div style={{ textAlign: 'right' }}>
+                      <div className="mono" style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--combat-red)', textShadow: '0 0 10px rgba(220, 53, 69, 0.3)' }}>
+                        {Math.max(1, hitDieValue + calcMod(stats.con))} HP
                       </div>
                     </div>
                   </div>
-                </>
+
+                  {/* HP Configuration & Health Bar */}
+                  <div
+                    className="clipped-frame"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.01)',
+                      border: '1px solid var(--border-color)',
+                      padding: '30px 35px',
+                      width: '100%',
+                      maxWidth: '700px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '20px',
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+                    }}
+                  >
+                    <label className="font-cinzel" style={{ fontSize: '0.8rem', color: 'var(--accent-gold)', letterSpacing: '1px', fontWeight: 'bold' }}>
+                      DADO DE VIDA & CONSTITUCIÓN
+                    </label>
+
+                    {/* Row with HP controls on left and details table on right */}
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '40px', marginTop: '10px' }}>
+                      
+                      {/* Left: HP controls */}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
+                        <input
+                          type="number"
+                          min={1}
+                          max={classHitDice[charClass] || 10}
+                          value={hitDieValue}
+                          onChange={(e) => {
+                            const maxVal = classHitDice[charClass] || 10;
+                            let val = parseInt(e.target.value);
+                            if (isNaN(val)) val = 1;
+                            if (val > maxVal) val = maxVal;
+                            if (val < 1) val = 1;
+                            setHitDieValue(val);
+                          }}
+                          className="mono"
+                          style={{
+                            background: 'var(--bg-base)',
+                            border: '1px solid var(--border-color)',
+                            color: 'white',
+                            padding: '10px 15px',
+                            borderRadius: '3px',
+                            width: '80px',
+                            fontSize: '1.2rem',
+                            textAlign: 'center',
+                            outline: 'none',
+                            transition: 'border-color 0.2s'
+                          }}
+                          onFocus={e => e.currentTarget.style.borderColor = 'var(--accent-gold)'}
+                          onBlur={e => e.currentTarget.style.borderColor = 'var(--border-color)'}
+                        />
+
+                        <div
+                          onClick={() => {
+                            const maxVal = classHitDice[charClass] || 10;
+                            const roll = Math.floor(Math.random() * maxVal) + 1;
+                            setHitDieValue(roll);
+                          }}
+                          style={{
+                            display: 'flex',
+                            alignItems: 'center',
+                            gap: '8px',
+                            color: 'var(--accent-gold)',
+                            cursor: 'pointer',
+                            fontSize: '1.2rem',
+                            fontWeight: 'bold',
+                            transition: 'all 0.2s ease',
+                            userSelect: 'none'
+                          }}
+                          onMouseEnter={e => {
+                            e.currentTarget.style.color = '#ffffff';
+                            e.currentTarget.style.transform = 'scale(1.1)';
+                          }}
+                          onMouseLeave={e => {
+                            e.currentTarget.style.color = 'var(--accent-gold)';
+                            e.currentTarget.style.transform = 'scale(1)';
+                          }}
+                          title={`Lanzar d${classHitDice[charClass] || 10}`}
+                        >
+                          <Dices className="w-6 h-6" />
+                          <span className="mono">d{classHitDice[charClass] || 10}</span>
+                        </div>
+                      </div>
+
+                      {/* Right: Calculation Details */}
+                      <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '6px', padding: '12px 20px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.02)', borderRadius: '3px' }}>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-parchment)', display: 'flex', justifyContent: 'space-between', gap: '30px' }}>
+                          <span>Dado de Vida ({charClass}):</span>
+                          <span className="mono">+{hitDieValue}</span>
+                        </div>
+                        <div style={{ fontSize: '0.8rem', color: 'var(--text-parchment)', display: 'flex', justifyContent: 'space-between', gap: '30px' }}>
+                          <span>Modificador de Constitución:</span>
+                          <span className="mono" style={{ color: calcMod(stats.con) >= 0 ? 'var(--natural-green)' : 'var(--combat-red)' }}>
+                            {calcMod(stats.con) >= 0 ? '+' : ''}{calcMod(stats.con)}
+                          </span>
+                        </div>
+                        <div style={{ borderTop: '1px dashed rgba(255,255,255,0.05)', paddingTop: '6px', fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', gap: '30px' }}>
+                          <span>Vida Máxima Total:</span>
+                          <span className="mono">{Math.max(1, hitDieValue + calcMod(stats.con))} HP</span>
+                        </div>
+                      </div>
+
+                    </div>
+
+                    <p style={{ fontSize: '0.72rem', color: 'var(--accent-gold)', margin: '15px 0 0 0', fontStyle: 'italic', opacity: 0.8 }}>
+                      * Aviso: En el primer nivel se recomienda utilizar el valor máximo del dado de vida de tu clase.
+                    </p>
+
+                  </div>
+
+                  {/* Competencies Card */}
+                  <div
+                    className="clipped-frame"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.01)',
+                      border: '1px solid var(--border-color)',
+                      padding: '25px 35px',
+                      width: '100%',
+                      maxWidth: '700px',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '20px',
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.3)'
+                    }}
+                  >
+                    <label className="font-cinzel" style={{ fontSize: '0.8rem', color: 'var(--accent-gold)', letterSpacing: '1px', fontWeight: 'bold' }}>
+                      COMPETENCIAS
+                    </label>
+
+                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '30px' }}>
+                      {/* Left: Habilidades */}
+                      <div>
+                        <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.85rem', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '6px', marginBottom: '12px', letterSpacing: '0.5px' }}>
+                          HABILIDADES
+                        </h4>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                          {selectedSkills.length > 0 ? (
+                            selectedSkills.map(skill => (
+                              <span key={skill} style={{ fontSize: '0.8rem', background: 'rgba(200, 135, 42, 0.1)', border: '1px solid var(--accent-gold)', padding: '4px 10px', borderRadius: '4px', color: 'var(--accent-gold)', fontWeight: 'bold' }}>
+                                {skill}
+                              </span>
+                            ))
+                          ) : (
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>Ninguna seleccionada</span>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Right: Equipo de Trasfondo */}
+                      <div>
+                        <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.85rem', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '6px', marginBottom: '12px', letterSpacing: '0.5px' }}>
+                          EQUIPO DE TRASFONDO
+                        </h4>
+                        <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                          {backgroundItems.filter(i => i.trim() !== '').length > 0 ? (
+                            backgroundItems.filter(i => i.trim() !== '').map(item => (
+                              <span key={item} style={{ fontSize: '0.8rem', background: 'rgba(255, 255, 255, 0.05)', border: '1px solid var(--border-color)', padding: '4px 10px', borderRadius: '4px', color: 'var(--text-parchment)' }}>
+                                {item}
+                              </span>
+                            ))
+                          ) : (
+                            <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>Ninguno seleccionado</span>
+                          )}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Collapsible Traits Card */}
+                  <div
+                    className="clipped-frame"
+                    style={{
+                      background: 'rgba(255, 255, 255, 0.01)',
+                      border: '1px solid var(--border-color)',
+                      width: '100%',
+                      maxWidth: '700px',
+                      boxShadow: '0 10px 30px rgba(0,0,0,0.3)',
+                      transition: 'all 0.3s ease'
+                    }}
+                  >
+                    {/* Header trigger */}
+                    <div
+                      onClick={() => setShowTraits(!showTraits)}
+                      style={{
+                        padding: '20px 35px',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'space-between',
+                        cursor: 'pointer',
+                        userSelect: 'none',
+                        background: 'rgba(200, 135, 42, 0.02)'
+                      }}
+                      onMouseEnter={e => e.currentTarget.style.background = 'rgba(200, 135, 42, 0.06)'}
+                      onMouseLeave={e => e.currentTarget.style.background = 'rgba(200, 135, 42, 0.02)'}
+                    >
+                      <span className="font-cinzel" style={{ fontSize: '0.9rem', color: 'var(--accent-gold)', letterSpacing: '1px', fontWeight: 'bold' }}>
+                        RASGOS
+                      </span>
+                      <span style={{ color: 'var(--accent-gold)', fontSize: '1.2rem', transition: 'transform 0.2s', transform: showTraits ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                        ▼
+                      </span>
+                    </div>
+
+                    {/* Collapsible Content */}
+                    <div style={{
+                      maxHeight: showTraits ? '800px' : '0px',
+                      opacity: showTraits ? 1 : 0,
+                      overflow: 'hidden',
+                      transition: 'max-height 0.4s cubic-bezier(0.4, 0, 0.2, 1), opacity 0.3s ease, padding 0.4s ease, margin-top 0.4s ease',
+                      padding: showTraits ? '0 35px 30px 35px' : '0 35px 0 35px',
+                      borderTop: showTraits ? '1px solid rgba(200, 135, 42, 0.1)' : '1px solid transparent',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      gap: '25px',
+                      marginTop: showTraits ? '15px' : '0px'
+                    }}>
+                      
+                      {/* Race Traits Section */}
+                      <div>
+                        <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.85rem', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '6px', marginBottom: '12px', letterSpacing: '0.5px' }}>
+                          RASGOS DE RAZA ({race.toUpperCase()})
+                        </h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem', color: 'var(--text-parchment)', lineHeight: '1.4' }}>
+                          <div>
+                            <strong>{race}:</strong> {races.find(r => r.id === race)?.description} <span style={{ color: 'var(--accent-gold)' }}>({races.find(r => r.id === race)?.bonusText})</span>
+                          </div>
+                          {subrace && subrace !== 'Estándar' && (
+                            <div>
+                              <strong>{subrace}:</strong> {races.find(r => r.id === race)?.subraces.find(sr => sr.id === subrace)?.description}
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Class Traits Section */}
+                      <div>
+                        <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.85rem', borderBottom: '1px solid rgba(255, 255, 255, 0.05)', paddingBottom: '6px', marginBottom: '12px', letterSpacing: '0.5px' }}>
+                          RASGOS DE CLASE ({charClass.toUpperCase()})
+                        </h4>
+                        <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '0.85rem', color: 'var(--text-parchment)', lineHeight: '1.4' }}>
+                          {/* Class default proficiencies and saving throws */}
+                          <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                            <span style={{ color: 'var(--accent-gold)', marginRight: '8px' }}>✦</span>
+                            <span>Competencias: <strong>{charClass === 'Mago' ? 'Dagas y Bastones' : 'Armas Marciales'}</strong>.</span>
+                          </div>
+                          <div style={{ display: 'flex', alignItems: 'flex-start' }}>
+                            <span style={{ color: 'var(--accent-gold)', marginRight: '8px' }}>✦</span>
+                            <span>Salvaciones fijas de clase: <strong>{charClass === 'Guerrero' ? 'FUE y CON' : 'INT y SAB'}</strong>.</span>
+                          </div>
+                          
+                          {/* Dynamic database class features at Level 1 */}
+                          {featuresLoading ? (
+                            <div style={{ color: 'var(--text-secondary)', fontStyle: 'italic' }}>Cargando rasgos...</div>
+                          ) : classFeatures.filter(f => f.level_acquired === 1).length > 0 ? (
+                            classFeatures.filter(f => f.level_acquired === 1).map((f, idx) => (
+                              <div key={idx} style={{ display: 'flex', alignItems: 'flex-start' }}>
+                                <span style={{ color: 'var(--accent-gold)', marginRight: '8px' }}>◈</span>
+                                <span><strong>{f.feature_name}:</strong> {f.description}</span>
+                              </div>
+                            ))
+                          ) : (
+                            <div style={{ display: 'flex', alignItems: 'flex-start', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+                              <span style={{ marginRight: '8px' }}>✦</span>
+                              <span>Sin rasgos especiales adicionales registrados para Nivel 1.</span>
+                            </div>
+                          )}
+                        </div>
+                      </div>
+
+                    </div>
+                  </div>
+
+                </div>
               )}
             </div>
 
