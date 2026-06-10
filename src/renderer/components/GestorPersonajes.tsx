@@ -1024,25 +1024,37 @@ Modificador de CON: ${getModStr(charStats.con)}.
                   {/* Idiomas */}
                   <div>
                     <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '8px', display: 'block' }}>IDIOMAS CONOCIDOS</label>
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', border: '1px solid var(--border-color)', padding: '12px', borderRadius: '4px', background: 'rgba(255,255,255,0.01)', alignItems: 'center' }}>
-                      {draft.languages.map(lang => (
-                        <span key={lang} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(200, 135, 42, 0.15)', border: '1px solid var(--accent-gold)', padding: '4px 10px', borderRadius: '4px', fontSize: '0.8rem', color: 'var(--accent-gold)', fontWeight: 'bold' }}>
-                          {lang}
-                          {lang !== 'Común' && (
-                            <button
-                              type="button"
-                              onClick={() => setDraft(prev => ({ ...prev, languages: prev.languages.filter(l => l !== lang) }))}
-                              style={{ background: 'none', border: 'none', color: 'var(--combat-red)', cursor: 'pointer', padding: 0, fontWeight: 'bold', fontSize: '0.85rem', marginLeft: '4px' }}
-                            >
-                              ✕
-                            </button>
-                          )}
-                        </span>
-                      ))}
+                    <div style={{ border: '1px solid var(--border-color)', padding: '12px', borderRadius: '4px', background: 'rgba(255,255,255,0.01)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                      <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+                        {draft.languages.map(lang => (
+                          <span key={lang} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(200, 135, 42, 0.15)', border: '1px solid var(--accent-gold)', padding: '4px 10px', borderRadius: '4px', fontSize: '0.8rem', color: 'var(--accent-gold)', fontWeight: 'bold' }}>
+                            {lang}
+                            {lang !== 'Común' && (
+                              <button
+                                type="button"
+                                onClick={() => setDraft(prev => ({ ...prev, languages: prev.languages.filter(l => l !== lang) }))}
+                                style={{ background: 'none', border: 'none', color: 'var(--combat-red)', cursor: 'pointer', padding: 0, fontWeight: 'bold', fontSize: '0.85rem', marginLeft: '4px' }}
+                              >
+                                ✕
+                              </button>
+                            )}
+                          </span>
+                        ))}
+                      </div>
                       <input
                         type="text"
                         placeholder="Escribe un idioma y presiona Enter..."
-                        style={{ background: 'transparent', border: 'none', outline: 'none', color: 'white', flex: 1, fontSize: '0.85rem', padding: '4px' }}
+                        style={{
+                          background: 'transparent',
+                          border: 'none',
+                          borderTop: '1px solid rgba(255,255,255,0.05)',
+                          outline: 'none',
+                          color: 'white',
+                          width: '100%',
+                          fontSize: '0.85rem',
+                          padding: '10px 4px 4px 4px',
+                          boxSizing: 'border-box'
+                        }}
                         onKeyDown={(e) => {
                           if (e.key === 'Enter') {
                             e.preventDefault();
