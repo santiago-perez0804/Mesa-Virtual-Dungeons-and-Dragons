@@ -21,27 +21,8 @@ export const CharacterStatsPanel = ({
   return (
     <>
       {/* Columna Izquierda (Mecánicas) */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: '220px', maxWidth: '280px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: '300px', maxWidth: '340px' }}>
         
-        {/* Atributos */}
-        <div>
-          <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '10px', fontSize: '0.8rem' }}>ATRIBUTOS</h4>
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px' }}>
-            {['fue', 'dex', 'con', 'int', 'sab', 'car'].map((key) => {
-              const value = charStats[key] || 10;
-              const mod = calcMod(value);
-              const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
-              const modColor = mod > 0 ? 'var(--gold-primary)' : (mod < 0 ? '#e74c3c' : 'white');
-              return (
-                <div key={key} style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '10px 4px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                  <div className="font-cinzel" style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 'bold' }}>{key.toUpperCase()}</div>
-                  <div className="mono" style={{ fontSize: '18px', fontWeight: 'bold', color: modColor, margin: '4px 0' }}>{modStr}</div>
-                  <div className="mono" style={{ fontSize: '10px', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '3px', color: 'var(--text-secondary)' }}>{value}</div>
-                </div>
-              );
-            })}
-          </div>
-        </div>
 
         {(() => {
           const parsedInv = typeof character.inventory === 'string' ? JSON.parse(character.inventory || '{}') : (character.inventory || {});
@@ -77,9 +58,9 @@ export const CharacterStatsPanel = ({
                       <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px', background: isProficient ? 'rgba(200, 135, 42, 0.08)' : 'transparent', borderRadius: '4px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isProficient ? 'var(--gold-primary)' : 'var(--bg-raised)', border: `1px solid ${isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)'}` }} />
-                          <span className="font-cinzel" style={{ fontSize: '0.75rem', color: isProficient ? 'var(--text-parchment)' : 'var(--text-secondary)' }}>{s.label} <span style={{opacity: 0.5}}>({s.key})</span></span>
+                          <span className="font-cinzel" style={{ fontSize: '0.88rem', color: isProficient ? 'var(--text-parchment)' : 'var(--text-secondary)' }}>{s.label} <span style={{opacity: 0.5}}>({s.key})</span></span>
                         </div>
-                        <span className="mono" style={{ fontSize: '0.85rem', color: isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)' }}>{modStr}</span>
+                        <span className="mono" style={{ fontSize: '0.98rem', color: isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)' }}>{modStr}</span>
                       </div>
                     );
                   })}
@@ -99,9 +80,9 @@ export const CharacterStatsPanel = ({
                       <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 8px', background: isProficient ? 'rgba(200, 135, 42, 0.05)' : 'transparent', borderRadius: '4px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isProficient ? 'var(--gold-primary)' : 'var(--bg-raised)', border: `1px solid ${isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)'}` }} />
-                          <span className="font-cinzel" style={{ fontSize: '0.75rem', color: isProficient ? 'var(--text-parchment)' : 'var(--text-secondary)' }}>{s.label} <span style={{opacity: 0.5}}>({s.key})</span></span>
+                          <span className="font-cinzel" style={{ fontSize: '0.88rem', color: isProficient ? 'var(--text-parchment)' : 'var(--text-secondary)' }}>{s.label} <span style={{opacity: 0.5}}>({s.key})</span></span>
                         </div>
-                        <span className="mono" style={{ fontSize: '0.85rem', color: isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)' }}>{modStr}</span>
+                        <span className="mono" style={{ fontSize: '0.98rem', color: isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)' }}>{modStr}</span>
                       </div>
                     );
                   })}
