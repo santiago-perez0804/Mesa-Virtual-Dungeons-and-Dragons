@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { X, Shield, Plus, Trash2 } from 'lucide-react';
 import { safeParseStats, safeParseInventory, calcMod } from '../../utils/personaje';
 
-export const ACModifierModal = ({ character, socket, onClose }: any) => {
+export const ACModifierModal = ({ character, socket, onClose, onUpdate }: any) => {
   const charStats = safeParseStats(character.stats);
   const charInv = safeParseInventory(character.inventory);
   
@@ -91,11 +91,16 @@ export const ACModifierModal = ({ character, socket, onClose }: any) => {
     // Assuming the DB accepts total AC as well, we calculate it here
     const finalTotal = baseAC + appliedDexMod + shieldAC + mods.reduce((acc, m) => acc + m.value, 0);
     
-    socket.emit('character:update', {
+    const updatedChar = {
       ...character,
       ac: finalTotal,
       stats: JSON.stringify(updatedStats)
-    });
+    };
+    
+    socket.emit('character:update', updatedChar);
+    if (onUpdate) {
+      onUpdate(updatedChar);
+    }
   };
 
   return (

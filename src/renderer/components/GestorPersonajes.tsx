@@ -2455,6 +2455,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                   character={selectedCharacter} 
                   socket={socket} 
                   onClose={() => setShowACModal(false)} 
+                  onUpdate={setSelectedCharacter}
                 />
               )}
 
