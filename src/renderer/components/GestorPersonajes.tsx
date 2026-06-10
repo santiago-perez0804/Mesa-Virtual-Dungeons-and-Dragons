@@ -80,23 +80,55 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [isCropDragging, setIsCropDragging] = useState(false);
   const [cropDragStart, setCropDragStart] = useState({ x: 0, y: 0 });
   const [cropImgDims, setCropImgDims] = useState({ width: 0, height: 0 });
+  const [cropMode, setCropMode] = useState<'avatar' | 'portrait'>('avatar');
   const cropImgRef = useRef<HTMLImageElement>(null);
+  const portraitInputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (!cropImgDims.width || !cropImgDims.height) return;
-    const isHorizontal = cropImgDims.width > cropImgDims.height;
-    const baseWidth = isHorizontal ? 260 * (cropImgDims.width / cropImgDims.height) : 260;
-    const baseHeight = isHorizontal ? 260 : 260 * (cropImgDims.height / cropImgDims.width);
+    
+    const viewportW = 260;
+    const viewportH = cropMode === 'avatar' ? 260 : 390;
+    
+    const imgAspect = cropImgDims.width / cropImgDims.height;
+    const viewportAspect = viewportW / viewportH;
+    const fitsHeight = imgAspect > viewportAspect;
+    
+    const baseWidth = fitsHeight ? viewportH * imgAspect : viewportW;
+    const baseHeight = fitsHeight ? viewportH : viewportW / imgAspect;
     
     const W = baseWidth * cropScale;
     const H = baseHeight * cropScale;
     
-    const maxOffsetX = Math.max(0, (W - 260) / 2);
-    const maxOffsetY = Math.max(0, (H - 260) / 2);
+    const maxOffsetX = Math.max(0, (W - viewportW) / 2);
+    const maxOffsetY = Math.max(0, (H - viewportH) / 2);
     
     setCropOffsetX(prev => Math.min(maxOffsetX, Math.max(-maxOffsetX, prev)));
     setCropOffsetY(prev => Math.min(maxOffsetY, Math.max(-maxOffsetY, prev)));
-  }, [cropScale, cropImgDims]);
+  }, [cropScale, cropImgDims, cropMode]);
+
+  // --- PORTRAITS PREESTABLECIDOS PARA RAZAS ---
+  const racePortraits: Record<string, string> = {
+    'Humano': 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=300&q=80',
+    'Elfo': 'https://images.unsplash.com/photo-1618336753974-aae8e04506aa?w=300&q=80',
+    'Enano': 'https://images.unsplash.com/photo-1599420186946-7b6fb4e297f0?w=300&q=80',
+    'Mediano': 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=300&q=80',
+    'Gnomo': 'https://images.unsplash.com/photo-1516339901601-2e1b62dc0c45?w=300&q=80',
+    'Semielfo': 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=300&q=80',
+    'Semiorco': 'https://images.unsplash.com/photo-1614036417651-efe5912149d8?w=300&q=80',
+    'Tiefling': 'https://images.unsplash.com/photo-1561557944-6e7860d1a7eb?w=300&q=80',
+    'Dracónido': 'https://images.unsplash.com/photo-1608889175123-8ec330b86f84?w=300&q=80',
+  };
+
+  const [raceQuery, setRaceQuery] = useState(draft.race || '');
+  const [raceDropdownOpen, setRaceDropdownOpen] = useState(false);
+  const [subraceQuery, setSubraceQuery] = useState(draft.subrace || '');
+  const [subraceDropdownOpen, setSubraceDropdownOpen] = useState(false);
+
+  useEffect(() => {
+    setRaceQuery(draft.race || '');
+    setSubraceQuery(draft.subrace || '');
+  }, [draft.race, draft.subrace]);
 
   // --- ESTADOS DE VISTA ---
   
@@ -207,29 +239,39 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
 
   const handleCropSave = async () => {
     const canvas = document.createElement('canvas');
-    canvas.width = 300;
-    canvas.height = 300;
+    const canvasW = cropMode === 'avatar' ? 300 : 520;
+    const canvasH = cropMode === 'avatar' ? 300 : 780;
+    canvas.width = canvasW;
+    canvas.height = canvasH;
     const ctx = canvas.getContext('2d');
     if (ctx && cropImgRef.current) {
       // Fondo transparente/negro
       ctx.fillStyle = '#0f0c08';
-      ctx.fillRect(0, 0, 300, 300);
+      ctx.fillRect(0, 0, canvasW, canvasH);
 
       const img = cropImgRef.current;
       const iw = img.naturalWidth;
       const ih = img.naturalHeight;
 
-      // Escalar imagen para que cubra el círculo
-      const minSide = Math.min(iw, ih);
-      const baseScale = 300 / minSide;
+      const viewportW = 260;
+      const viewportH = cropMode === 'avatar' ? 260 : 390;
+
+      const imgAspect = iw / ih;
+      const viewportAspect = viewportW / viewportH;
+      const fitsHeight = imgAspect > viewportAspect;
+
+      const baseScale = fitsHeight ? (canvasH / ih) : (canvasW / iw);
       const finalScale = baseScale * cropScale;
 
       const dw = iw * finalScale;
       const dh = ih * finalScale;
 
+      const scaleX = canvasW / viewportW;
+      const scaleY = canvasH / viewportH;
+
       // Dibujar con los desplazamientos de arrastre
-      const dx = 150 - dw / 2 + (cropOffsetX * 300 / 260);
-      const dy = 150 - dh / 2 + (cropOffsetY * 300 / 260);
+      const dx = (canvasW / 2) - dw / 2 + (cropOffsetX * scaleX);
+      const dy = (canvasH / 2) - dh / 2 + (cropOffsetY * scaleY);
 
       ctx.drawImage(img, dx, dy, dw, dh);
 
@@ -237,7 +279,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
 
       try {
         const blob = await (await fetch(croppedDataUrl)).blob();
-        const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+        const file = new File([blob], 'image.jpg', { type: 'image/jpeg' });
 
         const formData = new FormData();
         formData.append('file', file);
@@ -247,8 +289,12 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
         const res = await fetch(uploadUrl, { method: 'POST', body: formData });
         const data = await res.json();
         if (data.success) {
-          setImage(data.url);
-          setDraft(prev => ({ ...prev, avatarUrl: data.url }));
+          if (cropMode === 'avatar') {
+            setImage(data.url);
+            setDraft(prev => ({ ...prev, avatarUrl: data.url }));
+          } else {
+            setFullBodyImage(data.url);
+          }
           setShowCropModal(false);
           setCropImageSrc(null);
         } else {
@@ -558,7 +604,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
       {/* MODAL DE FORJA / EDICIÓN */}
       {isCreating && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, padding: '40px' }}>
-          <div style={{ ...styles.card, width: '100%', maxWidth: '1000px', height: '90vh', maxHeight: '90vh', display: 'flex', flexDirection: 'column', border: '2px solid var(--accent-gold)', padding: 0, overflow: 'hidden', position: 'relative' }} className="clipped-frame" onClick={e => e.stopPropagation()}>
+          <div style={{ ...styles.card, width: '100%', maxWidth: '1400px', height: '90vh', maxHeight: '90vh', display: 'flex', flexDirection: 'column', border: '2px solid var(--accent-gold)', padding: 0, overflow: 'hidden', position: 'relative' }} className="clipped-frame" onClick={e => e.stopPropagation()}>
             <button onClick={() => resetForm()} style={{ position: 'absolute', top: '15px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '2.5rem', cursor: 'pointer', zIndex: 10 }}><X className="w-6 h-6 m-auto" /></button>
 
             {/* INDICADOR DE PASOS (Stepper top fijo) */}
@@ -666,11 +712,227 @@ Modificador de CON: ${getModStr(charStats.con)}.
                         <input
                           type="file"
                           accept="image/*"
-                          onChange={handleImageUpload}
+                          onChange={(e) => {
+                            setCropMode('avatar');
+                            handleImageUpload(e);
+                          }}
                           style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
                         />
                       </div>
                     </div>
+                  </div>
+
+                  {/* Sección de Raza y Subraza en dos columnas */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '40px', alignItems: 'start', borderTop: '1px solid rgba(200, 135, 42, 0.15)', borderBottom: '1px solid rgba(200, 135, 42, 0.15)', padding: '30px 0' }}>
+                    
+                    {/* Columna Izquierda: Buscadores y descripciones */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '90px' }}>
+                      
+                      {/* Buscador de Raza */}
+                      <div style={{ position: 'relative' }}>
+                        <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '8px', display: 'block' }}>RAZA</label>
+                        <input
+                          type="text"
+                          className="font-cinzel"
+                          style={styles.input}
+                          placeholder="Buscar raza..."
+                          value={raceQuery}
+                          onChange={(e) => {
+                            setRaceQuery(e.target.value);
+                            setRaceDropdownOpen(true);
+                          }}
+                          onFocus={() => setRaceDropdownOpen(true)}
+                          onBlur={() => setTimeout(() => setRaceDropdownOpen(false), 250)}
+                        />
+                        
+                        {raceDropdownOpen && (
+                          <div className="clipped-frame" style={{
+                            position: 'absolute', top: '100%', left: 0, right: 0,
+                            background: 'var(--bg-surface)', border: '1px solid var(--accent-gold)',
+                            zIndex: 100, maxHeight: '200px', overflowY: 'auto', marginTop: '5px',
+                            boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
+                          }}>
+                            {races.filter(r => r.name.toLowerCase().includes(raceQuery.toLowerCase())).map(r => (
+                              <div
+                                key={r.id}
+                                onClick={() => {
+                                  setDraft(prev => ({
+                                    ...prev,
+                                    race: r.id,
+                                    subrace: r.subraces.length > 0 ? r.subraces[0].id : null
+                                  }));
+                                  setRaceQuery(r.name);
+                                  setRaceDropdownOpen(false);
+                                }}
+                                style={{
+                                  padding: '10px 15px', borderBottom: '1px solid rgba(255,255,255,0.02)',
+                                  cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-parchment)',
+                                  transition: 'background 0.2s', display: 'flex', gap: '10px', alignItems: 'center'
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(200, 135, 42, 0.15)'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                              >
+                                <span>{r.icon}</span>
+                                <strong style={{ color: 'var(--accent-gold)' }}>{r.name}</strong>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Descripción de Raza */}
+                        {draft.race && (
+                          <div style={{ fontSize: '0.85rem', color: 'var(--text-parchment)', opacity: 0.9, fontStyle: 'italic', padding: '12px 18px', background: 'rgba(200, 135, 42, 0.04)', borderLeft: '3px solid var(--accent-gold)', marginTop: '8px' }}>
+                            <strong>{draft.race}:</strong> {races.find(r => r.id === draft.race)?.description}
+                          </div>
+                        )}
+                      </div>
+
+                      {/* Buscador de Subraza (si la raza elegida tiene subrazas) */}
+                      {(() => {
+                        const selectedRaceObj = races.find(r => r.id === draft.race);
+                        if (!selectedRaceObj || !selectedRaceObj.subraces || selectedRaceObj.subraces.length === 0) return null;
+
+                        return (
+                          <div style={{ position: 'relative' }}>
+                            <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '8px', display: 'block' }}>SUBRAZA</label>
+                            <input
+                              type="text"
+                              className="font-cinzel"
+                              style={styles.input}
+                              placeholder="Buscar subraza..."
+                              value={subraceQuery}
+                              onChange={(e) => {
+                                setSubraceQuery(e.target.value);
+                                setSubraceDropdownOpen(true);
+                              }}
+                              onFocus={() => setSubraceDropdownOpen(true)}
+                              onBlur={() => setTimeout(() => setSubraceDropdownOpen(false), 250)}
+                            />
+                            
+                            {subraceDropdownOpen && (
+                              <div className="clipped-frame" style={{
+                                position: 'absolute', top: '100%', left: 0, right: 0,
+                                background: 'var(--bg-surface)', border: '1px solid var(--accent-gold)',
+                                zIndex: 100, maxHeight: '150px', overflowY: 'auto', marginTop: '5px',
+                                boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
+                              }}>
+                                {selectedRaceObj.subraces.filter(sr => sr.name.toLowerCase().includes(subraceQuery.toLowerCase())).map(sr => (
+                                  <div
+                                    key={sr.id}
+                                    onClick={() => {
+                                      setDraft(prev => ({ ...prev, subrace: sr.id }));
+                                      setSubraceQuery(sr.name);
+                                      setSubraceDropdownOpen(false);
+                                    }}
+                                    style={{
+                                      padding: '10px 15px', borderBottom: '1px solid rgba(255,255,255,0.02)',
+                                      cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-parchment)',
+                                      transition: 'background 0.2s'
+                                    }}
+                                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(200, 135, 42, 0.15)'}
+                                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                                  >
+                                    <strong>{sr.name}</strong>
+                                  </div>
+                                ))}
+                              </div>
+                            )}
+
+                            {/* Descripción de Subraza */}
+                            {draft.subrace && (
+                              <div style={{ fontSize: '0.85rem', color: 'var(--text-parchment)', opacity: 0.9, fontStyle: 'italic', padding: '12px 18px', background: 'rgba(200, 135, 42, 0.04)', borderLeft: '3px solid var(--accent-gold)', marginTop: '8px' }}>
+                                <strong>{draft.subrace}:</strong> {selectedRaceObj.subraces.find(sr => sr.id === draft.subrace)?.description}
+                              </div>
+                            )}
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Columna Derecha: Foto de Raza (Tamaño Fijo 2:3) */}
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
+                      <div className="clipped-frame" style={{
+                        width: '260px',
+                        height: '390px',
+                        border: '2px solid var(--accent-gold)',
+                        boxShadow: '0 0 25px rgba(200, 135, 42, 0.25)',
+                        position: 'relative',
+                        background: 'var(--bg-base)',
+                        overflow: 'hidden',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center'
+                      }}>
+                        {draft.race && (
+                          <div style={{ position: 'absolute', top: '10px', right: '10px', zIndex: 10 }}>
+                            <button
+                              type="button"
+                              onClick={() => portraitInputRef.current?.click()}
+                              style={{
+                                background: 'rgba(15, 12, 8, 0.85)',
+                                border: '1px solid var(--accent-gold)',
+                                color: 'var(--accent-gold)',
+                                width: '28px',
+                                height: '28px',
+                                borderRadius: '4px',
+                                cursor: 'pointer',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                fontSize: '0.85rem',
+                                boxShadow: '0 2px 5px rgba(0,0,0,0.5)',
+                                transition: 'all 0.2s'
+                              }}
+                              title="Subir foto personalizada de raza"
+                              onMouseEnter={e => {
+                                e.currentTarget.style.background = 'var(--accent-gold)';
+                                e.currentTarget.style.color = 'var(--bg-base)';
+                              }}
+                              onMouseLeave={e => {
+                                e.currentTarget.style.background = 'rgba(15, 12, 8, 0.85)';
+                                e.currentTarget.style.color = 'var(--accent-gold)';
+                              }}
+                            >
+                              ✎
+                            </button>
+                            <input
+                              type="file"
+                              ref={portraitInputRef}
+                              accept="image/*"
+                              onChange={(e) => {
+                                setCropMode('portrait');
+                                handleImageUpload(e);
+                              }}
+                              style={{ display: 'none' }}
+                            />
+                          </div>
+                        )}
+                        {draft.race && (fullBodyImage || racePortraits[draft.race]) ? (
+                          <img
+                            src={fullBodyImage || racePortraits[draft.race]}
+                            alt={draft.race}
+                            style={{ width: '100%', height: '100%', objectFit: 'cover' }}
+                          />
+                        ) : (
+                          <div style={{ textAlign: 'center', padding: '10px', color: 'var(--text-secondary)' }}>
+                            <span style={{ fontSize: '2.5rem', display: 'block', marginBottom: '8px' }}>⚔️</span>
+                            <span className="font-cinzel" style={{ fontSize: '0.75rem', letterSpacing: '1px' }}>SELECCIONA RAZA</span>
+                          </div>
+                        )}
+                        {draft.race && (
+                          <div style={{
+                            position: 'absolute', bottom: 0, left: 0, right: 0,
+                            background: 'rgba(15, 12, 8, 0.85)', padding: '6px',
+                            borderTop: '1px solid var(--accent-gold)', textAlign: 'center'
+                          }}>
+                            <span className="font-cinzel" style={{ fontSize: '0.8rem', color: 'var(--accent-gold)', fontWeight: 'bold' }}>
+                              {draft.race}
+                            </span>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+
                   </div>
 
                   {/* Detalles Físicos */}
@@ -1344,17 +1606,17 @@ Modificador de CON: ${getModStr(charStats.con)}.
             borderRadius: '8px'
           }}>
             <h3 className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '1.2rem', margin: 0, letterSpacing: '1px' }}>
-              AJUSTAR AVATAR
+              {cropMode === 'avatar' ? 'AJUSTAR AVATAR' : 'AJUSTAR RETRATO'}
             </h3>
             <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '0 0 10px 0', textAlign: 'center' }}>
               Arrastra la imagen para centrarla y usa la barra para hacer zoom.
             </p>
 
-            {/* Viewport circular de recorte */}
+            {/* Viewport de recorte (circular o rectangular) */}
             <div style={{
               width: '260px',
-              height: '260px',
-              borderRadius: '50%',
+              height: cropMode === 'avatar' ? '260px' : '390px',
+              borderRadius: cropMode === 'avatar' ? '50%' : '4px',
               border: '2px solid var(--accent-gold)',
               overflow: 'hidden',
               position: 'relative',
@@ -1372,15 +1634,21 @@ Modificador de CON: ${getModStr(charStats.con)}.
                 const targetX = e.clientX - cropDragStart.x;
                 const targetY = e.clientY - cropDragStart.y;
                 
-                const isHorizontal = cropImgDims.width > cropImgDims.height;
-                const baseWidth = isHorizontal ? 260 * (cropImgDims.width / cropImgDims.height) : 260;
-                const baseHeight = isHorizontal ? 260 : 260 * (cropImgDims.height / cropImgDims.width);
+                const viewportW = 260;
+                const viewportH = cropMode === 'avatar' ? 260 : 390;
+
+                const imgAspect = cropImgDims.width / cropImgDims.height;
+                const viewportAspect = viewportW / viewportH;
+                const fitsHeight = imgAspect > viewportAspect;
+                
+                const baseWidth = fitsHeight ? viewportH * imgAspect : viewportW;
+                const baseHeight = fitsHeight ? viewportH : viewportW / imgAspect;
                 
                 const W = baseWidth * cropScale;
                 const H = baseHeight * cropScale;
                 
-                const maxOffsetX = Math.max(0, (W - 260) / 2);
-                const maxOffsetY = Math.max(0, (H - 260) / 2);
+                const maxOffsetX = Math.max(0, (W - viewportW) / 2);
+                const maxOffsetY = Math.max(0, (H - viewportH) / 2);
                 
                 setCropOffsetX(Math.min(maxOffsetX, Math.max(-maxOffsetX, targetX)));
                 setCropOffsetY(Math.min(maxOffsetY, Math.max(-maxOffsetY, targetY)));
@@ -1404,8 +1672,8 @@ Modificador de CON: ${getModStr(charStats.con)}.
                   position: 'absolute',
                   top: '50%',
                   left: '50%',
-                  width: cropImgDims.width > cropImgDims.height ? 'auto' : '100%',
-                  height: cropImgDims.width > cropImgDims.height ? '100%' : 'auto',
+                  width: (cropImgDims.width / cropImgDims.height) > (cropMode === 'avatar' ? 1 : 260/390) ? 'auto' : '100%',
+                  height: (cropImgDims.width / cropImgDims.height) > (cropMode === 'avatar' ? 1 : 260/390) ? '100%' : 'auto',
                   transform: `translate(-50%, -50%) translate(${cropOffsetX}px, ${cropOffsetY}px) scale(${cropScale})`,
                   transformOrigin: 'center',
                   maxWidth: 'none',
@@ -1496,7 +1764,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
         return (
           <>
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '40px', boxSizing: 'border-box' }} onClick={() => { setSelectedCharacter(null); if(onCloseOverlay) onCloseOverlay(); }}>
-            <div className="clipped-frame" style={{ ...styles.card, width: '100%', maxWidth: '1250px', maxHeight: '90vh', overflowY: 'auto', position: 'relative', display: 'flex', flexDirection: 'column', gap: '30px', boxShadow: '0 0 100px rgba(0,0,0,1)', padding: '40px' }} onClick={e => e.stopPropagation()}>
+            <div className="clipped-frame" style={{ ...styles.card, width: '100%', maxWidth: '1600px', maxHeight: '90vh', overflowY: 'auto', position: 'relative', display: 'flex', flexDirection: 'column', gap: '30px', boxShadow: '0 0 100px rgba(0,0,0,1)', padding: '40px' }} onClick={e => e.stopPropagation()}>
               <button onClick={() => { setSelectedCharacter(null); if(onCloseOverlay) onCloseOverlay(); }} style={{ position: 'absolute', top: '15px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '2.5rem', cursor: 'pointer', zIndex: 10 }}><X className="w-4 h-4 m-auto" /></button>
 
               {/* [A] CABECERA */}
