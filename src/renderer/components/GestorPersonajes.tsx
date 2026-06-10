@@ -29,7 +29,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     fue: 8, dex: 8, con: 8,
     int: 8, sab: 8, car: 8
   });
-  const [hitDieValue, setHitDieValue] = useState<number>(10);
+  const [hitDieValue, setHitDieValue] = useState<number | ''>(10);
   const [showTraits, setShowTraits] = useState(false);
 
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
@@ -345,7 +345,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
 
     if (!editingId) {
       // Creación: Vida configurada por el usuario (mínimo 1 de vida)
-      payloadMaxHp = Math.max(1, hitDieValue + calcMod(stats.con));
+      payloadMaxHp = Math.max(1, (hitDieValue === '' ? 1 : hitDieValue) + calcMod(stats.con));
       // Guardamos la clase como JSON para soportar multiclase futura
       payloadClass = JSON.stringify({ [charClass]: 1 });
     }
@@ -1652,7 +1652,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                     {/* Calculated HP Next to Name */}
                     <div style={{ textAlign: 'right' }}>
                       <div className="mono" style={{ fontSize: '2.5rem', fontWeight: 'bold', color: 'var(--combat-red)', textShadow: '0 0 10px rgba(220, 53, 69, 0.3)' }}>
-                        {Math.max(1, hitDieValue + calcMod(stats.con))} HP
+                        {hitDieValue === '' ? '-' : Math.max(1, hitDieValue + calcMod(stats.con))} HP
                       </div>
                     </div>
                   </div>
@@ -1687,9 +1687,14 @@ Modificador de CON: ${getModStr(charStats.con)}.
                           max={classHitDice[charClass] || 10}
                           value={hitDieValue}
                           onChange={(e) => {
+                            const raw = e.target.value;
+                            if (raw === '') {
+                              setHitDieValue('');
+                              return;
+                            }
                             const maxVal = classHitDice[charClass] || 10;
-                            let val = parseInt(e.target.value);
-                            if (isNaN(val)) val = 1;
+                            let val = parseInt(raw);
+                            if (isNaN(val)) return;
                             if (val > maxVal) val = maxVal;
                             if (val < 1) val = 1;
                             setHitDieValue(val);
@@ -1757,7 +1762,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                         </div>
                         <div style={{ borderTop: '1px dashed rgba(255,255,255,0.05)', paddingTop: '6px', fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', gap: '30px' }}>
                           <span>Vida Máxima Total:</span>
-                          <span className="mono">{Math.max(1, hitDieValue + calcMod(stats.con))} HP</span>
+                          <span className="mono">{hitDieValue === '' ? '-' : Math.max(1, hitDieValue + calcMod(stats.con))} HP</span>
                         </div>
                       </div>
 
@@ -1981,8 +1986,10 @@ Modificador de CON: ${getModStr(charStats.con)}.
 
             <button
               type="button"
+              disabled={creationStep === 3 && hitDieValue === ''}
               onClick={() => {
                 if (creationStep === 3) {
+                  if (hitDieValue === '') return;
                   handleSave();
                 } else {
                   if (creationStep === 1 && !draft.name) {
@@ -1999,22 +2006,24 @@ Modificador de CON: ${getModStr(charStats.con)}.
                 top: '50%',
                 transform: 'translateY(-50%)',
                 zIndex: 100,
-                background: creationStep === 3 ? 'var(--natural-green)' : 'rgba(15, 12, 8, 0.85)',
-                border: creationStep === 3 ? '2px solid var(--natural-green)' : '2px solid var(--accent-gold)',
-                color: creationStep === 3 ? 'white' : 'var(--accent-gold)',
+                background: creationStep === 3 ? (hitDieValue === '' ? 'rgba(46, 117, 89, 0.2)' : 'var(--natural-green)') : 'rgba(15, 12, 8, 0.85)',
+                border: creationStep === 3 ? (hitDieValue === '' ? '2px solid rgba(46, 117, 89, 0.2)' : '2px solid var(--natural-green)') : '2px solid var(--accent-gold)',
+                color: creationStep === 3 ? (hitDieValue === '' ? 'rgba(255,255,255,0.3)' : 'white') : 'var(--accent-gold)',
                 width: '50px',
                 height: '50px',
                 borderRadius: '50%',
-                cursor: 'pointer',
+                cursor: creationStep === 3 && hitDieValue === '' ? 'not-allowed' : 'pointer',
                 display: 'flex',
                 alignItems: 'center',
                 justifyContent: 'center',
-                boxShadow: creationStep === 3 ? '0 0 15px rgba(46, 117, 89, 0.4)' : '0 0 15px rgba(200, 135, 42, 0.2)',
+                boxShadow: creationStep === 3 ? (hitDieValue === '' ? 'none' : '0 0 15px rgba(46, 117, 89, 0.4)') : '0 0 15px rgba(200, 135, 42, 0.2)',
                 transition: 'all 0.2s ease',
-                outline: 'none'
+                outline: 'none',
+                opacity: creationStep === 3 && hitDieValue === '' ? 0.5 : 1
               }}
               onMouseEnter={e => {
                 if (creationStep === 3) {
+                  if (hitDieValue === '') return;
                   e.currentTarget.style.background = '#3db080';
                   e.currentTarget.style.boxShadow = '0 0 25px rgba(46, 117, 89, 0.8)';
                 } else {
@@ -2025,6 +2034,11 @@ Modificador de CON: ${getModStr(charStats.con)}.
               }}
               onMouseLeave={e => {
                 if (creationStep === 3) {
+                  if (hitDieValue === '') {
+                    e.currentTarget.style.background = 'rgba(46, 117, 89, 0.2)';
+                    e.currentTarget.style.boxShadow = 'none';
+                    return;
+                  }
                   e.currentTarget.style.background = 'var(--natural-green)';
                   e.currentTarget.style.boxShadow = '0 0 15px rgba(46, 117, 89, 0.4)';
                 } else {
