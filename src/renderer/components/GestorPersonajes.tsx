@@ -2301,41 +2301,6 @@ Modificador de CON: ${getModStr(charStats.con)}.
                 </div>
               </div>
 
-              {/* [B] BARRA HP */}
-              <div style={{ width: '40%', minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ width: '100%', height: '36px', background: '#111', borderRadius: '18px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', padding: '3px', boxSizing: 'border-box', boxShadow: 'inset 0 2px 5px rgba(0,0,0,0.6)', position: 'relative' }}>
-                  {/* PG Centered Text overlay */}
-                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10 }}>
-                    <span className="mono font-cinzel" style={{ fontSize: '1rem', color: 'white', fontWeight: 'bold', textShadow: '0 1px 4px rgba(0,0,0,0.95)', letterSpacing: '1.5px' }}>
-                      PG ({selectedCharacter.current_hp || selectedCharacter.max_hp || 10} / {selectedCharacter.max_hp || 10})
-                    </span>
-                  </div>
-                  {(() => {
-                    const hpPercent = Math.min(100, Math.max(0, ((selectedCharacter.current_hp || selectedCharacter.max_hp || 10) / (selectedCharacter.max_hp || 10)) * 100));
-                    const hpGradient = hpPercent > 60 
-                      ? 'linear-gradient(90deg, #2ecc71, #27ae60)' 
-                      : (hpPercent > 30 
-                          ? 'linear-gradient(90deg, #f1c40f, #d35400)' 
-                          : 'linear-gradient(90deg, #e74c3c, #c0392b)');
-                    const glowColor = hpPercent > 60 ? 'rgba(46, 204, 113, 0.4)' : (hpPercent > 30 ? 'rgba(241, 196, 15, 0.4)' : 'rgba(231, 76, 60, 0.4)');
-                    return (
-                      <div style={{ 
-                        width: `${hpPercent}%`, 
-                        height: '100%', 
-                        background: hpGradient, 
-                        borderRadius: '15px', 
-                        transition: 'width 0.3s ease, background 0.3s ease',
-                        boxShadow: `0 0 10px ${glowColor}`,
-                        position: 'relative',
-                        overflow: 'hidden'
-                      }}>
-                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '35%', background: 'rgba(255,255,255,0.15)' }} />
-                      </div>
-                    );
-                  })()}
-                </div>
-              </div>
-
               {/* [E] TABS (Fixed/static header at the top of content) */}
               <div style={{ display: 'flex', gap: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '15px', overflowX: 'auto', justifyContent: 'center', background: 'transparent', zIndex: 50, padding: '10px 0' }}>
                 {[
@@ -2381,7 +2346,13 @@ Modificador de CON: ${getModStr(charStats.con)}.
                   return (
                     <>
                       {/* [C] DASHBOARD DE COMBATE */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '15px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '15px' }}>
+                        <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center' }}>
+                          <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Puntos de Golpe</div>
+                          <div className="mono" style={{ fontSize: '1.6rem', color: '#27ae60', fontWeight: 'bold' }}>
+                            {selectedCharacter.current_hp || selectedCharacter.max_hp || 10}<span style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', fontWeight: 'normal' }}>/{selectedCharacter.max_hp || 10}</span>
+                          </div>
+                        </div>
                         <div 
                           onClick={() => setShowACModal(true)}
                           style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
