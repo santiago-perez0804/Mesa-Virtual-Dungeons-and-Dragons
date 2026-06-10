@@ -1256,70 +1256,9 @@ Modificador de CON: ${getModStr(charStats.con)}.
                     </div>
                   </div>
                 </>
-              )}              {creationStep === 2 && (
+              )}
+              {creationStep === 2 && (
                 <>
-                  {/* Selector de Clase */}
-                  <div style={{ position: 'relative', width: '100%' }}>
-                    <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '12px', display: 'block' }}>CLASE PRINCIPAL</label>
-                    <input
-                      type="text"
-                      className="font-cinzel"
-                      style={styles.input}
-                      placeholder="Buscar clase..."
-                      value={classQuery}
-                      onChange={(e) => {
-                        setClassQuery(e.target.value);
-                        setClassDropdownOpen(true);
-                      }}
-                      onFocus={() => setClassDropdownOpen(true)}
-                      onBlur={() => setTimeout(() => setClassDropdownOpen(false), 250)}
-                    />
-
-                    {classDropdownOpen && (
-                      <div className="clipped-frame" style={{
-                        position: 'absolute', top: '100%', left: 0, right: 0,
-                        background: 'var(--bg-surface)', border: '1px solid var(--accent-gold)',
-                        zIndex: 100, maxHeight: '200px', overflowY: 'auto', marginTop: '5px',
-                        boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
-                      }}>
-                        {classes.filter(c => c.name.toLowerCase().includes(classQuery.toLowerCase())).map(cls => (
-                          <div
-                            key={cls.id}
-                            onClick={() => {
-                              setDraft(prev => ({
-                                ...prev,
-                                class: cls.id,
-                                savingThrows: cls.savingThrows
-                              }));
-                              setCharClass(cls.id || 'Guerrero');
-                              setSelectedSavingThrows(cls.savingThrows);
-                              setClassQuery(cls.name);
-                              setClassDropdownOpen(false);
-                            }}
-                            style={{
-                              padding: '10px 15px', borderBottom: '1px solid rgba(255,255,255,0.02)',
-                              cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-parchment)',
-                              transition: 'background 0.2s', display: 'flex', gap: '10px', alignItems: 'center'
-                            }}
-                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(200, 135, 42, 0.15)'}
-                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                          >
-                            <span>{cls.icon}</span>
-                            <strong style={{ color: 'var(--accent-gold)' }}>{cls.name}</strong>
-                            <span style={{ fontSize: '0.75rem', marginLeft: 'auto', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-secondary)' }}>d{cls.hitDice}</span>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Descripción Detallada de la Clase Elegida */}
-                    {draft.class && classDetailedDescriptions[draft.class] && (
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-parchment)', opacity: 0.9, fontStyle: 'italic', padding: '15px 20px', background: 'rgba(200, 135, 42, 0.04)', borderLeft: '3px solid var(--accent-gold)', marginTop: '12px', lineHeight: '1.5' }}>
-                        <strong>{draft.class}:</strong> {classDetailedDescriptions[draft.class]}
-                      </div>
-                    )}
-                  </div>
-
                   {/* Point Buy Indicator */}
                   {(() => {
                     const spentPoints = Object.values(draft.attributes).reduce((acc, val) => acc + getPointCost(val), 0);
@@ -1415,129 +1354,235 @@ Modificador de CON: ${getModStr(charStats.con)}.
                         };
 
                         return (
-                          <div
-                            key={key}
-                            style={{
-                              background: 'rgba(255,255,255,0.01)',
-                              padding: '20px 15px',
-                              border: '1px solid var(--border-color)',
-                              position: 'relative',
-                              display: 'flex',
-                              flexDirection: 'column',
-                              justifyContent: 'space-between',
-                              height: '160px',
-                              transition: 'border-color 0.2s',
-                            }}
-                            className="clipped-frame"
-                          >
-                            {/* Toggle de Salvación */}
-                            <button
-                              type="button"
-                              onClick={toggleSavingThrow}
+                          <div key={key} style={{ position: 'relative', paddingTop: '12px' }}>
+                            {/* Indicador de Salvación arriba al centro */}
+                            <div
                               style={{
                                 position: 'absolute',
-                                top: '10px',
-                                left: '12px',
-                                background: isSavingProficient ? 'rgba(200, 135, 42, 0.2)' : 'transparent',
-                                border: isSavingProficient ? '1px solid var(--accent-gold)' : '1px solid rgba(255,255,255,0.1)',
-                                color: isSavingProficient ? 'var(--accent-gold)' : 'var(--text-secondary)',
-                                padding: '2px 6px',
-                                borderRadius: '4px',
+                                top: 0,
+                                left: '50%',
+                                transform: 'translateX(-50%)',
+                                background: isSavingProficient ? 'var(--accent-gold)' : 'var(--bg-surface)',
+                                border: '1px solid var(--accent-gold)',
+                                color: isSavingProficient ? 'var(--bg-base)' : 'var(--accent-gold)',
+                                padding: '3px 10px',
+                                borderRadius: '3px',
                                 fontSize: '0.65rem',
                                 fontWeight: 'bold',
-                                cursor: 'pointer',
-                                transition: 'all 0.2s'
+                                zIndex: 10,
+                                transition: 'all 0.2s ease',
+                                pointerEvents: 'none',
+                                boxShadow: isSavingProficient ? '0 0 10px rgba(200, 135, 42, 0.5)' : 'none'
                               }}
                             >
-                              ✦ SALV
-                            </button>
+                              ✦ SALVACIÓN
+                            </div>
 
-                            {/* Modificador en esquina superior derecha */}
                             <div
-                              className="mono"
+                              onClick={toggleSavingThrow}
                               style={{
-                                position: 'absolute',
-                                top: '10px',
-                                right: '12px',
-                                fontSize: '1.1rem',
-                                fontWeight: 'bold',
-                                color: modColor,
+                                background: isSavingProficient ? 'var(--accent-gold)' : 'var(--border-color)',
+                                padding: '1.5px',
+                                position: 'relative',
+                                display: 'flex',
+                                flexDirection: 'column',
+                                height: '190px',
+                                transition: 'all 0.2s ease',
+                                cursor: 'pointer',
+                                clipPath: 'polygon(0 10px, 10px 0, calc(100% - 10px) 0, 100% 10px, 100% calc(100% - 10px), calc(100% - 10px) 100%, 10px 100%, 0 calc(100% - 10px))'
                               }}
                             >
-                              {modStr}
-                            </div>
-
-                            {/* Abreviatura y Valores */}
-                            <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                              <div style={styles.statLabel}>{fullName}</div>
-                              <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
-                                Base: {value} {raceBonus > 0 ? "| +" + raceBonus + " Raza" : ""}
-                              </div>
-                            </div>
-
-                            {/* Valor central editable con + y - */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px', margin: '5px 0' }}>
-                              <button
-                                type="button"
-                                onClick={() => updateAttributeValue(value - 1)}
-                                disabled={value <= 8}
+                              <div
                                 style={{
-                                  background: 'transparent',
-                                  border: '1px solid var(--border-color)',
-                                  color: 'var(--accent-gold)',
-                                  width: '28px',
-                                  height: '28px',
+                                  background: 'var(--bg-base)',
+                                  padding: '18px 15px',
+                                  width: '100%',
+                                  height: '100%',
                                   display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  cursor: 'pointer',
-                                  fontSize: '1rem',
-                                  fontWeight: 'bold',
-                                  opacity: value <= 8 ? 0.3 : 1
+                                  flexDirection: 'column',
+                                  justifyContent: 'space-between',
+                                  transition: 'all 0.2s ease',
+                                  clipPath: 'polygon(0 9px, 9px 0, calc(100% - 9px) 0, 100% 9px, 100% calc(100% - 9px), calc(100% - 9px) 100%, 9px 100%, 0 calc(100% - 9px))'
                                 }}
-                                onMouseEnter={e => value > 8 && (e.currentTarget.style.borderColor = 'var(--accent-gold)')}
-                                onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-color)')}
                               >
-                                -
-                              </button>
+                                {/* Abreviatura y Valores */}
+                                <div style={{ marginTop: '10px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                                  <div style={styles.statLabel}>{fullName}</div>
+                                  <div
+                                    className="mono"
+                                    style={{
+                                      fontSize: '1.6rem',
+                                      fontWeight: 'bold',
+                                      color: modColor,
+                                      margin: '4px 0',
+                                      lineHeight: '1',
+                                      textShadow: mod > 0 ? '0 0 8px rgba(45, 94, 58, 0.4)' : mod < 0 ? '0 0 8px rgba(139, 32, 32, 0.4)' : 'none'
+                                    }}
+                                  >
+                                    {modStr}
+                                  </div>
+                                  <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                                    Base: {value} {raceBonus > 0 ? "| +" + raceBonus + " Raza" : ""}
+                                  </div>
+                                </div>
 
-                              <div className="mono" style={{ fontSize: '2rem', fontWeight: 'bold', color: 'white', minWidth: '40px', textAlign: 'center' }}>
-                                {total}
+                                {/* Valor central editable con + y - */}
+                                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px', margin: '5px 0' }}>
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateAttributeValue(value - 1);
+                                    }}
+                                    disabled={value <= 8}
+                                    style={{
+                                      background: 'transparent',
+                                      border: 'none',
+                                      color: 'var(--accent-gold)',
+                                      width: 'auto',
+                                      height: 'auto',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      cursor: 'pointer',
+                                      fontSize: '1.8rem',
+                                      fontWeight: 'bold',
+                                      transition: 'all 0.2s ease',
+                                      opacity: value <= 8 ? 0.2 : 0.7,
+                                      padding: '0 10px',
+                                      outline: 'none'
+                                    }}
+                                    onMouseEnter={e => value > 8 && (
+                                      e.currentTarget.style.color = '#ffffff',
+                                      e.currentTarget.style.transform = 'scale(1.25)',
+                                      e.currentTarget.style.opacity = '1'
+                                    )}
+                                    onMouseLeave={e => (
+                                      e.currentTarget.style.color = 'var(--accent-gold)',
+                                      e.currentTarget.style.transform = 'scale(1)',
+                                      e.currentTarget.style.opacity = value <= 8 ? '0.2' : '0.7'
+                                    )}
+                                  >
+                                    -
+                                  </button>
+
+                                  <div className="mono" style={{ fontSize: '2rem', fontWeight: 'bold', color: 'white', minWidth: '40px', textAlign: 'center' }}>
+                                    {total}
+                                  </div>
+
+                                  <button
+                                    type="button"
+                                    onClick={(e) => {
+                                      e.stopPropagation();
+                                      updateAttributeValue(value + 1);
+                                    }}
+                                    disabled={value >= 15}
+                                    style={{
+                                      background: 'transparent',
+                                      border: 'none',
+                                      color: 'var(--accent-gold)',
+                                      width: 'auto',
+                                      height: 'auto',
+                                      display: 'flex',
+                                      alignItems: 'center',
+                                      justifyContent: 'center',
+                                      cursor: 'pointer',
+                                      fontSize: '1.8rem',
+                                      fontWeight: 'bold',
+                                      transition: 'all 0.2s ease',
+                                      opacity: value >= 15 ? 0.2 : 0.7,
+                                      padding: '0 10px',
+                                      outline: 'none'
+                                    }}
+                                    onMouseEnter={e => value < 15 && (
+                                      e.currentTarget.style.color = '#ffffff',
+                                      e.currentTarget.style.transform = 'scale(1.25)',
+                                      e.currentTarget.style.opacity = '1'
+                                    )}
+                                    onMouseLeave={e => (
+                                      e.currentTarget.style.color = 'var(--accent-gold)',
+                                      e.currentTarget.style.transform = 'scale(1)',
+                                      e.currentTarget.style.opacity = value >= 15 ? '0.2' : '0.7'
+                                    )}
+                                  >
+                                    +
+                                  </button>
+                                </div>
+
+                                {/* Descripción corta debajo */}
+                                <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: '1.2' }}>
+                                  {desc}
+                                </div>
                               </div>
-
-                              <button
-                                type="button"
-                                onClick={() => updateAttributeValue(value + 1)}
-                                disabled={value >= 15}
-                                style={{
-                                  background: 'transparent',
-                                  border: '1px solid var(--border-color)',
-                                  color: 'var(--accent-gold)',
-                                  width: '28px',
-                                  height: '28px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  cursor: 'pointer',
-                                  fontSize: '1rem',
-                                  fontWeight: 'bold',
-                                  opacity: value >= 15 ? 0.3 : 1
-                                }}
-                                onMouseEnter={e => value < 15 && (e.currentTarget.style.borderColor = 'var(--accent-gold)')}
-                                onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-color)')}
-                              >
-                                +
-                              </button>
-                            </div>
-
-                            {/* Descripción corta debajo */}
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: '1.2' }}>
-                              {desc}
                             </div>
                           </div>
                         );
                       })}
                     </div>
+                  </div>
+
+                  {/* Selector de Clase */}
+                  <div style={{ width: '100%', marginTop: '30px' }}>
+                    <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '12px', display: 'block' }}>CLASE PRINCIPAL</label>
+                    <div style={{ position: 'relative', width: '100%', display: 'flex' }}>
+                      <input
+                        type="text"
+                        className="font-cinzel"
+                        style={styles.input}
+                        placeholder="Buscar clase..."
+                        value={classQuery}
+                        onChange={(e) => {
+                          setClassQuery(e.target.value);
+                          setClassDropdownOpen(true);
+                        }}
+                        onFocus={() => setClassDropdownOpen(true)}
+                        onBlur={() => setTimeout(() => setClassDropdownOpen(false), 250)}
+                      />
+
+                      {classDropdownOpen && (
+                        <div className="clipped-frame" style={{
+                          position: 'absolute', bottom: 'calc(100% - 1px)', left: 0, right: 0,
+                          background: 'var(--bg-surface)', border: '1px solid var(--accent-gold)',
+                          zIndex: 100, maxHeight: '200px', overflowY: 'auto', marginBottom: '0px',
+                          boxShadow: '0 -10px 30px rgba(0,0,0,0.8)'
+                        }}>
+                          {classes.filter(c => c.name.toLowerCase().includes(classQuery.toLowerCase())).map(cls => (
+                            <div
+                              key={cls.id}
+                              onClick={() => {
+                                setDraft(prev => ({
+                                  ...prev,
+                                  class: cls.id,
+                                  savingThrows: cls.savingThrows
+                                }));
+                                setCharClass(cls.id || 'Guerrero');
+                                setSelectedSavingThrows(cls.savingThrows);
+                                setClassQuery(cls.name);
+                                setClassDropdownOpen(false);
+                              }}
+                              style={{
+                                padding: '10px 15px', borderBottom: '1px solid rgba(255,255,255,0.02)',
+                                cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-parchment)',
+                                transition: 'background 0.2s', display: 'flex', gap: '10px', alignItems: 'center'
+                              }}
+                              onMouseEnter={e => e.currentTarget.style.background = 'rgba(200, 135, 42, 0.15)'}
+                              onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                            >
+                              <span>{cls.icon}</span>
+                              <strong style={{ color: 'var(--accent-gold)' }}>{cls.name}</strong>
+                              <span style={{ fontSize: '0.75rem', marginLeft: 'auto', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-secondary)' }}>d{cls.hitDice}</span>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Descripción Detallada de la Clase Elegida */}
+                    {draft.class && classDetailedDescriptions[draft.class] && (
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-parchment)', opacity: 0.9, fontStyle: 'italic', padding: '15px 20px', background: 'rgba(200, 135, 42, 0.04)', borderLeft: '3px solid var(--accent-gold)', marginTop: '12px', lineHeight: '1.5' }}>
+                        <strong>{draft.class}:</strong> {classDetailedDescriptions[draft.class]}
+                      </div>
+                    )}
                   </div>
                 </>
               )}
