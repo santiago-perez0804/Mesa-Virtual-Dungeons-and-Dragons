@@ -120,10 +120,28 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     'Dracónido': 'https://images.unsplash.com/photo-1608889175123-8ec330b86f84?w=300&q=80',
   };
 
+  // --- DESCRIPCIONES DETALLADAS DE CLASES (250-300 CARACTERES) ---
+  const classDetailedDescriptions: Record<string, string> = {
+    'Bárbaro': 'Un guerrero feroz de trasfondo primitivo que puede entrar en una furia de batalla indomable. Su fuerza física desmedida y su increíble resistencia al daño lo convierten en el defensor definitivo de primera línea, capaz de soportar golpes mortales mientras inflige un daño masivo con sus armas a dos manos.',
+    'Bardo': 'Un maestro de la canción, la oratoria y la magia que teje melodías místicas para inspirar a sus aliados, desmoralizar a sus enemigos y manipular el entorno. Su versatilidad sin igual le permite adaptarse a cualquier rol en el grupo, combinando habilidades de combate, sigilo y magia divina o arcana.',
+    'Clérigo': 'Un campeón sacerdotal que empuña magia divina al servicio de una deidad benevolente o destructora. Son sanadores invaluables capaces de restaurar la vitalidad de sus compañeros caídos, pero también temibles combatientes con armadura pesada que canalizan la ira de sus dioses contra las fuerzas del mal.',
+    'Druida': 'Un guardián de la naturaleza que canaliza las fuerzas primordiales del cosmos para conjurar tormentas, curar heridas y adoptar la forma física de bestias salvajes. Su profunda conexión con el mundo natural les otorga una sabiduría ancestral que les permite comunicarse con la fauna y proteger el equilibrio de la tierra.',
+    'Guerrero': 'Un especialista en combate marcial que domina una inmensa variedad de armas, estilos de combate y armaduras. Su riguroso entrenamiento físico les permite realizar hazañas tácticas inigualables en el campo de batalla, siendo letales tanto con una espada y escudo como con un arco o un mandoble pesado.',
+    'Monje': 'Un artista marcial que canaliza la energía mística del Ki a través de su propio cuerpo para lograr una velocidad sobrehumana y asestar golpes letales desarmado. Evitan el uso de armaduras pesadas, confiando en sus reflejos felinos y su agilidad para esquivar ataques mientras aturden a sus oponentes.',
+    'Paladín': 'Un guerrero sagrado ligado a un juramento solemne para defender la justicia, la luz y la verdad. Imbuidos de poder divino, pueden curar con su imposición de manos, proteger a sus aliados con auras místicas y desatar castigos devastadores infundiendo sus armas con energía radiante pura.',
+    'Explorador': 'Un cazador letal y rastreador experto de los desiertos y bosques profundos. Especializados en combatir enemigos específicos en terrenos salvajes, combinan el sigilo, la maestría en el combate a distancia o con dos armas, y un toque de magia de la naturaleza para guiar y proteger a su grupo.',
+    'Pícaro': 'Un bribón sigiloso, astuto y sumamente técnico que se especializa en encontrar las debilidades de sus enemigos y asestar golpes furtivos letales. Maestros de las ganzúas, las trampas y la infiltración, su capacidad para evitar el peligro los convierte en espías y saqueadores insuperables.',
+    'Hechicero': 'Un usuario de magia innata cuya sangre o linaje arrastra un poder arcano salvaje y misterioso, heredado de dragones, feéricos o el propio caos. A diferencia de otros magos, no necesitan libros de conjuros, sino que manipulan la magia de forma instintiva alterando el tejido mismo de sus hechizos.',
+    'Brujo': 'Un taumaturgo que obtiene su poder mágico a través de un pacto místico con una entidad del más allá, como un archifeérico, un demonio o un ser antiguo. A cambio de su lealtad, reciben secretos oscuros, invocaciones sobrenaturales y la capacidad de lanzar conjuros extremadamente potentes.',
+    'Mago': 'Un estudioso supremo de las artes arcanas que manipula la realidad mediante el estudio meticuloso de fórmulas y libros de conjuros. Su inmenso conocimiento les permite aprender y catalogar la mayor lista de hechizos del multiverso, preparados para resolver cualquier situación con el conjuro adecuado.'
+  };
+
   const [raceQuery, setRaceQuery] = useState(draft.race || '');
   const [raceDropdownOpen, setRaceDropdownOpen] = useState(false);
   const [subraceQuery, setSubraceQuery] = useState(draft.subrace || '');
   const [subraceDropdownOpen, setSubraceDropdownOpen] = useState(false);
+  const [classQuery, setClassQuery] = useState(draft.class || '');
+  const [classDropdownOpen, setClassDropdownOpen] = useState(false);
   const [bgSkillQuery, setBgSkillQuery] = useState('');
   const [bgSkillDropdownOpen, setBgSkillDropdownOpen] = useState(false);
   const [bgItemQuery, setBgItemQuery] = useState('');
@@ -132,7 +150,8 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   useEffect(() => {
     setRaceQuery(draft.race || '');
     setSubraceQuery(draft.subrace || '');
-  }, [draft.race, draft.subrace]);
+    setClassQuery(draft.class || '');
+  }, [draft.race, draft.subrace, draft.class]);
 
   // --- ESTADOS DE VISTA ---
   
@@ -1239,309 +1258,283 @@ Modificador de CON: ${getModStr(charStats.con)}.
                 </>
               )}              {creationStep === 2 && (
                 <>
-                  {/* Sección A — Competencias en Habilidades */}
-                  <section style={{ marginBottom: '10px' }}>
-                    <h3 className="font-cinzel" style={{ color: 'var(--accent-gold)', marginBottom: '10px', fontSize: '1.1rem' }}>⚔️ COMPETENCIAS EN HABILIDADES</h3>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '15px' }}>Selecciona hasta 2 habilidades en las que tu personaje destaque (Historia, Sigilo, Percepción, etc.).</p>
+                  {/* Selector de Clase */}
+                  <div style={{ position: 'relative', width: '100%' }}>
+                    <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '12px', display: 'block' }}>CLASE PRINCIPAL</label>
+                    <input
+                      type="text"
+                      className="font-cinzel"
+                      style={styles.input}
+                      placeholder="Buscar clase..."
+                      value={classQuery}
+                      onChange={(e) => {
+                        setClassQuery(e.target.value);
+                        setClassDropdownOpen(true);
+                      }}
+                      onFocus={() => setClassDropdownOpen(true)}
+                      onBlur={() => setTimeout(() => setClassDropdownOpen(false), 250)}
+                    />
 
-                    <div style={{ position: 'relative', width: '100%' }}>
-                      <input
-                        type="text"
-                        className="font-cinzel"
-                        style={{
-                          ...styles.input,
-                          background: selectedSkills.length >= 2 ? 'rgba(255,255,255,0.01)' : 'var(--bg-base)',
-                          borderColor: selectedSkills.length >= 2 ? 'var(--border-color)' : 'var(--border-color)',
-                          color: selectedSkills.length >= 2 ? 'var(--text-secondary)' : 'white',
-                          opacity: selectedSkills.length >= 2 ? 0.6 : 1,
-                          cursor: selectedSkills.length >= 2 ? 'not-allowed' : 'text'
-                        }}
-                        placeholder={selectedSkills.length >= 2 ? "2/2 seleccionadas" : "Escribe para buscar habilidades..."}
-                        value={skillQuery}
-                        onChange={(e) => setSkillQuery(e.target.value)}
-                        onFocus={() => selectedSkills.length < 2 && setSkillDropdownOpen(true)}
-                        onBlur={() => setTimeout(() => setSkillDropdownOpen(false), 200)}
-                        disabled={selectedSkills.length >= 2}
-                      />
-
-                      {/* Autocomplete dropdown list */}
-                      {skillDropdownOpen && selectedSkills.length < 2 && (
-                        <div
-                          className="clipped-frame"
-                          style={{
-                            position: 'absolute',
-                            top: '100%',
-                            left: 0,
-                            right: 0,
-                            background: 'var(--bg-surface)',
-                            border: '1px solid var(--accent-gold)',
-                            zIndex: 100,
-                            maxHeight: '200px',
-                            overflowY: 'auto',
-                            marginTop: '5px',
-                            boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
-                          }}
-                        >
-                          {skillList
-                            .filter(skill => !selectedSkills.includes(skill) && skill.toLowerCase().includes(skillQuery.toLowerCase()))
-                            .map(skill => (
-                              <div
-                                key={skill}
-                                onClick={() => {
-                                  setSelectedSkills([...selectedSkills, skill]);
-                                  setSkillQuery('');
-                                  setSkillDropdownOpen(false);
-                                }}
-                                style={{
-                                  padding: '10px 15px',
-                                  borderBottom: '1px solid rgba(255,255,255,0.02)',
-                                  cursor: 'pointer',
-                                  fontSize: '0.9rem',
-                                  color: 'var(--text-parchment)',
-                                  transition: 'background 0.2s',
-                                }}
-                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(200, 135, 42, 0.15)'}
-                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                              >
-                                ✦ {skill}
-                              </div>
-                            ))}
-                          {skillList.filter(skill => !selectedSkills.includes(skill) && skill.toLowerCase().includes(skillQuery.toLowerCase())).length === 0 && (
-                            <div style={{ padding: '10px 15px', color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.85rem' }}>
-                              No se encontraron habilidades...
-                            </div>
-                          )}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Chips removibles debajo del input */}
-                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '12px' }}>
-                      {selectedSkills.map(skill => (
-                        <div
-                          key={skill}
-                          style={{
-                            display: 'flex',
-                            alignItems: 'center',
-                            gap: '8px',
-                            background: 'rgba(200, 135, 42, 0.1)',
-                            padding: '6px 14px',
-                            border: '1px solid var(--accent-gold)',
-                            borderRadius: '20px',
-                            fontSize: '0.85rem',
-                            color: 'var(--accent-gold)',
-                            fontWeight: 'bold',
-                          }}
-                        >
-                          <span>{skill}</span>
-                          <button
-                            onClick={() => setSelectedSkills(selectedSkills.filter(s => s !== skill))}
-                            style={{
-                              background: 'none',
-                              border: 'none',
-                              color: 'var(--combat-red)',
-                              cursor: 'pointer',
-                              padding: 0,
-                              fontSize: '1rem',
-                              lineHeight: 1,
-                              fontWeight: 'bold',
-                            }}
-                          >
-                            ✕
-                          </button>
-                        </div>
-                      ))}
-                    </div>
-                  </section>
-
-                  {/* Sección A2 — Competencias en Tiradas de Salvación */}
-                  <section style={{ marginBottom: '25px' }}>
-                    <h3 className="font-cinzel" style={{ color: 'var(--accent-gold)', marginBottom: '10px', fontSize: '1.1rem' }}><Shield className="w-4 h-4 inline-block mr-1" /> TIRADAS DE SALVACIÓN COMPETENTES</h3>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '15px' }}>Selecciona hasta 2 atributos para tus tiradas de salvación competentes.</p>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '15px' }}>
-                      {[
-                        { key: 'fue', label: 'Fuerza (FUE)' },
-                        { key: 'dex', label: 'Destreza (DEX)' },
-                        { key: 'con', label: 'Constitución (CON)' },
-                        { key: 'int', label: 'Inteligencia (INT)' },
-                        { key: 'sab', label: 'Sabiduría (SAB)' },
-                        { key: 'car', label: 'Carisma (CAR)' }
-                      ].map((item) => {
-                        const isSelected = selectedSavingThrows.includes(item.key);
-                        return (
-                          <button
-                            key={item.key}
-                            type="button"
-                            className="font-cinzel"
+                    {classDropdownOpen && (
+                      <div className="clipped-frame" style={{
+                        position: 'absolute', top: '100%', left: 0, right: 0,
+                        background: 'var(--bg-surface)', border: '1px solid var(--accent-gold)',
+                        zIndex: 100, maxHeight: '200px', overflowY: 'auto', marginTop: '5px',
+                        boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
+                      }}>
+                        {classes.filter(c => c.name.toLowerCase().includes(classQuery.toLowerCase())).map(cls => (
+                          <div
+                            key={cls.id}
                             onClick={() => {
-                              if (isSelected) {
-                                setSelectedSavingThrows(selectedSavingThrows.filter(s => s !== item.key));
-                              } else {
-                                if (selectedSavingThrows.length < 2) {
-                                  setSelectedSavingThrows([...selectedSavingThrows, item.key]);
-                                } else {
-                                  alert("Solo puedes seleccionar hasta 2 tiradas de salvación competentes.");
-                                }
-                              }
+                              setDraft(prev => ({
+                                ...prev,
+                                class: cls.id,
+                                savingThrows: cls.savingThrows
+                              }));
+                              setCharClass(cls.id || 'Guerrero');
+                              setSelectedSavingThrows(cls.savingThrows);
+                              setClassQuery(cls.name);
+                              setClassDropdownOpen(false);
                             }}
                             style={{
-                              padding: '12px',
-                              background: isSelected ? 'rgba(200, 135, 42, 0.15)' : 'var(--bg-base)',
-                              border: isSelected ? '2px solid var(--accent-gold)' : '1px solid var(--border-color)',
-                              color: isSelected ? 'var(--accent-gold)' : 'var(--text-parchment)',
-                              cursor: 'pointer',
-                              fontWeight: 'bold',
-                              textAlign: 'center',
-                              borderRadius: '4px',
-                              transition: 'all 0.2s'
+                              padding: '10px 15px', borderBottom: '1px solid rgba(255,255,255,0.02)',
+                              cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-parchment)',
+                              transition: 'background 0.2s', display: 'flex', gap: '10px', alignItems: 'center'
                             }}
+                            onMouseEnter={e => e.currentTarget.style.background = 'rgba(200, 135, 42, 0.15)'}
+                            onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                           >
-                            {isSelected ? '✦ ' : ''}{item.label}
-                          </button>
-                        );
-                      })}
-                    </div>
-                  </section>
+                            <span>{cls.icon}</span>
+                            <strong style={{ color: 'var(--accent-gold)' }}>{cls.name}</strong>
+                            <span style={{ fontSize: '0.75rem', marginLeft: 'auto', background: 'rgba(255,255,255,0.05)', padding: '2px 6px', borderRadius: '4px', color: 'var(--text-secondary)' }}>d{cls.hitDice}</span>
+                          </div>
+                        ))}
+                      </div>
+                    )}
 
-                  {/* Sección B — Equipo de Trasfondo */}
-                  <section style={{ marginBottom: '10px' }}>
-                    <h3 className="font-cinzel" style={{ color: 'var(--accent-gold)', marginBottom: '10px', fontSize: '1.1rem' }}><Backpack className="w-6 h-6 m-auto" /> EQUIPO DE TRASFONDO</h3>
-                    <p style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', marginBottom: '15px' }}>Define dos objetos significativos de la base de datos que tu personaje posea según su trasfondo.</p>
+                    {/* Descripción Detallada de la Clase Elegida */}
+                    {draft.class && classDetailedDescriptions[draft.class] && (
+                      <div style={{ fontSize: '0.85rem', color: 'var(--text-parchment)', opacity: 0.9, fontStyle: 'italic', padding: '15px 20px', background: 'rgba(200, 135, 42, 0.04)', borderLeft: '3px solid var(--accent-gold)', marginTop: '12px', lineHeight: '1.5' }}>
+                        <strong>{draft.class}:</strong> {classDetailedDescriptions[draft.class]}
+                      </div>
+                    )}
+                  </div>
 
-                    <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px' }}>
-                      {[0, 1].map(index => {
-                        const selectedItemName = backgroundItems[index];
-                        const hasSelection = selectedItemName && selectedItemName.trim() !== '';
+                  {/* Point Buy Bar */}
+                  {(() => {
+                    const spentPoints = Object.values(draft.attributes).reduce((acc, val) => acc + getPointCost(val), 0);
+                    const remainingPoints = 27 - spentPoints;
 
-                        const queryValue = index === 0 ? itemQuery0 : itemQuery1;
-                        const setQueryValue = index === 0 ? setItemQuery0 : setItemQuery1;
-                        const dropdownOpen = index === 0 ? itemDropdownOpen0 : itemDropdownOpen1;
-                        const setDropdownOpen = index === 0 ? setItemDropdownOpen0 : setItemDropdownOpen1;
+                    return (
+                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
+                          <span className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1px' }}>PUNTOS DE ATRIBUTO (COMPRA POR PUNTOS)</span>
+                          <span className="mono" style={{ fontSize: '0.9rem', color: remainingPoints < 5 ? 'var(--combat-red)' : 'var(--accent-gold)', fontWeight: 'bold' }}>
+                            {remainingPoints} / 27 PUNTOS RESTANTES
+                          </span>
+                        </div>
+                        <div style={{ display: 'flex', gap: '4px', height: '10px', width: '100%', background: 'rgba(0,0,0,0.2)', padding: '2px', borderRadius: '4px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}>
+                          {Array.from({ length: 27 }).map((_, idx) => {
+                            const isFilled = idx < spentPoints;
+                            let color = 'rgba(255,255,255,0.03)';
+                            if (isFilled) {
+                              color = remainingPoints < 5 ? 'var(--combat-red)' : 'var(--accent-gold)';
+                            }
+                            return (
+                              <div
+                                key={idx}
+                                style={{
+                                  flex: 1,
+                                  height: '100%',
+                                  background: color,
+                                  borderRadius: '1px',
+                                  transition: 'background 0.3s ease'
+                                }}
+                              />
+                            );
+                          })}
+                        </div>
+                      </div>
+                    );
+                  })()}
 
-                        const handleClear = () => {
-                          const newItems = [...backgroundItems];
-                          newItems[index] = '';
-                          setBackgroundItems(newItems);
-                          setQueryValue('');
+                  {/* Atributos */}
+                  <div>
+                    <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '15px', display: 'block' }}>ATRIBUTOS Y TIRADAS DE SALVACIÓN</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
+                      {Object.entries(draft.attributes).map(([key, value]) => {
+                        const raceBonus = (raceBonuses[draft.race || 'Humano'] || {})[key] || 0;
+                        const total = value + raceBonus;
+                        const mod = calcMod(total);
+                        const modStr = mod >= 0 ? "+" + mod : "" + mod;
+                        const modColor = mod > 0 ? 'var(--natural-green)' : mod < 0 ? 'var(--combat-red)' : 'var(--text-parchment)';
+                        const abbrev = key.toUpperCase();
+                        const desc = statDescriptions[key];
+
+                        const isSavingProficient = draft.savingThrows.includes(key as any);
+
+                        const toggleSavingThrow = () => {
+                          const exists = draft.savingThrows.includes(key as any);
+                          let newSavingThrows = [];
+                          if (exists) {
+                            newSavingThrows = draft.savingThrows.filter(s => s !== key);
+                          } else {
+                            if (draft.savingThrows.length >= 2) {
+                              alert("Solo puedes seleccionar hasta 2 tiradas de salvación competentes.");
+                              return;
+                            }
+                            newSavingThrows = [...draft.savingThrows, key as any];
+                          }
+                          setDraft(prev => ({ ...prev, savingThrows: newSavingThrows }));
+                          setSelectedSavingThrows(newSavingThrows);
                         };
 
-                        const handleSelect = (name: string) => {
-                          const newItems = [...backgroundItems];
-                          newItems[index] = name;
-                          setBackgroundItems(newItems);
-                          setQueryValue('');
-                          setDropdownOpen(false);
+                        const updateAttributeValue = (val: number) => {
+                          if (val < 8 || val > 15) return;
+                          const spentPoints = Object.values(draft.attributes).reduce((acc, v) => acc + getPointCost(v), 0);
+                          const remainingPoints = 27 - spentPoints;
+                          
+                          const currentCost = getPointCost(draft.attributes[key as any]);
+                          const newCost = getPointCost(val);
+                          const costDiff = newCost - currentCost;
+                          
+                          if (remainingPoints - costDiff < 0) {
+                            alert("No tienes suficientes puntos disponibles.");
+                            return;
+                          }
+                          
+                          const newAttributes = { ...draft.attributes, [key]: val };
+                          setDraft(prev => ({ ...prev, attributes: newAttributes }));
+                          setStats(newAttributes);
                         };
 
                         return (
-                          <div key={index} style={{ position: 'relative', width: '100%' }}>
-                            {hasSelection ? (
-                              /* Chip seleccionado reemplazando el input */
-                              <div
-                                className="clipped-frame"
+                          <div
+                            key={key}
+                            style={{
+                              background: 'rgba(255,255,255,0.01)',
+                              padding: '20px 15px',
+                              border: '1px solid var(--border-color)',
+                              position: 'relative',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              justifyContent: 'space-between',
+                              height: '160px',
+                              transition: 'border-color 0.2s',
+                            }}
+                            className="clipped-frame"
+                          >
+                            {/* Toggle de Salvación */}
+                            <button
+                              type="button"
+                              onClick={toggleSavingThrow}
+                              style={{
+                                position: 'absolute',
+                                top: '10px',
+                                left: '12px',
+                                background: isSavingProficient ? 'rgba(200, 135, 42, 0.2)' : 'transparent',
+                                border: isSavingProficient ? '1px solid var(--accent-gold)' : '1px solid rgba(255,255,255,0.1)',
+                                color: isSavingProficient ? 'var(--accent-gold)' : 'var(--text-secondary)',
+                                padding: '2px 6px',
+                                borderRadius: '4px',
+                                fontSize: '0.65rem',
+                                fontWeight: 'bold',
+                                cursor: 'pointer',
+                                transition: 'all 0.2s'
+                              }}
+                            >
+                              ✦ SALV
+                            </button>
+
+                            {/* Modificador en esquina superior derecha */}
+                            <div
+                              className="mono"
+                              style={{
+                                position: 'absolute',
+                                top: '10px',
+                                right: '12px',
+                                fontSize: '1.1rem',
+                                fontWeight: 'bold',
+                                color: modColor,
+                              }}
+                            >
+                              {modStr}
+                            </div>
+
+                            {/* Abreviatura y Valores */}
+                            <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                              <div style={styles.statLabel}>{abbrev}</div>
+                              <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
+                                Base: {value} {raceBonus > 0 ? "| +" + raceBonus + " Raza" : ""}
+                              </div>
+                            </div>
+
+                            {/* Valor central editable con + y - */}
+                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px', margin: '5px 0' }}>
+                              <button
+                                type="button"
+                                onClick={() => updateAttributeValue(value - 1)}
+                                disabled={value <= 8}
                                 style={{
+                                  background: 'transparent',
+                                  border: '1px solid var(--border-color)',
+                                  color: 'var(--accent-gold)',
+                                  width: '28px',
+                                  height: '28px',
                                   display: 'flex',
                                   alignItems: 'center',
-                                  justifyContent: 'space-between',
-                                  padding: '12px 18px',
-                                  background: 'rgba(200, 135, 42, 0.1)',
-                                  border: '1px solid var(--accent-gold)',
-                                  color: 'var(--accent-gold)',
-                                  height: '46px',
-                                  boxSizing: 'border-box'
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  fontSize: '1rem',
+                                  fontWeight: 'bold',
+                                  opacity: value <= 8 ? 0.3 : 1
                                 }}
+                                onMouseEnter={e => value > 8 && (e.currentTarget.style.borderColor = 'var(--accent-gold)')}
+                                onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-color)')}
                               >
-                                <span className="font-cinzel" style={{ fontSize: '0.9rem', fontWeight: 'bold', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
-                                  <Backpack className="w-6 h-6 m-auto" /> {selectedItemName}
-                                </span>
-                                <button
-                                  onClick={handleClear}
-                                  className="font-cinzel"
-                                  style={{
-                                    background: 'transparent',
-                                    border: 'none',
-                                    color: 'var(--combat-red)',
-                                    cursor: 'pointer',
-                                    fontSize: '0.85rem',
-                                    fontWeight: 'bold',
-                                    letterSpacing: '0.5px',
-                                    padding: '2px 8px',
-                                    transition: 'opacity 0.2s'
-                                  }}
-                                  onMouseEnter={e => e.currentTarget.style.opacity = '0.8'}
-                                  onMouseLeave={e => e.currentTarget.style.opacity = '1'}
-                                >
-                                  LIMPIAR
-                                </button>
-                              </div>
-                            ) : (
-                              /* Input buscador */
-                              <>
-                                <input
-                                  type="text"
-                                  className="font-cinzel"
-                                  style={styles.input}
-                                  placeholder={`Buscar Objeto ${index + 1}...`}
-                                  value={queryValue}
-                                  onChange={(e) => setQueryValue(e.target.value)}
-                                  onFocus={() => setDropdownOpen(true)}
-                                  onBlur={() => setTimeout(() => setDropdownOpen(false), 200)}
-                                />
+                                -
+                              </button>
 
-                                {dropdownOpen && (
-                                  <div
-                                    className="clipped-frame"
-                                    style={{
-                                      position: 'absolute',
-                                      top: '100%',
-                                      left: 0,
-                                      right: 0,
-                                      background: 'var(--bg-surface)',
-                                      border: '1px solid var(--accent-gold)',
-                                      zIndex: 100,
-                                      maxHeight: '200px',
-                                      overflowY: 'auto',
-                                      marginTop: '5px',
-                                      boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
-                                    }}
-                                  >
-                                    {compendium
-                                      .filter((item: any) => item.type === 'item' && item.name.toLowerCase().includes(queryValue.toLowerCase()))
-                                      .map((item: any) => (
-                                        <div
-                                          key={item.id}
-                                          onClick={() => handleSelect(item.name)}
-                                          style={{
-                                            padding: '10px 15px',
-                                            borderBottom: '1px solid rgba(255,255,255,0.02)',
-                                            cursor: 'pointer',
-                                            fontSize: '0.9rem',
-                                            color: 'var(--text-parchment)',
-                                            transition: 'background 0.2s',
-                                          }}
-                                          onMouseEnter={e => e.currentTarget.style.background = 'rgba(200, 135, 42, 0.15)'}
-                                          onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
-                                        >
-                                          📦 {item.name}
-                                        </div>
-                                      ))}
-                                    {compendium.filter((item: any) => item.type === 'item' && item.name.toLowerCase().includes(queryValue.toLowerCase())).length === 0 && (
-                                      <div style={{ padding: '10px 15px', color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.85rem' }}>
-                                        No se encontraron objetos en la base de datos...
-                                      </div>
-                                    )}
-                                  </div>
-                                )}
-                              </>
-                            )}
+                              <div className="mono" style={{ fontSize: '2rem', fontWeight: 'bold', color: 'white', minWidth: '40px', textAlign: 'center' }}>
+                                {total}
+                              </div>
+
+                              <button
+                                type="button"
+                                onClick={() => updateAttributeValue(value + 1)}
+                                disabled={value >= 15}
+                                style={{
+                                  background: 'transparent',
+                                  border: '1px solid var(--border-color)',
+                                  color: 'var(--accent-gold)',
+                                  width: '28px',
+                                  height: '28px',
+                                  display: 'flex',
+                                  alignItems: 'center',
+                                  justifyContent: 'center',
+                                  cursor: 'pointer',
+                                  fontSize: '1rem',
+                                  fontWeight: 'bold',
+                                  opacity: value >= 15 ? 0.3 : 1
+                                }}
+                                onMouseEnter={e => value < 15 && (e.currentTarget.style.borderColor = 'var(--accent-gold)')}
+                                onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-color)')}
+                              >
+                                +
+                              </button>
+                            </div>
+
+                            {/* Descripción corta debajo */}
+                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: '1.2' }}>
+                              {desc}
+                            </div>
                           </div>
                         );
                       })}
                     </div>
-                  </section>
+                  </div>
                 </>
               )}
-
               {creationStep === 3 && (
                 <>
                   <div style={{ background: 'rgba(0,0,0,0.3)', padding: '40px', border: '1px solid var(--border-color)' }} className="clipped-frame">
