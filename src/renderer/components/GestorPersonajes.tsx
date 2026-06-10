@@ -443,8 +443,9 @@ Modificador de CON: ${getModStr(charStats.con)}.
 
       {/* MODAL DE FORJA / EDICIÓN */}
       {isCreating && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, padding: '40px' }} onClick={() => resetForm()}>
-          <div style={{ ...styles.card, width: '100%', maxWidth: '1000px', height: '90vh', maxHeight: '90vh', display: 'flex', flexDirection: 'column', border: '2px solid var(--accent-gold)', padding: 0, overflow: 'hidden' }} className="clipped-frame" onClick={e => e.stopPropagation()}>
+        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, padding: '40px' }}>
+          <div style={{ ...styles.card, width: '100%', maxWidth: '1000px', height: '90vh', maxHeight: '90vh', display: 'flex', flexDirection: 'column', border: '2px solid var(--accent-gold)', padding: 0, overflow: 'hidden', position: 'relative' }} className="clipped-frame" onClick={e => e.stopPropagation()}>
+            <button onClick={() => resetForm()} style={{ position: 'absolute', top: '15px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '2.5rem', cursor: 'pointer', zIndex: 10 }}><X className="w-6 h-6 m-auto" /></button>
 
             {/* INDICADOR DE PASOS (Stepper top fijo) */}
             <div style={{ display: 'flex', justifyContent: 'center', gap: '50px', padding: '25px 40px 20px 40px', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
