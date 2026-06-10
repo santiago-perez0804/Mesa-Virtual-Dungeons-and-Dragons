@@ -1,8 +1,11 @@
 import { useState, useEffect } from 'react';
-import { User, Shield, Backpack, X, Link, Scale } from 'lucide-react';
+import { User, Shield, Backpack, X, Link, Scale, Lock, RefreshCw } from 'lucide-react';
+import { races, classes, backgrounds, alignments } from '../../data/dnd-datos';
+import type { CharacterDraft, AlignmentType, AttributeKey } from '../../data/dnd-datos';
+import { calcMod, calculateHP, calculateAC, getRandomItem } from '../../utils/dnd-calculos';
 import { HeroCard } from './ui/CartaHeroe';
 import { formatDescription } from '../utils/formateador';
-import { getPointCost, calcMod, getModStr, getProficiencyBonus, safeParseInventory, safeParseStats } from '../modules/personaje/personaje.utilidades';
+import { getPointCost, getModStr, getProficiencyBonus, safeParseInventory, safeParseStats } from '../modules/personaje/personaje.utilidades';
 
 import { CharacterInventoryTab } from './personaje/PestanaInventarioPersonaje';
 import { CharacterTraitsTab } from './personaje/PestanaRasgosPersonaje';
@@ -41,7 +44,42 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const defaultInventory = { armas: [], armaduras: [], consumibles: [], artefactos: [], coins: { pc: 0, pl: 0, el: 0, po: 0, pt: 0 }, slots: {} };
   const [inventory, setInventory] = useState<any>(defaultInventory);
 
+
+  const defaultDraft: CharacterDraft = {
+    name: '',
+    avatarUrl: '',
+    age: null,
+    height: '',
+    weight: '',
+    gender: '',
+    alignment: null,
+    languages: ['Común'],
+    backstoryText: '',
+    race: 'Humano',
+    subrace: 'Estándar',
+    class: 'Guerrero',
+    attributes: { fue: 8, dex: 8, con: 8, int: 8, sab: 8, car: 8 },
+    savingThrows: [],
+    background: null,
+    skillProficiencies: [],
+    equipment: [],
+    personalityTrait: '',
+    ideal: '',
+    bond: '',
+    flaw: ''
+  };
+
+  const [draft, setDraft] = useState<CharacterDraft>(defaultDraft);
+
   // --- ESTADOS DE VISTA ---
+  
+  useEffect(() => {
+    // Sincronizar draft con los estados viejos para que la Fase 2/3 y guardado no se rompan
+    setName(draft.name);
+    setImage(draft.avatarUrl || '');
+    setDescription(draft.backstoryText);
+  }, [draft]);
+
   const [isCreating, setIsCreating] = useState(false);
   const [creationStep, setCreationStep] = useState(1);
   const [selectedCharacter, setSelectedCharacter] = useState<any>(null);
@@ -1229,7 +1267,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                 <button
                   className="font-cinzel torch-glow"
                   onClick={() => {
-                    if (creationStep === 1 && !name) {
+                    if (creationStep === 1 && !draft.name) {
                       alert("¡Tu héroe necesita un nombre!");
                       return;
                     }
