@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { User, Shield, Backpack, X, Link, Scale, Lock, RefreshCw, ChevronLeft, ChevronRight, Check, Dices } from 'lucide-react';
+import { User, Shield, Backpack, X, Link, Scale, Lock, RefreshCw, ChevronLeft, ChevronRight, Check, Dices, ChevronUp } from 'lucide-react';
 import { races, classes, backgrounds, alignments } from '../../data/dnd-datos';
 import type { CharacterDraft, AlignmentType, AttributeKey } from '../../data/dnd-datos';
 import { calcMod, calculateHP, calculateAC, getRandomItem } from '../../utils/dnd-calculos';
@@ -2242,34 +2242,44 @@ Modificador de CON: ${getModStr(charStats.con)}.
 
         return (
           <>
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '40px', boxSizing: 'border-box' }} onClick={() => { setSelectedCharacter(null); if(onCloseOverlay) onCloseOverlay(); }}>
-            <div className="clipped-frame" style={{ ...styles.card, width: '100%', maxWidth: '1600px', height: '90vh', maxHeight: '90vh', overflowY: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 0 100px rgba(0,0,0,1)', padding: '40px 40px 30px 40px' }} onClick={e => e.stopPropagation()}>
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '40px', boxSizing: 'border-box' }}>
+            <div className="clipped-frame" style={{ ...styles.card, width: '100%', maxWidth: '1600px', height: '90vh', maxHeight: '90vh', overflowY: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 0 100px rgba(0,0,0,1)', padding: '40px 40px 30px 40px' }}>
               <button onClick={() => { setSelectedCharacter(null); if(onCloseOverlay) onCloseOverlay(); }} style={{ position: 'absolute', top: '15px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '2.5rem', cursor: 'pointer', zIndex: 10 }}><X className="w-4 h-4 m-auto" /></button>
 
               {/* [A] CABECERA */}
-              <div style={{ display: 'grid', gridTemplateColumns: '64px 1fr auto', gap: '20px', alignItems: 'center' }}>
-                <div style={{ width: '64px', height: '64px', borderRadius: '8px', overflow: 'hidden', border: '1px solid var(--border-gold-subtle)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr auto', gap: '20px', alignItems: 'center' }}>
+                <div style={{ width: '120px', height: '120px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--gold-primary)', boxShadow: '0 0 20px rgba(200,135,42,0.4)' }}>
                   {selectedCharacter.image ? (
                     <img src={selectedCharacter.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    <div style={{ width: '100%', height: '100%', background: 'var(--bg-raised)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem' }}><User className="w-full h-full p-2" /></div>
+                    <div style={{ width: '100%', height: '100%', background: 'var(--bg-raised)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem' }}><User className="w-full h-full p-2" /></div>
                   )}
                 </div>
-                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
-                  <h1 className="font-cinzel" style={{ margin: 0, color: 'var(--gold-primary)', fontSize: '1.25rem' }}>{selectedCharacter.name}</h1>
-                  <div className="font-cinzel" style={{ fontSize: '11px', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>
-                    {selectedCharacter.race || 'Humano'} • {classesDisplay} • Bono de Competencia +{getProficiencyBonus(selectedCharacter.level || 1)}
-                  </div>
-                </div>
-                <div style={{ display: 'flex', gap: '15px', alignItems: 'center' }}>
-                  <div className="mono font-cinzel" style={{ fontSize: '2rem', color: 'var(--text-parchment)', fontWeight: 'bold' }}>Nv. {selectedCharacter.level || 1}</div>
-                  <div style={{ display: 'flex', flexDirection: 'column', gap: '6px' }}>
-                    <button onClick={() => { setIsLevelingUp(true); setLevelUpClass(Object.keys(parsedClasses)[0] || 'Guerrero'); }} style={{ background: '#27ae60', color: 'white', border: 'none', padding: '4px 8px', borderRadius: '4px', fontSize: '10px', cursor: 'pointer', fontWeight: 'bold' }}>▲ SUBIR NIVEL</button>
-                    <div style={{ display: 'flex', gap: '6px' }}>
-                      <button onClick={() => startEdit(selectedCharacter)} style={{ flex: 1, background: 'var(--gold-primary)', color: 'var(--bg-void)', border: 'none', padding: '4px', borderRadius: '2px', fontSize: '9px', cursor: 'pointer', fontWeight: 'bold' }}>EDITAR</button>
-                      {(userRole === 'dm' || userRole === 'admin') && <button onClick={() => { handleDelete(selectedCharacter.id); setSelectedCharacter(null); if(onCloseOverlay) onCloseOverlay(); }} style={{ flex: 1, background: 'rgba(192,57,43,0.2)', color: 'var(--combat-red)', border: '1px solid rgba(192,57,43,0.4)', padding: '4px', borderRadius: '2px', fontSize: '9px', cursor: 'pointer', fontWeight: 'bold' }}>BORRAR</button>}
+                <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
+                    <h1 className="font-cinzel" style={{ margin: 0, color: 'var(--gold-primary)', fontSize: '2.2rem', lineHeight: '1.1', textShadow: '0 0 10px rgba(200,135,42,0.2)' }}>{selectedCharacter.name}</h1>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                      <div style={{ background: 'rgba(255,255,255,0.05)', padding: '4px 12px', borderRadius: '20px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center' }}>
+                        <span className="font-cinzel" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Nivel {selectedCharacter.level || 1}</span>
+                      </div>
+                      <button 
+                        onClick={() => { setIsLevelingUp(true); setLevelUpClass(Object.keys(parsedClasses)[0] || 'Guerrero'); }} 
+                        style={{ background: 'none', border: 'none', color: '#27ae60', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '4px', transition: 'all 0.2s' }}
+                        onMouseOver={(e) => { e.currentTarget.style.color = '#2ecc71'; e.currentTarget.style.transform = 'scale(1.2)'; }}
+                        onMouseOut={(e) => { e.currentTarget.style.color = '#27ae60'; e.currentTarget.style.transform = 'scale(1)'; }}
+                        title="Subir Nivel"
+                      >
+                        <ChevronUp className="w-6 h-6" />
+                      </button>
                     </div>
                   </div>
+                  <div className="font-cinzel" style={{ fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    {selectedCharacter.race || 'Humano'} • {classesDisplay}
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
+                  <button onClick={() => startEdit(selectedCharacter)} style={{ background: 'var(--gold-primary)', color: 'var(--bg-void)', border: 'none', padding: '8px 16px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s' }}>EDITAR</button>
+                  {(userRole === 'dm' || userRole === 'admin') && <button onClick={() => { handleDelete(selectedCharacter.id); setSelectedCharacter(null); if(onCloseOverlay) onCloseOverlay(); }} style={{ background: 'rgba(192,57,43,0.2)', color: 'var(--combat-red)', border: '1px solid rgba(192,57,43,0.4)', padding: '8px 16px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s' }}>BORRAR</button>}
                 </div>
               </div>
 
