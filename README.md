@@ -2,17 +2,17 @@
 
 Una plataforma de mesa virtual (VTT) de alto rendimiento optimizada para jugar Dungeons & Dragons 5e de forma fluida y envolvente. Combina la fidelidad visual de un cliente de escritorio con la potencia de la automatización en tiempo real para gestionar combates, fichas de personajes y recursos. Ofrece herramientas inteligentes integradas y soporte multijugador interactivo para que los jugadores y el Dungeon Master se concentren únicamente en la narrativa.
 
-## 🚀 Características Principales
+## Características Principales
 
-* 🗺️ **Tablero Interactivo**: Movimiento y posicionamiento de tokens en tiempo real con sistema de cuadrícula a escala y visualización táctica para combates dinámicos.
-* ⚔️ **Iniciativa Automatizada**: Sistema de turnos integrado que rastrea el orden de combate, el turno activo de los jugadores y monstruos, y gestiona el flujo de la partida.
-* 🎒 **Gestión de Inventario y Carga**: Control avanzado del inventario de personajes, cálculo automático del peso de carga y gestión de la sintonización (*attunement*) de objetos mágicos.
-* 📐 **Cálculo de Áreas de Efecto (AoE)**: Regla de marcado espacial que calcula de forma dinámica las plantillas de área (conos, esferas, líneas y cubos) directamente sobre la cuadrícula del mapa.
-* 🎲 **Chat y Lanzador de Dados**: Chat multijugador con motor de lanzamiento de dados físico en 3D que acepta fórmulas complejas y modificadores manuales (ej: `/roll 1d20+5`).
-* 🧠 **Asistente AI DM**: Integración con inteligencia artificial para la generación y asistencia al Dungeon Master en la toma de decisiones y ambientación en tiempo real.
-* 🔮 **Próximamente**: Sistema automatizado para el control de Concentración en hechizos y mecánicas de reducción de puntos de golpe máximos (HP Máximo).
+* **Tablero Interactivo**: Movimiento y posicionamiento de tokens en tiempo real con sistema de cuadrícula a escala y visualización táctica para combates dinámicos.
+* **Iniciativa Automatizada**: Sistema de turnos integrado que rastrea el orden de combate, el turno activo de los jugadores y monstruos, y gestiona el flujo de la partida.
+* **Gestión de Inventario y Carga**: Control avanzado del inventario de personajes, cálculo automático del peso de carga y gestión de la sintonización (*attunement*) de objetos mágicos.
+* **Cálculo de Áreas de Efecto (AoE)**: Regla de marcado espacial que calcula de forma dinámica las plantillas de área (conos, esferas, líneas y cubos) directamente sobre la cuadrícula del mapa.
+* **Chat y Lanzador de Dados**: Chat multijugador con motor de lanzamiento de dados físico en 3D que acepta fórmulas complejas y modificadores manuales (ej: `/roll 1d20+5`).
+* **Asistente AI DM**: Integración con inteligencia artificial para la generación y asistencia al Dungeon Master en la toma de decisiones y ambientación en tiempo real.
+* **Próximamente**: Sistema automatizado para el control de Concentración en hechizos y mecánicas de reducción de puntos de golpe máximos (HP Máximo).
 
-## 🛠️ Tecnologías
+## Tecnologías
 
 El proyecto está construido bajo una arquitectura moderna de alto rendimiento que integra:
 
@@ -26,7 +26,7 @@ El proyecto está construido bajo una arquitectura moderna de alto rendimiento q
 * **Servicios de Almacenamiento**: AWS S3 SDK para carga y distribución eficiente de assets multimedia y mapas de campaña.
 * **Servicios de Inteligencia Artificial**: SDK de Google GenAI para las funcionalidades avanzadas del DM asistente.
 
-## 📦 Instalación y Configuración Local
+## Instalación y Configuración Local
 
 Sigue estos pasos para clonar el repositorio, configurar el entorno y ejecutar la aplicación localmente:
 
@@ -65,7 +65,7 @@ Ejecuta el comando principal de desarrollo. Este comando levantará de forma con
 npm run dev
 ```
 
-## 👥 Flujo de Trabajo del Equipo
+## Flujo de Trabajo del Equipo
 
 Para mantener la integridad del código y un historial de Git limpio y comprensible, seguimos las siguientes directrices:
 

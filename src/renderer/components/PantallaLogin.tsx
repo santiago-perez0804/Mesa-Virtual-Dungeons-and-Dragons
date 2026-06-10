@@ -162,13 +162,13 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
                     {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
                   </div>
                 </div>
-                <div style={{ border: '1px dashed var(--border-color)', padding: '10px', textAlign: 'center', position: 'relative', overflow: 'hidden', height: '80px', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
+                <div style={{ border: '1px dashed var(--border-color)', margin: '0 auto', padding: '10px', textAlign: 'center', position: 'relative', overflow: 'hidden', width: '120px', height: '120px', borderRadius: 'var(--radius-lg)', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer' }}>
                   {newProfileImage ? (
-                    <img src={newProfileImage} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute' }} />
+                    <img src={newProfileImage} alt="Preview" style={{ width: '100%', height: '100%', objectFit: 'cover', position: 'absolute', top: 0, left: 0 }} />
                   ) : (
-                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>SUBIR FOTO DE PERFIL</span>
+                    <span style={{ color: 'var(--text-secondary)', fontSize: '0.8rem' }}>SUBIR FOTO</span>
                   )}
-                  <input type="file" accept="image/*" onChange={handleRegisterImage} style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer' }} />
+                  <input type="file" accept="image/*" onChange={handleRegisterImage} style={{ position: 'absolute', opacity: 0, width: '100%', height: '100%', cursor: 'pointer', top: 0, left: 0, zIndex: 10 }} />
                 </div>
               </>
             ) : (
