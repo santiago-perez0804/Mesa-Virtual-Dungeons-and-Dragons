@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { User, Shield, Backpack, X, Link, Scale, Lock, RefreshCw } from 'lucide-react';
 import { races, classes, backgrounds, alignments } from '../../data/dnd-datos';
 import type { CharacterDraft, AlignmentType, AttributeKey } from '../../data/dnd-datos';
@@ -70,6 +70,16 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   };
 
   const [draft, setDraft] = useState<CharacterDraft>(defaultDraft);
+
+  // --- ESTADOS PARA RECORTE DE AVATAR (CROP) ---
+  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
+  const [showCropModal, setShowCropModal] = useState(false);
+  const [cropScale, setCropScale] = useState(1);
+  const [cropOffsetX, setCropOffsetX] = useState(0);
+  const [cropOffsetY, setCropOffsetY] = useState(0);
+  const [isCropDragging, setIsCropDragging] = useState(false);
+  const [cropDragStart, setCropDragStart] = useState({ x: 0, y: 0 });
+  const cropImgRef = useRef<HTMLImageElement>(null);
 
   // --- ESTADOS DE VISTA ---
   
@@ -162,21 +172,70 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
 
   // --- LÓGICA DE PERSONAJES ---
 
-  const handleImageUpload = async (e: any) => {
+  const handleImageUpload = (e: any) => {
     const file = e.target.files[0];
     if (file) {
-      const formData = new FormData();
-      formData.append('file', file);
-      const backendUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
-      const uploadUrl = `${backendUrl}/api/upload?folder=avatars`;
-      
+      const reader = new FileReader();
+      reader.onload = () => {
+        setCropImageSrc(reader.result as string);
+        setCropScale(1);
+        setCropOffsetX(0);
+        setCropOffsetY(0);
+        setShowCropModal(true);
+      };
+      reader.readAsDataURL(file);
+      e.target.value = '';
+    }
+  };
+
+  const handleCropSave = async () => {
+    const canvas = document.createElement('canvas');
+    canvas.width = 300;
+    canvas.height = 300;
+    const ctx = canvas.getContext('2d');
+    if (ctx && cropImgRef.current) {
+      // Fondo transparente/negro
+      ctx.fillStyle = '#0f0c08';
+      ctx.fillRect(0, 0, 300, 300);
+
+      const img = cropImgRef.current;
+      const iw = img.naturalWidth;
+      const ih = img.naturalHeight;
+
+      // Escalar imagen para que cubra el círculo
+      const minSide = Math.min(iw, ih);
+      const baseScale = 300 / minSide;
+      const finalScale = baseScale * cropScale;
+
+      const dw = iw * finalScale;
+      const dh = ih * finalScale;
+
+      // Dibujar con los desplazamientos de arrastre
+      const dx = 150 - dw / 2 + cropOffsetX;
+      const dy = 150 - dh / 2 + cropOffsetY;
+
+      ctx.drawImage(img, dx, dy, dw, dh);
+
+      const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
+
       try {
+        const blob = await (await fetch(croppedDataUrl)).blob();
+        const file = new File([blob], 'avatar.jpg', { type: 'image/jpeg' });
+
+        const formData = new FormData();
+        formData.append('file', file);
+        const backendUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
+        const uploadUrl = `${backendUrl}/api/upload?folder=avatars`;
+
         const res = await fetch(uploadUrl, { method: 'POST', body: formData });
         const data = await res.json();
         if (data.success) {
           setImage(data.url);
+          setDraft(prev => ({ ...prev, avatarUrl: data.url }));
+          setShowCropModal(false);
+          setCropImageSrc(null);
         } else {
-          alert('Error al subir imagen: ' + data.error);
+          alert('Error al subir imagen recortada: ' + data.error);
         }
       } catch (err) {
         console.error(err);
@@ -529,12 +588,9 @@ Modificador de CON: ${getModStr(charStats.con)}.
 
                 return (
                   <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: isCompleted ? 'pointer' : 'default' }} onClick={() => isCompleted && setCreationStep(s)}>
-                    <div className="mono" style={circleStyle}>
+                    <div className="mono" style={circleStyle} title={s === 1 ? 'ESENCIA' : s === 2 ? 'COMPETENCIAS' : 'VITALIDAD'}>
                       {isCompleted ? '✓' : s}
                     </div>
-                    <span className="font-cinzel" style={{ fontSize: '0.85rem', letterSpacing: '1px', color: isActive || isCompleted ? 'var(--accent-gold)' : 'var(--text-secondary)', fontWeight: isActive ? 'bold' : 'normal' }}>
-                      {s === 1 ? 'ESENCIA' : s === 2 ? 'COMPETENCIAS' : 'VITALIDAD'}
-                    </span>
                   </div>
                 );
               })}
@@ -545,8 +601,8 @@ Modificador de CON: ${getModStr(charStats.con)}.
 
               {creationStep === 1 && (
                 <>
-                  {/* Header: nombre del héroe (input full-width) */}
-                  <div style={{ display: 'flex', gap: '25px', alignItems: 'flex-end', width: '100%' }}>
+                  {/* Header: nombre del héroe (input full-width) y avatar */}
+                  <div style={{ display: 'flex', gap: '25px', alignItems: 'center', width: '100%' }}>
                     <div style={{ flex: 1 }}>
                       <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '8px', display: 'block' }}>NOMBRE DEL HÉROE</label>
                       <input
@@ -559,11 +615,12 @@ Modificador de CON: ${getModStr(charStats.con)}.
                           borderBottom: '2px solid var(--border-color)',
                           borderRadius: 0,
                           background: 'transparent',
-                          padding: '10px 0'
+                          padding: '10px 12px',
+                          boxSizing: 'border-box'
                         }}
                         placeholder="Escribe su nombre..."
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
+                        value={draft.name}
+                        onChange={(e) => setDraft(prev => ({ ...prev, name: e.target.value }))}
                       />
                     </div>
                     <div
@@ -571,8 +628,8 @@ Modificador de CON: ${getModStr(charStats.con)}.
                       style={{
                         width: '75px',
                         height: '75px',
-                        border: '2px solid var(--border-color)',
-                        borderRadius: '4px',
+                        border: '2px solid var(--accent-gold)',
+                        borderRadius: '50%',
                         display: 'flex',
                         alignItems: 'center',
                         justifyContent: 'center',
@@ -580,11 +637,12 @@ Modificador de CON: ${getModStr(charStats.con)}.
                         flexShrink: 0,
                         position: 'relative',
                         background: 'var(--bg-base)',
-                        cursor: 'pointer'
+                        cursor: 'pointer',
+                        boxShadow: '0 0 15px rgba(200, 135, 42, 0.3)'
                       }}
                     >
-                      {image ? (
-                        <img src={image} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      {draft.avatarUrl ? (
+                        <img src={draft.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
                       ) : (
                         <span style={{ color: 'var(--text-secondary)', fontSize: '2rem' }}><User className="w-full h-full p-2" /></span>
                       )}
@@ -597,195 +655,141 @@ Modificador de CON: ${getModStr(charStats.con)}.
                     </div>
                   </div>
 
-                  {/* Fila: 3 selects */}
-                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
+                  {/* Detalles Físicos */}
+                  <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
                     <div>
-                      <label className="font-cinzel" style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', letterSpacing: '1px', marginBottom: '8px', display: 'block' }}>RAZA</label>
-                      <select className="font-cinzel" style={styles.input} value={race} onChange={(e) => { setRace(e.target.value); setSubrace(subraces[e.target.value][0]); }}>
-                        {Object.keys(raceDesc).map(r => <option key={r} value={r}>{r}</option>)}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="font-cinzel" style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', letterSpacing: '1px', marginBottom: '8px', display: 'block' }}>SUBRAZA</label>
-                      <select className="font-cinzel" style={styles.input} value={subrace} onChange={(e) => setSubrace(e.target.value)}>
-                        {subraces[race].map((sr: string) => <option key={sr} value={sr}>{sr}</option>)}
-                      </select>
-                    </div>
-
-                    <div>
-                      <label className="font-cinzel" style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', letterSpacing: '1px', marginBottom: '8px', display: 'block' }}>CLASE PRINCIPAL</label>
-                      <select
+                      <label className="font-cinzel" style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', letterSpacing: '1px', marginBottom: '8px', display: 'block' }}>EDAD</label>
+                      <input
+                        type="number"
                         className="font-cinzel"
                         style={styles.input}
-                        value={charClass}
-                        onChange={(e) => setCharClass(e.target.value)}
-                        disabled={editingId !== null}
-                      >
-                        {Object.keys(classDesc).map(c => <option key={c} value={c}>{c}</option>)}
-                      </select>
+                        placeholder="Años"
+                        value={draft.age || ''}
+                        onChange={(e) => setDraft(prev => ({ ...prev, age: e.target.value ? parseInt(e.target.value) : null }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="font-cinzel" style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', letterSpacing: '1px', marginBottom: '8px', display: 'block' }}>ALTURA</label>
+                      <input
+                        type="text"
+                        className="font-cinzel"
+                        style={styles.input}
+                        placeholder="Ej: 1.80 m"
+                        value={draft.height}
+                        onChange={(e) => setDraft(prev => ({ ...prev, height: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="font-cinzel" style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', letterSpacing: '1px', marginBottom: '8px', display: 'block' }}>PESO</label>
+                      <input
+                        type="text"
+                        className="font-cinzel"
+                        style={styles.input}
+                        placeholder="Ej: 75 kg"
+                        value={draft.weight}
+                        onChange={(e) => setDraft(prev => ({ ...prev, weight: e.target.value }))}
+                      />
+                    </div>
+                    <div>
+                      <label className="font-cinzel" style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', letterSpacing: '1px', marginBottom: '8px', display: 'block' }}>PRONOMBRES</label>
+                      <input
+                        type="text"
+                        className="font-cinzel"
+                        style={styles.input}
+                        placeholder="Ej: Él / Ella / Ellos"
+                        value={draft.gender}
+                        onChange={(e) => setDraft(prev => ({ ...prev, gender: e.target.value }))}
+                      />
                     </div>
                   </div>
 
-                  {/* Descripción de raza debajo */}
-                  <div style={{ fontSize: '0.85rem', color: 'var(--text-parchment)', opacity: 0.9, fontStyle: 'italic', padding: '12px 18px', background: 'rgba(200, 135, 42, 0.04)', borderLeft: '3px solid var(--accent-gold)', marginTop: '-10px' }}>
-                    <strong>{race}:</strong> {raceDesc[race]}
-                  </div>
-
-                  {/* Atributos: Grilla 3x2 de tarjetas compactas */}
+                  {/* Alineamiento (3x3 Grid) */}
                   <div>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '15px' }}>
-                      <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px' }}>ATRIBUTOS Y CAPACIDADES</label>
-                      {!editingId && (
-                        <div className="mono font-cinzel" style={{ color: remainingPoints === 0 ? 'var(--natural-green)' : remainingPoints < 0 ? 'var(--combat-red)' : 'var(--accent-gold)', fontWeight: 'bold', fontSize: '0.85rem' }}>
-                          Puntos restantes: <span style={{ fontSize: '1.1rem' }}>{remainingPoints}</span> / 27
-                        </div>
-                      )}
-                    </div>
-
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
-                      {Object.entries(stats).map(([key, value]) => {
-                        const bonus = editingId ? 0 : ((raceBonuses[race] || {})[key] || 0);
-                        const total = value + bonus;
-                        const mod = calcMod(total);
-                        const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
-                        const modColor = mod > 0 ? 'var(--natural-green)' : mod < 0 ? 'var(--combat-red)' : 'var(--text-parchment)';
-                        const abbrev = key.toUpperCase();
-                        const desc = statDescriptions[key];
-
+                    <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '12px', display: 'block' }}>ALINEAMIENTO</label>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
+                      {alignments.map(align => {
+                        const isSelected = draft.alignment === align.id;
                         return (
                           <div
-                            key={key}
+                            key={align.id}
+                            onClick={() => setDraft(prev => ({ ...prev, alignment: align.id as any }))}
                             style={{
-                              background: 'rgba(255,255,255,0.02)',
-                              padding: '15px',
-                              border: '1px solid var(--border-color)',
-                              position: 'relative',
+                              background: isSelected ? 'rgba(200, 135, 42, 0.1)' : 'rgba(255,255,255,0.01)',
+                              border: isSelected ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
+                              padding: '12px',
+                              borderRadius: '4px',
+                              cursor: 'pointer',
+                              textAlign: 'center',
+                              transition: 'all 0.2s',
                               display: 'flex',
                               flexDirection: 'column',
-                              justifyContent: 'space-between',
-                              height: '140px',
-                              transition: 'border-color 0.2s',
+                              justifyContent: 'center',
+                              minHeight: '70px',
+                              boxShadow: isSelected ? '0 0 10px rgba(200, 135, 42, 0.2)' : 'none'
                             }}
-                            className="clipped-frame"
+                            title={align.desc}
                           >
-                            {/* Modificador en esquina superior derecha */}
-                            <div
-                              className="mono"
-                              style={{
-                                position: 'absolute',
-                                top: '10px',
-                                right: '12px',
-                                fontSize: '1rem',
-                                fontWeight: 'bold',
-                                color: modColor,
-                              }}
-                            >
-                              {modStr}
+                            <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: isSelected ? 'var(--accent-gold)' : 'var(--text-parchment)', marginBottom: '4px' }}>
+                              {align.label}
                             </div>
-
-                            {/* Abreviatura en pequeño */}
-                            <div style={styles.statLabel}>{abbrev}</div>
-
-                            {/* Valor central editable con + y - */}
-                            <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '15px', margin: '5px 0' }}>
-                              <button
-                                onClick={() => updateStat(key, value - 1)}
-                                disabled={!editingId && value <= 8}
-                                style={{
-                                  background: 'transparent',
-                                  border: '1px solid var(--border-color)',
-                                  color: 'var(--accent-gold)',
-                                  width: '28px',
-                                  height: '28px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  cursor: 'pointer',
-                                  fontSize: '1rem',
-                                  fontWeight: 'bold',
-                                  opacity: (!editingId && value <= 8) ? 0.3 : 1
-                                }}
-                                onMouseEnter={e => !(!editingId && value <= 8) && (e.currentTarget.style.borderColor = 'var(--accent-gold)')}
-                                onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-color)')}
-                              >
-                                -
-                              </button>
-
-                              <div className="mono" style={{ fontSize: '2rem', fontWeight: 'bold', color: 'white', minWidth: '40px', textAlign: 'center' }}>
-                                {value}
-                              </div>
-
-                              <button
-                                onClick={() => updateStat(key, value + 1)}
-                                disabled={!editingId && (value >= 15 || remainingPoints <= 0)}
-                                style={{
-                                  background: 'transparent',
-                                  border: '1px solid var(--border-color)',
-                                  color: 'var(--accent-gold)',
-                                  width: '28px',
-                                  height: '28px',
-                                  display: 'flex',
-                                  alignItems: 'center',
-                                  justifyContent: 'center',
-                                  cursor: 'pointer',
-                                  fontSize: '1rem',
-                                  fontWeight: 'bold',
-                                  opacity: (!editingId && (value >= 15 || remainingPoints <= 0)) ? 0.3 : 1
-                                }}
-                                onMouseEnter={e => !(!editingId && (value >= 15 || remainingPoints <= 0)) && (e.currentTarget.style.borderColor = 'var(--accent-gold)')}
-                                onMouseLeave={e => (e.currentTarget.style.borderColor = 'var(--border-color)')}
-                              >
-                                +
-                              </button>
+                            <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', lineHeight: '1.2' }}>
+                              {align.desc}
                             </div>
-
-                            {/* Descripción corta debajo */}
-                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: '1.2' }}>
-                              {desc}
-                            </div>
-
-                            {/* Badge de bonus racial superpuesto */}
-                            {bonus > 0 && (
-                              <div
-                                style={{
-                                  position: 'absolute',
-                                  bottom: '-8px',
-                                  right: '10px',
-                                  background: 'var(--accent-gold)',
-                                  color: 'var(--bg-base)',
-                                  fontSize: '0.6rem',
-                                  padding: '1px 5px',
-                                  fontWeight: 'bold',
-                                  border: '1px solid var(--border-color)',
-                                  boxShadow: '0 2px 4px rgba(0,0,0,0.5)',
-                                  zIndex: 1
-                                }}
-                              >
-                                +{bonus} {race.toUpperCase()}
-                              </div>
-                            )}
                           </div>
                         );
                       })}
                     </div>
                   </div>
 
-                  {/* Textarea Historia al final, altura reducida (3 líneas) */}
+                  {/* Idiomas */}
                   <div>
-                    <label className="font-cinzel" style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', letterSpacing: '1px', marginBottom: '8px', display: 'block' }}>HISTORIA Y TRASFONDO</label>
+                    <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '8px', display: 'block' }}>IDIOMAS CONOCIDOS</label>
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '8px', border: '1px solid var(--border-color)', padding: '12px', borderRadius: '4px', background: 'rgba(255,255,255,0.01)', alignItems: 'center' }}>
+                      {draft.languages.map(lang => (
+                        <span key={lang} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(200, 135, 42, 0.15)', border: '1px solid var(--accent-gold)', padding: '4px 10px', borderRadius: '4px', fontSize: '0.8rem', color: 'var(--accent-gold)', fontWeight: 'bold' }}>
+                          {lang}
+                          {lang !== 'Común' && (
+                            <button
+                              type="button"
+                              onClick={() => setDraft(prev => ({ ...prev, languages: prev.languages.filter(l => l !== lang) }))}
+                              style={{ background: 'none', border: 'none', color: 'var(--combat-red)', cursor: 'pointer', padding: 0, fontWeight: 'bold', fontSize: '0.85rem', marginLeft: '4px' }}
+                            >
+                              ✕
+                            </button>
+                          )}
+                        </span>
+                      ))}
+                      <input
+                        type="text"
+                        placeholder="Escribe un idioma y presiona Enter..."
+                        style={{ background: 'transparent', border: 'none', outline: 'none', color: 'white', flex: 1, fontSize: '0.85rem', padding: '4px' }}
+                        onKeyDown={(e) => {
+                          if (e.key === 'Enter') {
+                            e.preventDefault();
+                            const val = e.currentTarget.value.trim();
+                            if (val && !draft.languages.includes(val)) {
+                              setDraft(prev => ({ ...prev, languages: [...prev.languages, val] }));
+                              e.currentTarget.value = '';
+                            }
+                          }
+                        }}
+                      />
+                    </div>
+                  </div>
+
+                  {/* Historia */}
+                  <div>
+                    <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '8px', display: 'block' }}>HISTORIA Y TRASFONDO</label>
                     <textarea
-                      rows={3}
-                      style={{ ...styles.input, resize: 'none', height: 'auto', minHeight: 'unset', fontFamily: 'var(--font-body)', fontSize: '0.95rem' }}
+                      rows={4}
+                      style={{ ...styles.input, resize: 'none', height: 'auto', minHeight: 'unset', fontFamily: 'var(--font-body)', fontSize: '0.95rem', padding: '12px' }}
                       placeholder="Escribe la leyenda de tu héroe..."
-                      value={description}
-                      onChange={(e) => setDescription(e.target.value)}
+                      value={draft.backstoryText}
+                      onChange={(e) => setDraft(prev => ({ ...prev, backstoryText: e.target.value }))}
                     />
                   </div>
                 </>
-              )}
-
-              {creationStep === 2 && (
+              )}              {creationStep === 2 && (
                 <>
                   {/* Sección A — Competencias en Habilidades */}
                   <section style={{ marginBottom: '10px' }}>
@@ -1294,6 +1298,153 @@ Modificador de CON: ${getModStr(charStats.con)}.
       )}
 
 
+
+      {/* MODAL DE RECORTE DE AVATAR */}
+      {showCropModal && cropImageSrc && (
+        <div style={{
+          position: 'fixed',
+          top: 0, left: 0, width: '100vw', height: '100vh',
+          background: 'rgba(5, 4, 3, 0.92)',
+          backdropFilter: 'blur(8px)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          zIndex: 2000,
+          padding: '20px'
+        }}>
+          <div className="clipped-frame" style={{
+            background: 'var(--bg-surface)',
+            border: '2px solid var(--accent-gold)',
+            boxShadow: '0 0 50px rgba(0,0,0,0.8)',
+            padding: '30px',
+            width: '100%',
+            maxWidth: '450px',
+            display: 'flex',
+            flexDirection: 'column',
+            gap: '20px',
+            alignItems: 'center',
+            borderRadius: '8px'
+          }}>
+            <h3 className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '1.2rem', margin: 0, letterSpacing: '1px' }}>
+              AJUSTAR AVATAR
+            </h3>
+            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '0 0 10px 0', textAlign: 'center' }}>
+              Arrastra la imagen para centrarla y usa la barra para hacer zoom.
+            </p>
+
+            {/* Viewport circular de recorte */}
+            <div style={{
+              width: '260px',
+              height: '260px',
+              borderRadius: '50%',
+              border: '2px solid var(--accent-gold)',
+              overflow: 'hidden',
+              position: 'relative',
+              background: '#0d0b09',
+              cursor: isCropDragging ? 'grabbing' : 'grab',
+              userSelect: 'none',
+              boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8)'
+            }}
+            onMouseDown={(e) => {
+              setIsCropDragging(true);
+              setCropDragStart({ x: e.clientX - cropOffsetX, y: e.clientY - cropOffsetY });
+            }}
+            onMouseMove={(e) => {
+              if (isCropDragging) {
+                setCropOffsetX(e.clientX - cropDragStart.x);
+                setCropOffsetY(e.clientY - cropDragStart.y);
+              }
+            }}
+            onMouseUp={() => setIsCropDragging(false)}
+            onMouseLeave={() => setIsCropDragging(false)}
+            >
+              <img
+                ref={cropImgRef}
+                src={cropImageSrc}
+                alt="Para recortar"
+                draggable={false}
+                style={{
+                  position: 'absolute',
+                  top: '50%',
+                  left: '50%',
+                  transform: `translate(-50%, -50%) translate(${cropOffsetX}px, ${cropOffsetY}px) scale(${cropScale})`,
+                  transformOrigin: 'center',
+                  maxWidth: 'none',
+                  maxHeight: 'none',
+                  pointerEvents: 'none'
+                }}
+              />
+            </div>
+
+            {/* Control de Zoom */}
+            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
+                <span className="font-cinzel">ZOOM</span>
+                <span className="mono">{Math.round(cropScale * 100)}%</span>
+              </div>
+              <input
+                type="range"
+                min="1"
+                max="3"
+                step="0.05"
+                value={cropScale}
+                onChange={(e) => setCropScale(parseFloat(e.target.value))}
+                style={{
+                  width: '100%',
+                  accentColor: 'var(--accent-gold)',
+                  background: 'var(--bg-void)',
+                  height: '6px',
+                  borderRadius: '3px',
+                  outline: 'none',
+                  cursor: 'pointer'
+                }}
+              />
+            </div>
+
+            {/* Botones de acción */}
+            <div style={{ display: 'flex', gap: '15px', width: '100%', marginTop: '10px' }}>
+              <button
+                type="button"
+                className="font-cinzel"
+                onClick={() => {
+                  setShowCropModal(false);
+                  setCropImageSrc(null);
+                }}
+                style={{
+                  flex: 1,
+                  background: 'rgba(255,255,255,0.05)',
+                  border: '1px solid var(--border-color)',
+                  color: 'var(--text-secondary)',
+                  padding: '10px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '0.85rem'
+                }}
+              >
+                CANCELAR
+              </button>
+              <button
+                type="button"
+                className="font-cinzel"
+                onClick={handleCropSave}
+                style={{
+                  flex: 1,
+                  background: 'var(--accent-gold)',
+                  border: 'none',
+                  color: 'var(--bg-base)',
+                  padding: '10px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '0.85rem',
+                  boxShadow: '0 0 10px rgba(200,135,42,0.4)'
+                }}
+              >
+                ACEPTAR
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* MODAL DE DETALLES DEL PERSONAJE */}
       {selectedCharacter && (() => {
