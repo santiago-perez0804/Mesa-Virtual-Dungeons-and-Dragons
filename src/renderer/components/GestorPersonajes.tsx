@@ -549,7 +549,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
       transition: 'border-color 0.2s'
     },
     statLabel: {
-      fontSize: '0.65rem',
+      fontSize: '0.9rem',
       color: 'var(--accent-gold)',
       fontWeight: 'bold' as const,
       marginBottom: '6px',
@@ -1320,39 +1320,37 @@ Modificador de CON: ${getModStr(charStats.con)}.
                     )}
                   </div>
 
-                  {/* Point Buy Bar */}
+                  {/* Point Buy Indicator */}
                   {(() => {
                     const spentPoints = Object.values(draft.attributes).reduce((acc, val) => acc + getPointCost(val), 0);
                     const remainingPoints = 27 - spentPoints;
 
                     return (
-                      <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', marginTop: '10px' }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                          <span className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1px' }}>PUNTOS DE ATRIBUTO (COMPRA POR PUNTOS)</span>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '10px', padding: '15px 0', borderBottom: '1px solid rgba(200, 135, 42, 0.15)' }}>
+                        <span className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1px' }}>PUNTOS DE ATRIBUTO (COMPRA POR PUNTOS)</span>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                          <div style={{ display: 'flex', gap: '3px', alignItems: 'center', height: '14px' }}>
+                            {Array.from({ length: 27 }).map((_, idx) => {
+                              const isVisible = idx < remainingPoints;
+                              return (
+                                <div
+                                  key={idx}
+                                  style={{
+                                    width: '3px',
+                                    height: '12px',
+                                    background: remainingPoints < 5 ? 'var(--combat-red)' : 'var(--accent-gold)',
+                                    borderRadius: '1px',
+                                    opacity: isVisible ? 1 : 0,
+                                    transform: isVisible ? 'scaleY(1)' : 'scaleY(0)',
+                                    transition: 'all 0.2s ease-in-out'
+                                  }}
+                                />
+                              );
+                            })}
+                          </div>
                           <span className="mono" style={{ fontSize: '0.9rem', color: remainingPoints < 5 ? 'var(--combat-red)' : 'var(--accent-gold)', fontWeight: 'bold' }}>
                             {remainingPoints} / 27 PUNTOS RESTANTES
                           </span>
-                        </div>
-                        <div style={{ display: 'flex', gap: '4px', height: '10px', width: '100%', background: 'rgba(0,0,0,0.2)', padding: '2px', borderRadius: '4px', border: '1px solid var(--border-color)', boxSizing: 'border-box' }}>
-                          {Array.from({ length: 27 }).map((_, idx) => {
-                            const isFilled = idx < spentPoints;
-                            let color = 'rgba(255,255,255,0.03)';
-                            if (isFilled) {
-                              color = remainingPoints < 5 ? 'var(--combat-red)' : 'var(--accent-gold)';
-                            }
-                            return (
-                              <div
-                                key={idx}
-                                style={{
-                                  flex: 1,
-                                  height: '100%',
-                                  background: color,
-                                  borderRadius: '1px',
-                                  transition: 'background 0.3s ease'
-                                }}
-                              />
-                            );
-                          })}
                         </div>
                       </div>
                     );
@@ -1368,7 +1366,15 @@ Modificador de CON: ${getModStr(charStats.con)}.
                         const mod = calcMod(total);
                         const modStr = mod >= 0 ? "+" + mod : "" + mod;
                         const modColor = mod > 0 ? 'var(--natural-green)' : mod < 0 ? 'var(--combat-red)' : 'var(--text-parchment)';
-                        const abbrev = key.toUpperCase();
+                        const statNames: Record<string, string> = {
+                          fue: 'FUERZA',
+                          dex: 'DESTREZA',
+                          con: 'CONSTITUCIÓN',
+                          int: 'INTELIGENCIA',
+                          sab: 'SABIDURÍA',
+                          car: 'CARISMA'
+                        };
+                        const fullName = statNames[key] || key.toUpperCase();
                         const desc = statDescriptions[key];
 
                         const isSavingProficient = draft.savingThrows.includes(key as any);
@@ -1463,7 +1469,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
 
                             {/* Abreviatura y Valores */}
                             <div style={{ marginTop: '15px', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                              <div style={styles.statLabel}>{abbrev}</div>
+                              <div style={styles.statLabel}>{fullName}</div>
                               <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
                                 Base: {value} {raceBonus > 0 ? "| +" + raceBonus + " Raza" : ""}
                               </div>
