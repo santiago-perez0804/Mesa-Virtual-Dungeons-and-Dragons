@@ -12,6 +12,9 @@ import { CharacterTraitsTab } from './personaje/PestanaRasgosPersonaje';
 import { CharacterSpellsTab } from './personaje/PestanaHechizosPersonaje';
 import { CharacterStatsPanel } from './personaje/PanelEstadisticasPersonaje';
 import { ACModifierModal } from './personaje/ACModifierModal';
+import { InitiativeModifierModal } from './personaje/InitiativeModifierModal';
+import { SpeedModifierModal } from './personaje/SpeedModifierModal';
+import { ProficiencyModifierModal } from './personaje/ProficiencyModifierModal';
 
 import { classDesc, classHitDice, raceDesc, raceBonuses, skillList, statDescriptions, subraces } from '../modules/personaje/personaje.constantes';
 
@@ -184,6 +187,9 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [unequippingSlotIndex, setUnequippingSlotIndex] = useState<number | null>(null);
   const [unequipQuantity, setUnequipQuantity] = useState<number>(1);
   const [showACModal, setShowACModal] = useState(false);
+  const [showInitiativeModal, setShowInitiativeModal] = useState(false);
+  const [showSpeedModal, setShowSpeedModal] = useState(false);
+  const [showProficiencyModal, setShowProficiencyModal] = useState(false);
 
 
   const [isLevelingUp, setIsLevelingUp] = useState(false);
@@ -2364,24 +2370,56 @@ Modificador de CON: ${getModStr(charStats.con)}.
                           <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--gold-primary)', fontWeight: 'bold' }}>{selectedCharacter.ac || (10 + calcMod(charStats.dex || 10))}</div>
                         </div>
                         {(() => {
-                          const initMod = calcMod(charStats.dex || 10);
-                          const initColor = initMod >= 0 ? '#27ae60' : '#e74c3c';
-                          const initStr = initMod >= 0 ? `+${initMod}` : `${initMod}`;
+                          const customInitiative = (charStats.customInitiativeModifiers || []).reduce((acc: number, m: any) => acc + m.value, 0);
+                          const totalInitiativeVal = calcMod(charStats.dex || 10) + customInitiative;
+                          const initColor = totalInitiativeVal >= 0 ? '#27ae60' : '#e74c3c';
+                          const initStr = totalInitiativeVal >= 0 ? `+${totalInitiativeVal}` : `${totalInitiativeVal}`;
                           return (
-                            <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center' }}>
+                            <div 
+                              onClick={() => setShowInitiativeModal(true)}
+                              style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                              onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-gold)'}
+                              onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+                              title="Editar Iniciativa"
+                            >
                               <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Iniciativa</div>
                               <div className="mono" style={{ fontSize: '1.8rem', color: initColor, fontWeight: 'bold' }}>{initStr}</div>
                             </div>
                           );
                         })()}
-                        <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center' }}>
-                          <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Velocidad</div>
-                          <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--text-parchment)', fontWeight: 'bold' }}>{selectedCharacter.speed || '6c'}</div>
-                        </div>
-                        <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center' }}>
-                          <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Competencia</div>
-                          <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--text-parchment)', fontWeight: 'bold' }}>+{getProficiencyBonus(selectedCharacter.level || 1)}</div>
-                        </div>
+                        {(() => {
+                          const customSpeed = (charStats.customSpeedModifiers || []).reduce((acc: number, m: any) => acc + m.value, 0);
+                          const baseSpeedVal = 6;
+                          const totalSpeed = baseSpeedVal + customSpeed;
+                          return (
+                            <div 
+                              onClick={() => setShowSpeedModal(true)}
+                              style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                              onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-gold)'}
+                              onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+                              title="Editar Velocidad"
+                            >
+                              <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Velocidad</div>
+                              <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--text-parchment)', fontWeight: 'bold' }}>{totalSpeed}</div>
+                            </div>
+                          );
+                        })()}
+                        {(() => {
+                          const customProficiency = (charStats.customProficiencyModifiers || []).reduce((acc: number, m: any) => acc + m.value, 0);
+                          const totalProficiency = getProficiencyBonus(selectedCharacter.level || 1) + customProficiency;
+                          return (
+                            <div 
+                              onClick={() => setShowProficiencyModal(true)}
+                              style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                              onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-gold)'}
+                              onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+                              title="Editar Competencia"
+                            >
+                              <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Competencia</div>
+                              <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--text-parchment)', fontWeight: 'bold' }}>+{totalProficiency}</div>
+                            </div>
+                          );
+                        })()}
                       </div>
 
                       {/* [D] CUERPO */}
@@ -2426,6 +2464,33 @@ Modificador de CON: ${getModStr(charStats.con)}.
                   character={selectedCharacter} 
                   socket={socket} 
                   onClose={() => setShowACModal(false)} 
+                  onUpdate={setSelectedCharacter}
+                />
+              )}
+
+              {showInitiativeModal && (
+                <InitiativeModifierModal 
+                  character={selectedCharacter} 
+                  socket={socket} 
+                  onClose={() => setShowInitiativeModal(false)} 
+                  onUpdate={setSelectedCharacter}
+                />
+              )}
+
+              {showSpeedModal && (
+                <SpeedModifierModal 
+                  character={selectedCharacter} 
+                  socket={socket} 
+                  onClose={() => setShowSpeedModal(false)} 
+                  onUpdate={setSelectedCharacter}
+                />
+              )}
+
+              {showProficiencyModal && (
+                <ProficiencyModifierModal 
+                  character={selectedCharacter} 
+                  socket={socket} 
+                  onClose={() => setShowProficiencyModal(false)} 
                   onUpdate={setSelectedCharacter}
                 />
               )}
