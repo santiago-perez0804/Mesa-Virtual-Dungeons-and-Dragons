@@ -83,6 +83,7 @@ export function safeParseStats(statsField: any): any {
   const defaultStats = { fue: 10, dex: 10, con: 10, int: 10, sab: 10, car: 10 };
   const parsed = safeParseJSON(statsField, defaultStats);
   return {
+    ...parsed,
     fue: typeof parsed.fue === 'number' ? parsed.fue : 10,
     dex: typeof parsed.dex === 'number' ? parsed.dex : 10,
     con: typeof parsed.con === 'number' ? parsed.con : 10,

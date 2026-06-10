@@ -66,6 +66,7 @@ function safeParseStats(statsField: any): any {
   const defaultStats = { fue: 10, dex: 10, con: 10, int: 10, sab: 10, car: 10 };
   const parsed = safeParseJSON(statsField, defaultStats);
   return {
+    ...parsed,
     fue: typeof parsed.fue === 'number' ? parsed.fue : 10,
     dex: typeof parsed.dex === 'number' ? parsed.dex : 10,
     con: typeof parsed.con === 'number' ? parsed.con : 10,
@@ -790,28 +791,28 @@ export const startServer = async () => {
 
     // GESTIÓN DE PERSONAJES (CRUD)
     socket.on('character:create', (charData: any) => {
-      const { name, charClass, class: charClassAlt, description, stats, race, image, full_body_image, inventory, level, max_hp, current_hp } = charData;
+      const { name, charClass, class: charClassAlt, description, stats, race, image, full_body_image, inventory, level, max_hp, current_hp, ac } = charData;
       const finalClass = charClass || charClassAlt;
       const owner = socket.data.userName || 'Anónimo';
       
       const statsStr = JSON.stringify(safeParseStats(stats));
       const invStr = JSON.stringify(safeParseInventory(inventory));
 
-      db.prepare('INSERT INTO characters (name, class, description, stats, owner, race, image, full_body_image, inventory, level, max_hp, current_hp) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
-        .run(name, finalClass, description, statsStr, owner, race || 'Humano', image || null, full_body_image || null, invStr, level || 1, max_hp || 10, current_hp || 10);
+      db.prepare('INSERT INTO characters (name, class, description, stats, owner, race, image, full_body_image, inventory, level, max_hp, current_hp, ac) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)')
+        .run(name, finalClass, description, statsStr, owner, race || 'Humano', image || null, full_body_image || null, invStr, level || 1, max_hp || 10, current_hp || 10, ac || 10);
       refreshAllCharacters();
     });
 
     socket.on('character:update', (data: any) => {
       // Permitimos que DM o el dueño edite (simplificado asumiendo confianza en los players o verificando owner)
-      const { id, name, charClass, class: charClassAlt, description, stats, race, image, full_body_image, inventory, level, max_hp, current_hp } = data;
+      const { id, name, charClass, class: charClassAlt, description, stats, race, image, full_body_image, inventory, level, max_hp, current_hp, ac } = data;
       const finalClass = charClass || charClassAlt;
       
       const statsStr = JSON.stringify(safeParseStats(stats));
       const invStr = JSON.stringify(safeParseInventory(inventory));
 
-      db.prepare('UPDATE characters SET name = ?, class = ?, description = ?, stats = ?, race = ?, image = ?, full_body_image = ?, inventory = ?, level = ?, max_hp = ?, current_hp = ? WHERE id = ?')
-        .run(name, finalClass, description, statsStr, race || 'Humano', image || null, full_body_image || null, invStr, level || 1, max_hp || 10, current_hp || 10, id);
+      db.prepare('UPDATE characters SET name = ?, class = ?, description = ?, stats = ?, race = ?, image = ?, full_body_image = ?, inventory = ?, level = ?, max_hp = ?, current_hp = ?, ac = ? WHERE id = ?')
+        .run(name, finalClass, description, statsStr, race || 'Humano', image || null, full_body_image || null, invStr, level || 1, max_hp || 10, current_hp || 10, ac || 10, id);
       refreshAllCharacters();
     });
 
