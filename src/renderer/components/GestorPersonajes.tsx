@@ -124,6 +124,10 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [raceDropdownOpen, setRaceDropdownOpen] = useState(false);
   const [subraceQuery, setSubraceQuery] = useState(draft.subrace || '');
   const [subraceDropdownOpen, setSubraceDropdownOpen] = useState(false);
+  const [bgSkillQuery, setBgSkillQuery] = useState('');
+  const [bgSkillDropdownOpen, setBgSkillDropdownOpen] = useState(false);
+  const [bgItemQuery, setBgItemQuery] = useState('');
+  const [bgItemDropdownOpen, setBgItemDropdownOpen] = useState(false);
 
   useEffect(() => {
     setRaceQuery(draft.race || '');
@@ -1079,6 +1083,158 @@ Modificador de CON: ${getModStr(charStats.con)}.
                       value={draft.backstoryText}
                       onChange={(e) => setDraft(prev => ({ ...prev, backstoryText: e.target.value }))}
                     />
+                  </div>
+
+                  {/* Habilidades de Trasfondo */}
+                  <div>
+                    <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '8px', display: 'block' }}>HABILIDADES DE TRASFONDO</label>
+                    <div style={{ position: 'relative', width: '100%' }}>
+                      <input
+                        type="text"
+                        className="font-cinzel"
+                        style={{
+                          ...styles.input,
+                          background: selectedSkills.length >= 2 ? 'rgba(255,255,255,0.01)' : 'var(--bg-base)',
+                          color: selectedSkills.length >= 2 ? 'var(--text-secondary)' : 'white',
+                          opacity: selectedSkills.length >= 2 ? 0.6 : 1,
+                          cursor: selectedSkills.length >= 2 ? 'not-allowed' : 'text'
+                        }}
+                        placeholder={selectedSkills.length >= 2 ? "2/2 seleccionadas" : "Escribe para buscar habilidades..."}
+                        value={bgSkillQuery}
+                        onChange={(e) => setBgSkillQuery(e.target.value)}
+                        onFocus={() => selectedSkills.length < 2 && setBgSkillDropdownOpen(true)}
+                        onBlur={() => setTimeout(() => setBgSkillDropdownOpen(false), 250)}
+                        disabled={selectedSkills.length >= 2}
+                      />
+
+                      {bgSkillDropdownOpen && selectedSkills.length < 2 && (
+                        <div className="clipped-frame" style={{
+                          position: 'absolute', top: '100%', left: 0, right: 0,
+                          background: 'var(--bg-surface)', border: '1px solid var(--accent-gold)',
+                          zIndex: 100, maxHeight: '200px', overflowY: 'auto', marginTop: '5px',
+                          boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
+                        }}>
+                          {skillList
+                            .filter(skill => !selectedSkills.includes(skill) && skill.toLowerCase().includes(bgSkillQuery.toLowerCase()))
+                            .map(skill => (
+                              <div
+                                key={skill}
+                                onClick={() => {
+                                  setSelectedSkills([...selectedSkills, skill]);
+                                  setBgSkillQuery('');
+                                  setBgSkillDropdownOpen(false);
+                                }}
+                                style={{
+                                  padding: '10px 15px', borderBottom: '1px solid rgba(255,255,255,0.02)',
+                                  cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-parchment)',
+                                  transition: 'background 0.2s'
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(200, 135, 42, 0.15)'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                              >
+                                ✦ {skill}
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Chips de Habilidades seleccionadas */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '12px' }}>
+                      {selectedSkills.map(skill => (
+                        <div key={skill} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(200, 135, 42, 0.1)', padding: '6px 14px', border: '1px solid var(--accent-gold)', borderRadius: '20px', fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 'bold' }}>
+                          <span>{skill}</span>
+                          <button
+                            type="button"
+                            onClick={() => setSelectedSkills(selectedSkills.filter(s => s !== skill))}
+                            style={{ background: 'none', border: 'none', color: 'var(--combat-red)', cursor: 'pointer', padding: 0, fontSize: '1rem', fontWeight: 'bold' }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Equipo de Trasfondo */}
+                  <div>
+                    <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '8px', display: 'block' }}>EQUIPO DE TRASFONDO</label>
+                    <div style={{ position: 'relative', width: '100%' }}>
+                      <input
+                        type="text"
+                        className="font-cinzel"
+                        style={{
+                          ...styles.input,
+                          background: backgroundItems.filter(i => i.trim() !== '').length >= 2 ? 'rgba(255,255,255,0.01)' : 'var(--bg-base)',
+                          color: backgroundItems.filter(i => i.trim() !== '').length >= 2 ? 'var(--text-secondary)' : 'white',
+                          opacity: backgroundItems.filter(i => i.trim() !== '').length >= 2 ? 0.6 : 1,
+                          cursor: backgroundItems.filter(i => i.trim() !== '').length >= 2 ? 'not-allowed' : 'text'
+                        }}
+                        placeholder={backgroundItems.filter(i => i.trim() !== '').length >= 2 ? "2/2 seleccionados" : "Buscar objetos en el compendio..."}
+                        value={bgItemQuery}
+                        onChange={(e) => setBgItemQuery(e.target.value)}
+                        onFocus={() => backgroundItems.filter(i => i.trim() !== '').length < 2 && setBgItemDropdownOpen(true)}
+                        onBlur={() => setTimeout(() => setBgItemDropdownOpen(false), 250)}
+                        disabled={backgroundItems.filter(i => i.trim() !== '').length >= 2}
+                      />
+
+                      {bgItemDropdownOpen && backgroundItems.filter(i => i.trim() !== '').length < 2 && (
+                        <div className="clipped-frame" style={{
+                          position: 'absolute', top: '100%', left: 0, right: 0,
+                          background: 'var(--bg-surface)', border: '1px solid var(--accent-gold)',
+                          zIndex: 100, maxHeight: '200px', overflowY: 'auto', marginTop: '5px',
+                          boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
+                        }}>
+                          {compendium
+                            .filter((item: any) => item.type === 'item' && !backgroundItems.includes(item.name) && item.name.toLowerCase().includes(bgItemQuery.toLowerCase()))
+                            .map((item: any) => (
+                              <div
+                                key={item.id}
+                                onClick={() => {
+                                  const newItems = [...backgroundItems];
+                                  const emptyIndex = newItems.findIndex(i => i.trim() === '');
+                                  if (emptyIndex !== -1) {
+                                    newItems[emptyIndex] = item.name;
+                                  } else {
+                                    newItems.push(item.name);
+                                  }
+                                  setBackgroundItems(newItems);
+                                  setBgItemQuery('');
+                                  setBgItemDropdownOpen(false);
+                                }}
+                                style={{
+                                  padding: '10px 15px', borderBottom: '1px solid rgba(255,255,255,0.02)',
+                                  cursor: 'pointer', fontSize: '0.9rem', color: 'var(--text-parchment)',
+                                  transition: 'background 0.2s'
+                                }}
+                                onMouseEnter={e => e.currentTarget.style.background = 'rgba(200, 135, 42, 0.15)'}
+                                onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                              >
+                                📦 {item.name}
+                              </div>
+                            ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Chips de Objetos seleccionados */}
+                    <div style={{ display: 'flex', flexWrap: 'wrap', gap: '10px', marginTop: '12px' }}>
+                      {backgroundItems.filter(i => i.trim() !== '').map(itemName => (
+                        <div key={itemName} style={{ display: 'flex', alignItems: 'center', gap: '8px', background: 'rgba(200, 135, 42, 0.1)', padding: '6px 14px', border: '1px solid var(--accent-gold)', borderRadius: '20px', fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 'bold' }}>
+                          <span>📦 {itemName}</span>
+                          <button
+                            type="button"
+                            onClick={() => {
+                              const newItems = backgroundItems.map(i => i === itemName ? '' : i);
+                              setBackgroundItems(newItems);
+                            }}
+                            style={{ background: 'none', border: 'none', color: 'var(--combat-red)', cursor: 'pointer', padding: 0, fontSize: '1rem', fontWeight: 'bold' }}
+                          >
+                            ✕
+                          </button>
+                        </div>
+                      ))}
+                    </div>
                   </div>
                 </>
               )}              {creationStep === 2 && (
