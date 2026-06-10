@@ -2243,7 +2243,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
         return (
           <>
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '40px', boxSizing: 'border-box' }} onClick={() => { setSelectedCharacter(null); if(onCloseOverlay) onCloseOverlay(); }}>
-            <div className="clipped-frame" style={{ ...styles.card, width: '100%', maxWidth: '1600px', maxHeight: '90vh', overflowY: 'auto', position: 'relative', display: 'flex', flexDirection: 'column', gap: '30px', boxShadow: '0 0 100px rgba(0,0,0,1)', padding: '40px' }} onClick={e => e.stopPropagation()}>
+            <div className="clipped-frame" style={{ ...styles.card, width: '100%', maxWidth: '1600px', height: '90vh', maxHeight: '90vh', overflowY: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 0 100px rgba(0,0,0,1)', padding: '40px 40px 30px 40px' }} onClick={e => e.stopPropagation()}>
               <button onClick={() => { setSelectedCharacter(null); if(onCloseOverlay) onCloseOverlay(); }} style={{ position: 'absolute', top: '15px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '2.5rem', cursor: 'pointer', zIndex: 10 }}><X className="w-4 h-4 m-auto" /></button>
 
               {/* [A] CABECERA */}
@@ -2288,8 +2288,8 @@ Modificador de CON: ${getModStr(charStats.con)}.
                 </div>
               </div>
 
-              {/* [E] TABS (MOVIDAS ARRIBA Y STICKY) */}
-              <div style={{ display: 'flex', gap: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '15px', overflowX: 'auto', justifyContent: 'center', position: 'sticky', top: 0, background: 'var(--bg-surface)', zIndex: 50, margin: '0 -40px', padding: '15px 40px', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
+              {/* [E] TABS (Fixed/static header at the top of content) */}
+              <div style={{ display: 'flex', gap: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '15px', overflowX: 'auto', justifyContent: 'center', background: 'transparent', zIndex: 50, padding: '10px 0' }}>
                 {[
                   { id: 'hoja', label: 'HOJA' },
                   { id: 'rasgos', label: 'RASGOS' },
@@ -2322,7 +2322,8 @@ Modificador de CON: ${getModStr(charStats.con)}.
                 })}
               </div>
 
-              {/* CONTENIDO PRINCIPAL BASADO EN TAB */}
+              {/* CONTENIDO PRINCIPAL BASADO EN TAB (Scrollable container) */}
+              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', paddingRight: '5px' }}>
               {(() => {
                 const activeTab = charDetailTab === 'hoja' || charDetailTab === 'inventario' ? 'hoja' : (charDetailTab === 'rasgos' || charDetailTab === 'trasfondo' ? 'rasgos' : 'conjuros');
                 const isSpellcaster = Object.keys(parsedClasses).some(c => SPELLCASTING_CLASSES.includes(c));
@@ -2399,6 +2400,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                 }
                 return null;
               })()}
+              </div>
 
               {showACModal && (
                 <ACModifierModal 
