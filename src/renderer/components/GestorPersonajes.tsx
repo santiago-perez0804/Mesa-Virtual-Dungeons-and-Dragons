@@ -79,7 +79,24 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [cropOffsetY, setCropOffsetY] = useState(0);
   const [isCropDragging, setIsCropDragging] = useState(false);
   const [cropDragStart, setCropDragStart] = useState({ x: 0, y: 0 });
+  const [cropImgDims, setCropImgDims] = useState({ width: 0, height: 0 });
   const cropImgRef = useRef<HTMLImageElement>(null);
+
+  useEffect(() => {
+    if (!cropImgDims.width || !cropImgDims.height) return;
+    const isHorizontal = cropImgDims.width > cropImgDims.height;
+    const baseWidth = isHorizontal ? 260 * (cropImgDims.width / cropImgDims.height) : 260;
+    const baseHeight = isHorizontal ? 260 : 260 * (cropImgDims.height / cropImgDims.width);
+    
+    const W = baseWidth * cropScale;
+    const H = baseHeight * cropScale;
+    
+    const maxOffsetX = Math.max(0, (W - 260) / 2);
+    const maxOffsetY = Math.max(0, (H - 260) / 2);
+    
+    setCropOffsetX(prev => Math.min(maxOffsetX, Math.max(-maxOffsetX, prev)));
+    setCropOffsetY(prev => Math.min(maxOffsetY, Math.max(-maxOffsetY, prev)));
+  }, [cropScale, cropImgDims]);
 
   // --- ESTADOS DE VISTA ---
   
@@ -211,8 +228,8 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
       const dh = ih * finalScale;
 
       // Dibujar con los desplazamientos de arrastre
-      const dx = 150 - dw / 2 + cropOffsetX;
-      const dy = 150 - dh / 2 + cropOffsetY;
+      const dx = 150 - dw / 2 + (cropOffsetX * 300 / 260);
+      const dy = 150 - dh / 2 + (cropOffsetY * 300 / 260);
 
       ctx.drawImage(img, dx, dy, dw, dh);
 
@@ -1351,9 +1368,22 @@ Modificador de CON: ${getModStr(charStats.con)}.
               setCropDragStart({ x: e.clientX - cropOffsetX, y: e.clientY - cropOffsetY });
             }}
             onMouseMove={(e) => {
-              if (isCropDragging) {
-                setCropOffsetX(e.clientX - cropDragStart.x);
-                setCropOffsetY(e.clientY - cropDragStart.y);
+              if (isCropDragging && cropImgDims.width && cropImgDims.height) {
+                const targetX = e.clientX - cropDragStart.x;
+                const targetY = e.clientY - cropDragStart.y;
+                
+                const isHorizontal = cropImgDims.width > cropImgDims.height;
+                const baseWidth = isHorizontal ? 260 * (cropImgDims.width / cropImgDims.height) : 260;
+                const baseHeight = isHorizontal ? 260 : 260 * (cropImgDims.height / cropImgDims.width);
+                
+                const W = baseWidth * cropScale;
+                const H = baseHeight * cropScale;
+                
+                const maxOffsetX = Math.max(0, (W - 260) / 2);
+                const maxOffsetY = Math.max(0, (H - 260) / 2);
+                
+                setCropOffsetX(Math.min(maxOffsetX, Math.max(-maxOffsetX, targetX)));
+                setCropOffsetY(Math.min(maxOffsetY, Math.max(-maxOffsetY, targetY)));
               }
             }}
             onMouseUp={() => setIsCropDragging(false)}
@@ -1364,15 +1394,24 @@ Modificador de CON: ${getModStr(charStats.con)}.
                 src={cropImageSrc}
                 alt="Para recortar"
                 draggable={false}
+                onLoad={(e) => {
+                  setCropImgDims({
+                    width: e.currentTarget.naturalWidth,
+                    height: e.currentTarget.naturalHeight
+                  });
+                }}
                 style={{
                   position: 'absolute',
                   top: '50%',
                   left: '50%',
+                  width: cropImgDims.width > cropImgDims.height ? 'auto' : '100%',
+                  height: cropImgDims.width > cropImgDims.height ? '100%' : 'auto',
                   transform: `translate(-50%, -50%) translate(${cropOffsetX}px, ${cropOffsetY}px) scale(${cropScale})`,
                   transformOrigin: 'center',
                   maxWidth: 'none',
                   maxHeight: 'none',
-                  pointerEvents: 'none'
+                  pointerEvents: 'none',
+                  userSelect: 'none'
                 }}
               />
             </div>
