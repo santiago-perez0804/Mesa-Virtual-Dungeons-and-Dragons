@@ -602,13 +602,14 @@ Modificador de CON: ${getModStr(charStats.con)}.
               {creationStep === 1 && (
                 <>
                   {/* Header: nombre del héroe (input full-width) y avatar */}
-                  <div style={{ display: 'flex', gap: '25px', alignItems: 'center', width: '100%' }}>
-                    <div style={{ flex: 1 }}>
-                      <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '8px', display: 'block' }}>NOMBRE DEL HÉROE</label>
+                  <div style={{ width: '100%' }}>
+                    <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '8px', display: 'block' }}>NOMBRE DEL HÉROE</label>
+                    <div style={{ display: 'flex', gap: '25px', alignItems: 'center', width: '100%' }}>
                       <input
                         className="font-cinzel"
                         style={{
                           ...styles.input,
+                          flex: 1,
                           fontSize: '1.6rem',
                           fontWeight: 'bold',
                           color: 'var(--accent-gold)',
@@ -622,36 +623,36 @@ Modificador de CON: ${getModStr(charStats.con)}.
                         value={draft.name}
                         onChange={(e) => setDraft(prev => ({ ...prev, name: e.target.value }))}
                       />
-                    </div>
-                    <div
-                      className="torch-glow"
-                      style={{
-                        width: '75px',
-                        height: '75px',
-                        border: '2px solid var(--accent-gold)',
-                        borderRadius: '50%',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
-                        overflow: 'hidden',
-                        flexShrink: 0,
-                        position: 'relative',
-                        background: 'var(--bg-base)',
-                        cursor: 'pointer',
-                        boxShadow: '0 0 15px rgba(200, 135, 42, 0.3)'
-                      }}
-                    >
-                      {draft.avatarUrl ? (
-                        <img src={draft.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
-                      ) : (
-                        <span style={{ color: 'var(--text-secondary)', fontSize: '2rem' }}><User className="w-full h-full p-2" /></span>
-                      )}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        onChange={handleImageUpload}
-                        style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
-                      />
+                      <div
+                        className="torch-glow"
+                        style={{
+                          width: '75px',
+                          height: '75px',
+                          border: '2px solid var(--accent-gold)',
+                          borderRadius: '50%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          overflow: 'hidden',
+                          flexShrink: 0,
+                          position: 'relative',
+                          background: 'var(--bg-base)',
+                          cursor: 'pointer',
+                          boxShadow: '0 0 15px rgba(200, 135, 42, 0.3)'
+                        }}
+                      >
+                        {draft.avatarUrl ? (
+                          <img src={draft.avatarUrl} alt="Avatar" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '50%' }} />
+                        ) : (
+                          <span style={{ color: 'var(--text-secondary)', fontSize: '2rem' }}><User className="w-full h-full p-2" /></span>
+                        )}
+                        <input
+                          type="file"
+                          accept="image/*"
+                          onChange={handleImageUpload}
+                          style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }}
+                        />
+                      </div>
                     </div>
                   </div>
 
