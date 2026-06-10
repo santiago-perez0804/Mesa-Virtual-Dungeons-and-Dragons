@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { User, Shield, Backpack, X, Link, Scale, Lock, RefreshCw, ChevronLeft, ChevronRight, Check, Dices, ChevronUp } from 'lucide-react';
+import { User, Shield, Backpack, X, Link, Scale, Lock, RefreshCw, ChevronLeft, ChevronRight, Check, Dices, ChevronUp, Pencil } from 'lucide-react';
 import { races, classes, backgrounds, alignments } from '../../data/dnd-datos';
 import type { CharacterDraft, AlignmentType, AttributeKey } from '../../data/dnd-datos';
 import { calcMod, calculateHP, calculateAC, getRandomItem } from '../../utils/dnd-calculos';
@@ -2244,7 +2244,26 @@ Modificador de CON: ${getModStr(charStats.con)}.
           <>
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '40px', boxSizing: 'border-box' }}>
             <div className="clipped-frame" style={{ ...styles.card, width: '100%', maxWidth: '1600px', height: '90vh', maxHeight: '90vh', overflowY: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 0 100px rgba(0,0,0,1)', padding: '40px 40px 30px 40px' }}>
-              <button onClick={() => { setSelectedCharacter(null); if(onCloseOverlay) onCloseOverlay(); }} style={{ position: 'absolute', top: '15px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '2.5rem', cursor: 'pointer', zIndex: 10 }}><X className="w-4 h-4 m-auto" /></button>
+              <div style={{ position: 'absolute', top: '15px', right: '20px', display: 'flex', alignItems: 'center', gap: '10px', zIndex: 10 }}>
+                <button 
+                  onClick={() => startEdit(selectedCharacter)} 
+                  style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', transition: 'all 0.2s' }} 
+                  onMouseOver={(e) => e.currentTarget.style.color = 'var(--gold-primary)'} 
+                  onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-secondary)'} 
+                  title="Editar Personaje"
+                >
+                  <Pencil className="w-3 h-3" />
+                </button>
+                <button 
+                  onClick={() => { setSelectedCharacter(null); if(onCloseOverlay) onCloseOverlay(); }} 
+                  style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', transition: 'all 0.2s' }}
+                  onMouseOver={(e) => e.currentTarget.style.color = 'var(--combat-red)'}
+                  onMouseOut={(e) => e.currentTarget.style.color = 'var(--text-secondary)'}
+                  title="Cerrar"
+                >
+                  <X className="w-5 h-5" />
+                </button>
+              </div>
 
               {/* [A] CABECERA */}
               <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr auto', gap: '20px', alignItems: 'center' }}>
@@ -2278,22 +2297,41 @@ Modificador de CON: ${getModStr(charStats.con)}.
                   </div>
                 </div>
                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center' }}>
-                  <button onClick={() => startEdit(selectedCharacter)} style={{ background: 'var(--gold-primary)', color: 'var(--bg-void)', border: 'none', padding: '8px 16px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s' }}>EDITAR</button>
                   {(userRole === 'dm' || userRole === 'admin') && <button onClick={() => { handleDelete(selectedCharacter.id); setSelectedCharacter(null); if(onCloseOverlay) onCloseOverlay(); }} style={{ background: 'rgba(192,57,43,0.2)', color: 'var(--combat-red)', border: '1px solid rgba(192,57,43,0.4)', padding: '8px 16px', borderRadius: '4px', fontSize: '0.75rem', cursor: 'pointer', fontWeight: 'bold', transition: 'all 0.2s' }}>BORRAR</button>}
                 </div>
               </div>
 
               {/* [B] BARRA HP */}
-              <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
-                  <div className="font-cinzel" style={{ color: '#27ae60', fontSize: '0.8rem', fontWeight: 'bold', letterSpacing: '1px' }}>PUNTOS DE GOLPE</div>
-                  <div className="mono" style={{ fontSize: '1rem', color: 'white' }}>{selectedCharacter.current_hp || selectedCharacter.max_hp || 10} / <span style={{ color: 'var(--text-secondary)' }}>{selectedCharacter.max_hp || 10}</span></div>
-                </div>
-                <div style={{ width: '100%', height: '6px', background: 'var(--bg-void)', borderRadius: '3px', overflow: 'hidden' }}>
+              <div style={{ width: '40%', minWidth: '280px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                <div style={{ width: '100%', height: '36px', background: '#111', borderRadius: '18px', overflow: 'hidden', border: '1px solid rgba(255,255,255,0.1)', padding: '3px', boxSizing: 'border-box', boxShadow: 'inset 0 2px 5px rgba(0,0,0,0.6)', position: 'relative' }}>
+                  {/* PG Centered Text overlay */}
+                  <div style={{ position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, display: 'flex', alignItems: 'center', justifyContent: 'center', pointerEvents: 'none', zIndex: 10 }}>
+                    <span className="mono font-cinzel" style={{ fontSize: '1rem', color: 'white', fontWeight: 'bold', textShadow: '0 1px 4px rgba(0,0,0,0.95)', letterSpacing: '1.5px' }}>
+                      PG ({selectedCharacter.current_hp || selectedCharacter.max_hp || 10} / {selectedCharacter.max_hp || 10})
+                    </span>
+                  </div>
                   {(() => {
                     const hpPercent = Math.min(100, Math.max(0, ((selectedCharacter.current_hp || selectedCharacter.max_hp || 10) / (selectedCharacter.max_hp || 10)) * 100));
-                    const hpColor = hpPercent > 60 ? '#27ae60' : (hpPercent > 30 ? '#e67e22' : '#e74c3c');
-                    return <div style={{ width: `${hpPercent}%`, height: '100%', background: hpColor, transition: 'width 0.3s ease, background 0.3s ease' }} />
+                    const hpGradient = hpPercent > 60 
+                      ? 'linear-gradient(90deg, #2ecc71, #27ae60)' 
+                      : (hpPercent > 30 
+                          ? 'linear-gradient(90deg, #f1c40f, #d35400)' 
+                          : 'linear-gradient(90deg, #e74c3c, #c0392b)');
+                    const glowColor = hpPercent > 60 ? 'rgba(46, 204, 113, 0.4)' : (hpPercent > 30 ? 'rgba(241, 196, 15, 0.4)' : 'rgba(231, 76, 60, 0.4)');
+                    return (
+                      <div style={{ 
+                        width: `${hpPercent}%`, 
+                        height: '100%', 
+                        background: hpGradient, 
+                        borderRadius: '15px', 
+                        transition: 'width 0.3s ease, background 0.3s ease',
+                        boxShadow: `0 0 10px ${glowColor}`,
+                        position: 'relative',
+                        overflow: 'hidden'
+                      }}>
+                        <div style={{ position: 'absolute', top: 0, left: 0, right: 0, height: '35%', background: 'rgba(255,255,255,0.15)' }} />
+                      </div>
+                    );
                   })()}
                 </div>
               </div>
