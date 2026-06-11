@@ -196,16 +196,48 @@ export const CharacterSpellsTab = ({ character }: any) => {
           </div>
         );
       })()}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '8px', background: 'rgba(0,0,0,0.2)', padding: '15px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
-        {slots.map((sl: number, i: number) => {
-          if (sl === 0) return null;
+      <div className="font-cinzel" style={{ textAlign: 'center', color: 'var(--accent-gold)', fontSize: '0.9rem', letterSpacing: '2px', marginBottom: '10px', fontWeight: 'bold' }}>
+        ESPACIOS TOTALES
+      </div>
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap', width: '100%' }}>
+        {Array.from({ length: 10 }).map((_, i) => {
+          const maxSlots = i === 0 ? 0 : (slots[i - 1] || 0);
+          const isActive = i === 0 || maxSlots > 0;
+
           return (
-            <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '5px' }}>
-              <div className="font-cinzel" style={{ fontSize: '0.7rem', color: 'var(--accent-gold)' }}>N{i+1}</div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '2px', justifyContent: 'center' }}>
-                {Array.from({ length: sl }).map((_, j) => (
-                  <div key={j} style={{ width: '12px', height: '12px', borderRadius: '50%', border: '1px solid var(--accent-gold)', background: 'var(--accent-gold)' }}></div>
-                ))}
+            <div
+              key={i}
+              style={{
+                display: 'flex',
+                flexDirection: 'column',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                background: 'rgba(0, 0, 0, 0.25)',
+                border: `1px solid ${isActive ? 'rgba(200, 135, 42, 0.2)' : 'rgba(255, 255, 255, 0.05)'}`,
+                borderRadius: '6px',
+                padding: '12px 10px',
+                flex: '1 1 80px',
+                minWidth: '80px',
+                maxWidth: '120px',
+                opacity: isActive ? 1 : 0.35,
+                boxShadow: isActive ? '0 4px 10px rgba(0,0,0,0.3)' : 'none',
+                transition: 'all 0.2s ease-in-out',
+                minHeight: '80px'
+              }}
+            >
+              <div className="font-cinzel" style={{ fontSize: '0.75rem', color: isActive ? 'var(--accent-gold)' : 'var(--text-secondary)', fontWeight: 'bold', letterSpacing: '1px' }}>
+                {i === 0 ? 'TRUCO' : `N${i}`}
+              </div>
+              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'center', alignItems: 'center', marginTop: '10px' }}>
+                {i === 0 ? (
+                  <span style={{ fontSize: '1.2rem', color: 'var(--accent-gold)', fontWeight: 'bold', lineHeight: 1 }}>∞</span>
+                ) : maxSlots > 0 ? (
+                  Array.from({ length: maxSlots }).map((_, j) => (
+                    <div key={j} style={{ width: '10px', height: '10px', borderRadius: '50%', border: '1px solid var(--accent-gold)', background: 'var(--accent-gold)', boxShadow: '0 0 6px var(--accent-gold)' }}></div>
+                  ))
+                ) : (
+                  <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.2)' }}>—</span>
+                )}
               </div>
             </div>
           );
