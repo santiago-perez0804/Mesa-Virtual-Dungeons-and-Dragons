@@ -9,6 +9,7 @@ Una plataforma de mesa virtual (VTT) de alto rendimiento optimizada para jugar D
 * **Gestión de Inventario y Carga**: Control avanzado del inventario de personajes, cálculo automático del peso de carga y gestión de la sintonización (*attunement*) de objetos mágicos.
 * **Cálculo de Áreas de Efecto (AoE)**: Regla de marcado espacial que calcula de forma dinámica las plantillas de área (conos, esferas, líneas y cubos) directamente sobre la cuadrícula del mapa.
 * **Chat y Lanzador de Dados**: Chat multijugador con motor de lanzamiento de dados físico en 3D que acepta fórmulas complejas y modificadores manuales (ej: `/roll 1d20+5`).
+* **Modificadores Personalizados**: Modales interactivos para desglosar y personalizar la Clase de Armadura, Iniciativa, Velocidad y Competencia con persistencia directa en base de datos.
 * **Asistente AI DM**: Integración con inteligencia artificial para la generación y asistencia al Dungeon Master en la toma de decisiones y ambientación en tiempo real.
 * **Próximamente**: Sistema automatizado para el control de Concentración en hechizos y mecánicas de reducción de puntos de golpe máximos (HP Máximo).
 
@@ -32,8 +33,8 @@ Sigue estos pasos para clonar el repositorio, configurar el entorno y ejecutar l
 
 ### 1. Clonar el repositorio
 ```bash
-git clone https://github.com/santiago-perez0804/DND-COSO.git
-cd DND-COSO
+git clone https://github.com/santiago-perez0804/Mesa-Virtual-Dungeons-and-Dragons.git
+cd Mesa-Virtual-Dungeons-and-Dragons
 ```
 
 ### 2. Instalar dependencias
@@ -49,15 +50,26 @@ npm run postinstall
 ```
 
 ### 4. Configurar variables de entorno
-Crea un archivo `.env` en la raíz del proyecto para configurar las credenciales y configuraciones de servicios externos (como AWS S3 o claves de Google GenAI):
+Crea un archivo `.env` en la raíz del proyecto. Este archivo contiene las credenciales necesarias para los servicios externos de almacenamiento (AWS S3) y la inteligencia artificial (Google Gemini). 
+
+Utiliza la siguiente plantilla y reemplaza los valores de ejemplo con tus credenciales reales:
+
 ```env
-PORT=5173
-AWS_ACCESS_KEY_ID=tu_access_key
-AWS_SECRET_ACCESS_KEY=tu_secret_key
+# Puerto del servidor backend (opcional, por defecto es 3000)
+PORT=3000
+
+# API Key de Google Gemini para las funciones del Asistente DM e Inteligencia Artificial
+GEMINI_API_KEY=tu_gemini_api_key_aqui
+
+# Credenciales de AWS S3 (Solicitar al administrador del proyecto si no las tienes)
+AWS_ACCESS_KEY_ID=tu_aws_access_key_id
+AWS_SECRET_ACCESS_KEY=tu_aws_secret_access_key
 AWS_REGION=us-east-1
-S3_BUCKET_NAME=tu_bucket_s3
-GEMINI_API_KEY=tu_gemini_api_key
+S3_BUCKET_NAME=nombre_de_tu_bucket_s3
 ```
+
+> [!NOTE]
+> Dado que toda la infraestructura de S3 y EC2 es administrada por el líder del proyecto, debes solicitarle directamente las credenciales de AWS para tu entorno de desarrollo local.
 
 ### 5. Iniciar en modo desarrollo
 Ejecuta el comando principal de desarrollo. Este comando levantará de forma concurrente el servidor local de Vite para el frontend y el cliente de escritorio en Electron:
@@ -74,8 +86,10 @@ Para mantener la integridad del código y un historial de Git limpio y comprensi
   * Funcionalidades nuevas: `feature/nombre-de-la-mejora` o `feat/nombre-de-la-mejora`
   * Corrección de errores: `bugfix/nombre-del-error` o `fix/nombre-del-error`
   * Refactorizaciones: `refactor/nombre-de-la-mejora`
+  * Cambios estéticos: `style/nombre-del-cambio` (ejemplo: hacer que un botón brille, reposicionar elementos, etc.)
 * **Mensajes de Commit Semánticos**: Los mensajes de commit deben describir claramente la intención del cambio y estructurarse utilizando prefijos estándar:
   * `feat:` para nuevas características (ej: `feat: agregar regla de medicion de AoE en el tablero`).
   * `fix:` para corrección de bugs (ej: `fix: resolver calculo incorrecto de carga en inventario`).
   * `refactor:` para cambios de código que no corrigen bugs ni agregan características (ej: `refactor: modularizar componentes del panel de admin`).
+  * `style:` para cambios estéticos y de diseño visual que no afectan la lógica del código (ej: `style: hacer brillar los bordes de las tarjetas de personajes`).
   * `docs:` para cambios exclusivos en la documentación (ej: `docs: estructurar README definitivo`).
