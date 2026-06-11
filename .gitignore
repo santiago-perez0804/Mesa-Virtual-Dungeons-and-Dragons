@@ -21,6 +21,7 @@ release/
 .env.production
 .env.local
 .env.development.local
+guia_aws_admin.md
 
 # Archivos de la base de datos local SQLite (¡Importante!)
 vtt_database.bd
