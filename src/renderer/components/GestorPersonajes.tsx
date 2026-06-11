@@ -2530,16 +2530,15 @@ Modificador de CON: ${getModStr(charStats.con)}.
                 } else if (activeTabToRender === 'rasgos') {
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', width: '100%' }}>
-                      <section>
-                        <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '15px' }}>📜 LEYENDA (TRASFONDO)</h4>
-                        <div style={{ background: 'var(--bg-surface)', padding: '20px', border: '1px solid var(--border-color)', borderRadius: '4px' }}>
-                          <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: '1.6', fontSize: '0.9rem', fontStyle: selectedCharacter.description ? 'normal' : 'italic' }} dangerouslySetInnerHTML={{ __html: formatDescription(selectedCharacter.description || "Esta leyenda aún no ha sido escrita...") }} />
-                        </div>
-                      </section>
-                      <section>
-                        <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginBottom: '15px' }}>⚔️ RASGOS DE CLASE</h4>
-                        <CharacterTraitsTab character={selectedCharacter} classFeatures={classFeatures} activeFeaturesClass={activeFeaturesClass} featuresLoading={featuresLoading} fetchClassFeatures={fetchClassFeatures} />
-                      </section>
+                      <CharacterTraitsTab 
+                        character={selectedCharacter} 
+                        classFeatures={classFeatures} 
+                        activeFeaturesClass={activeFeaturesClass} 
+                        featuresLoading={featuresLoading} 
+                        fetchClassFeatures={fetchClassFeatures} 
+                        socket={socket}
+                        onUpdate={setSelectedCharacter}
+                      />
                     </div>
                   );
                 } else if (activeTabToRender === 'conjuros') {
