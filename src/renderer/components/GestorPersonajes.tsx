@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { User, Shield, Backpack, X, Link, Scale, Lock, RefreshCw, ChevronLeft, ChevronRight, Check, Dices, ChevronUp, Pencil } from 'lucide-react';
+import { User, Shield, Backpack, X, Link, Scale, Lock, RefreshCw, ChevronLeft, ChevronRight, Check, Dices, ChevronUp, Pencil, Heart, Zap, Footprints, Award } from 'lucide-react';
 import { races, classes, backgrounds, alignments } from '../../data/dnd-datos';
 import type { CharacterDraft, AlignmentType, AttributeKey } from '../../data/dnd-datos';
 import { calcMod, calculateHP, calculateAC, getRandomItem } from '../../utils/dnd-calculos';
@@ -182,6 +182,8 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [slotSearchQuery, setSlotSearchQuery] = useState('');
   const [slotQuantity, setSlotQuantity] = useState(1);
   const [coinInputVal, setCoinInputVal] = useState<string>('');
+  const [customItemName, setCustomItemName] = useState('');
+  const [customItemNote, setCustomItemNote] = useState('');
 
   // --- MEJORAS DE INVENTARIO ---
   const [viewingItemDetail, setViewingItemDetail] = useState<any>(null);
@@ -2230,7 +2232,6 @@ Modificador de CON: ${getModStr(charStats.con)}.
               </button>
               <button
                 type="button"
-                className="font-cinzel"
                 onClick={handleCropSave}
                 style={{
                   flex: 1,
@@ -2364,38 +2365,40 @@ Modificador de CON: ${getModStr(charStats.con)}.
                   return (
                     <>
                       {/* [C] DASHBOARD DE COMBATE */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '15px' }}>
-                        <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center' }}>
-                          <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Puntos de Golpe</div>
-                          <div className="mono" style={{ fontSize: '1.6rem', color: '#27ae60', fontWeight: 'bold' }}>
-                            {selectedCharacter.current_hp || selectedCharacter.max_hp || 10}<span style={{ color: 'var(--text-secondary)', fontSize: '1.1rem', fontWeight: 'normal' }}>/{selectedCharacter.max_hp || 10}</span>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 160px)', gap: '50px', justifyContent: 'center', marginBottom: '10px' }}>
+                        <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '22px 10px', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '90px' }}>
+                          <Heart size={20} style={{ color: 'var(--gold-primary)', alignSelf: 'center', marginBottom: '8px' }} />
+                          <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--accent-gold)', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Puntos de Golpe</div>
+                          <div className="mono" style={{ fontSize: '1.6rem', color: 'var(--gold-primary)', fontWeight: 'bold' }}>
+                            {selectedCharacter.current_hp || selectedCharacter.max_hp || 10}<span style={{ color: 'rgba(200, 135, 42, 0.6)', fontSize: '1.1rem', fontWeight: 'normal' }}>/{selectedCharacter.max_hp || 10}</span>
                           </div>
                         </div>
                         <div 
                           onClick={() => setShowACModal(true)}
-                          style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                          style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '22px 10px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '90px' }}
                           onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-gold)'}
                           onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
                           title="Editar Clase de Armadura"
                         >
-                          <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Clase de Armadura</div>
+                          <Shield size={20} style={{ color: 'var(--gold-primary)', alignSelf: 'center', marginBottom: '8px' }} />
+                          <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--accent-gold)', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Clase de Armadura</div>
                           <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--gold-primary)', fontWeight: 'bold' }}>{selectedCharacter.ac || (10 + calcMod(charStats.dex || 10))}</div>
                         </div>
                         {(() => {
                           const customInitiative = (charStats.customInitiativeModifiers || []).reduce((acc: number, m: any) => acc + m.value, 0);
                           const totalInitiativeVal = calcMod(charStats.dex || 10) + customInitiative;
-                          const initColor = totalInitiativeVal >= 0 ? '#27ae60' : '#e74c3c';
                           const initStr = totalInitiativeVal >= 0 ? `+${totalInitiativeVal}` : `${totalInitiativeVal}`;
                           return (
                             <div 
                               onClick={() => setShowInitiativeModal(true)}
-                              style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                              style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '22px 10px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '90px' }}
                               onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-gold)'}
                               onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
                               title="Editar Iniciativa"
                             >
-                              <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Iniciativa</div>
-                              <div className="mono" style={{ fontSize: '1.8rem', color: initColor, fontWeight: 'bold' }}>{initStr}</div>
+                              <Zap size={20} style={{ color: 'var(--gold-primary)', alignSelf: 'center', marginBottom: '8px' }} />
+                              <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--accent-gold)', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Iniciativa</div>
+                              <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--gold-primary)', fontWeight: 'bold' }}>{initStr}</div>
                             </div>
                           );
                         })()}
@@ -2406,13 +2409,14 @@ Modificador de CON: ${getModStr(charStats.con)}.
                           return (
                             <div 
                               onClick={() => setShowSpeedModal(true)}
-                              style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                              style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '22px 10px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '90px' }}
                               onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-gold)'}
                               onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
                               title="Editar Velocidad"
                             >
-                              <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Velocidad</div>
-                              <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--text-parchment)', fontWeight: 'bold' }}>{totalSpeed}</div>
+                              <Footprints size={20} style={{ color: 'var(--gold-primary)', alignSelf: 'center', marginBottom: '8px' }} />
+                              <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--accent-gold)', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Velocidad</div>
+                              <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--gold-primary)', fontWeight: 'bold' }}>{totalSpeed}</div>
                             </div>
                           );
                         })()}
@@ -2422,13 +2426,14 @@ Modificador de CON: ${getModStr(charStats.con)}.
                           return (
                             <div 
                               onClick={() => setShowProficiencyModal(true)}
-                              style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '15px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s' }}
+                              style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '22px 10px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '90px' }}
                               onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-gold)'}
                               onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
                               title="Editar Competencia"
                             >
-                              <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', marginBottom: '4px' }}>Competencia</div>
-                              <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--text-parchment)', fontWeight: 'bold' }}>+{totalProficiency}</div>
+                              <Award size={20} style={{ color: 'var(--gold-primary)', alignSelf: 'center', marginBottom: '8px' }} />
+                              <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--accent-gold)', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Competencia</div>
+                              <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--gold-primary)', fontWeight: 'bold' }}>+{totalProficiency}</div>
                             </div>
                           );
                         })()}
@@ -2689,8 +2694,10 @@ Modificador de CON: ${getModStr(charStats.con)}.
                                             height: '100vh',
                                             background: 'rgba(0, 0, 0, 0.85)',
                                             display: 'flex',
+                                            flexDirection: 'row',
                                             alignItems: 'center',
                                             justifyContent: 'center',
+                                            gap: '16px',
                                             zIndex: 1100
                                           }} onClick={() => setActiveSlotIndex(null)}>
                                             <div
@@ -3003,6 +3010,79 @@ Modificador de CON: ${getModStr(charStats.con)}.
                                                 </button>
                                               </div>
                                             </div>
+
+
+                                          {/* Panel lateral: Ítem Personalizado */}
+                                          <div
+                                            onClick={e => e.stopPropagation()}
+                                            style={{
+                                              background: 'var(--bg-surface)',
+                                              border: '1px solid rgba(200,135,42,0.35)',
+                                              padding: '20px',
+                                              width: '230px',
+                                              flexShrink: 0,
+                                              display: 'flex',
+                                              flexDirection: 'column',
+                                              gap: '12px',
+                                              boxShadow: '0 10px 50px rgba(0,0,0,0.9)',
+                                              alignSelf: 'center',
+                                            }}
+                                          >
+                                            <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--accent-gold)', letterSpacing: '1px', borderBottom: '1px solid rgba(200,135,42,0.25)', paddingBottom: '8px' }}>✦ ÍTEM PERSONALIZADO</div>
+                                            <input
+                                              className="font-cinzel"
+                                              style={{ padding: '8px 10px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white', width: '100%', boxSizing: 'border-box', outline: 'none', fontSize: '0.82rem', borderRadius: '3px' }}
+                                              placeholder="Nombre del material..."
+                                              value={customItemName}
+                                              onChange={e => setCustomItemName(e.target.value)}
+                                            />
+                                            <input
+                                              style={{ padding: '7px 10px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', width: '100%', boxSizing: 'border-box', outline: 'none', fontSize: '0.75rem', borderRadius: '3px' }}
+                                              placeholder="Nota (ej: para Bola de Fuego)"
+                                              value={customItemNote}
+                                              onChange={e => setCustomItemNote(e.target.value)}
+                                            />
+                                            <button
+                                              className="font-cinzel"
+                                              disabled={!customItemName.trim()}
+                                              onClick={() => {
+                                                if (!customItemName.trim()) return;
+                                                const newSlots = {
+                                                  ...slots,
+                                                  [activeSlotIndex]: {
+                                                    name: customItemName.trim(),
+                                                    note: customItemNote.trim(),
+                                                    quantity: slotQuantity,
+                                                    custom: true,
+                                                    type: 'material',
+                                                  }
+                                                };
+                                                const newInv = { ...charInv, slots: newSlots };
+                                                const updated = { ...selectedCharacter, inventory: JSON.stringify(newInv) };
+                                                socket.emit('character:update', updated);
+                                                setSelectedCharacter(updated);
+                                                setCustomItemName('');
+                                                setCustomItemNote('');
+                                                setActiveSlotIndex(null);
+                                              }}
+                                              style={{
+                                                background: customItemName.trim() ? 'rgba(200,135,42,0.2)' : 'transparent',
+                                                border: `1px solid ${customItemName.trim() ? 'var(--accent-gold)' : 'var(--border-color)'}`,
+                                                color: customItemName.trim() ? 'var(--accent-gold)' : 'var(--text-secondary)',
+                                                padding: '8px',
+                                                cursor: customItemName.trim() ? 'pointer' : 'not-allowed',
+                                                fontWeight: 'bold',
+                                                fontSize: '0.75rem',
+                                                letterSpacing: '1px',
+                                                width: '100%',
+                                                borderRadius: '3px',
+                                                transition: 'all 0.2s'
+                                              }}
+                                            >
+                                              GUARDAR
+                                            </button>
+                                            <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', opacity: 0.6, lineHeight: 1.4 }}>Para materiales de conjuro, consumibles improvisados o cualquier cosa que no esté en el compendio.</div>
+                                          </div>
                                           </div>
                                         );
                                       })()}
