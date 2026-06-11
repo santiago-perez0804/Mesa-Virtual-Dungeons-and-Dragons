@@ -1,5 +1,6 @@
 import React from 'react';
-import { parseClasses, safeParseStats } from '../../utils/personaje';
+import { parseClasses } from '../../utils/personaje';
+import { safeParseStats, getProficiencyBonus } from '../../modules/personaje/personaje.utilidades';
 
 export const CharacterSpellsTab = ({ character }: any) => {
   const charLevel = character.level || 1;
@@ -45,6 +46,40 @@ export const CharacterSpellsTab = ({ character }: any) => {
     return 'No Lanzador';
   };
 
+  const getSpellcastingAbility = (clsName: string) => {
+    const clsLower = clsName.toLowerCase().trim();
+    const clsClean = clsLower.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    const carClasses = ['bardo', 'bard', 'hechicero', 'sorcerer', 'brujo', 'warlock', 'paladin'];
+    const sabClasses = ['clerigo', 'cleric', 'druida', 'druid', 'explorador', 'ranger'];
+    const intClasses = ['mago', 'wizard', 'artifice', 'artificer'];
+
+    if (carClasses.some(c => clsClean.includes(c))) return 'Carisma';
+    if (sabClasses.some(c => clsClean.includes(c))) return 'Sabiduría';
+    if (intClasses.some(c => clsClean.includes(c))) return 'Inteligencia';
+
+    const isThirdCasterClass = clsClean.includes('mistico') || 
+                               clsClean.includes('arcano') || 
+                               clsClean.includes('eldritch') || 
+                               clsClean.includes('trickster');
+    if (isThirdCasterClass) return 'Inteligencia';
+
+    if (subclass) {
+      const subClean = subclass.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const isGuerrero = clsClean.includes('guerrero') || clsClean.includes('fighter');
+      const isPicaro = clsClean.includes('picaro') || clsClean.includes('rogue');
+
+      if (isGuerrero && (subClean.includes('mistico') || subClean.includes('eldritch'))) {
+        return 'Inteligencia';
+      }
+      if (isPicaro && (subClean.includes('arcano') || subClean.includes('trickster'))) {
+        return 'Inteligencia';
+      }
+    }
+
+    return null;
+  };
+
   const spellSlotsTable: Record<number, number[]> = {
     1: [2, 0, 0, 0, 0, 0, 0, 0, 0], 2: [3, 0, 0, 0, 0, 0, 0, 0, 0], 3: [4, 2, 0, 0, 0, 0, 0, 0, 0], 4: [4, 3, 0, 0, 0, 0, 0, 0, 0],
     5: [4, 3, 2, 0, 0, 0, 0, 0, 0], 6: [4, 3, 3, 0, 0, 0, 0, 0, 0], 7: [4, 3, 3, 1, 0, 0, 0, 0, 0], 8: [4, 3, 3, 2, 0, 0, 0, 0, 0],
@@ -69,8 +104,51 @@ export const CharacterSpellsTab = ({ character }: any) => {
           ? Array.from(new Set(casterTypes)).join(' / ') 
           : 'No Lanzador';
 
+        const spellcastAbilities = allClassesList
+          .map(cls => getSpellcastingAbility(cls))
+          .filter((ability): ability is string => !!ability);
+        const uniqueAbilities = Array.from(new Set(spellcastAbilities));
+        const displayAbilities = uniqueAbilities.length > 0 ? uniqueAbilities : ['Inteligencia'];
+
+        const customPb = (charStats.customProficiencyModifiers || []).reduce((acc: number, m: any) => acc + m.value, 0);
+        const totalPb = getProficiencyBonus(charLevel) + customPb;
+
+        const getEffectiveStat = (statKey: string) => {
+          const baseVal = charStats[statKey] || 10;
+          const mods = charStats[`custom_${statKey}_modifiers`] || [];
+          const customSum = mods.reduce((acc: number, m: any) => acc + m.value, 0);
+          return baseVal + customSum;
+        };
+
+        const getMod = (statKey: string) => {
+          const score = getEffectiveStat(statKey);
+          return Math.floor((score - 10) / 2);
+        };
+
+        const abilityToKey: Record<string, string> = {
+          'Inteligencia': 'int',
+          'Sabiduría': 'sab',
+          'Carisma': 'car'
+        };
+
+        const spellAttackBonuses = displayAbilities.map(ability => {
+          const key = abilityToKey[ability] || 'int';
+          const mod = getMod(key);
+          const total = totalPb + mod;
+          return total >= 0 ? `+${total}` : `${total}`;
+        });
+
+        const spellSaveDCs = displayAbilities.map(ability => {
+          const key = abilityToKey[ability] || 'int';
+          const mod = getMod(key);
+          return 8 + totalPb + mod;
+        });
+
+        const spellAttackDisplay = spellAttackBonuses.join(' / ');
+        const spellSaveDCDisplay = spellSaveDCs.join(' / ');
+
         return (
-          <div style={{ display: 'flex', justifyContent: 'center', gap: '80px', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '20px' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '40px', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '20px', flexWrap: 'wrap' }}>
             <div style={{ textAlign: 'center' }}>
               <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '6px' }}>CLASE</div>
               <div style={{ color: 'var(--text-parchment)', fontSize: '1rem', fontWeight: 'bold' }}>
@@ -82,6 +160,27 @@ export const CharacterSpellsTab = ({ character }: any) => {
               <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '6px' }}>LANZADOR</div>
               <div style={{ color: 'var(--text-parchment)', fontSize: '1rem', fontWeight: 'bold' }}>
                 {casterTypesDisplay}
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'center' }}>
+              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '6px' }}>APTITUD MÁGICA</div>
+              <div style={{ color: 'var(--text-parchment)', fontSize: '1rem', fontWeight: 'bold' }}>
+                {displayAbilities.join(' / ')}
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'center' }}>
+              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '6px' }}>BONIF. ATAQUE DE CONJURO</div>
+              <div style={{ color: 'var(--text-parchment)', fontSize: '1rem', fontWeight: 'bold' }}>
+                {spellAttackDisplay}
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'center' }}>
+              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '6px' }}>CD SALVACION DE CONJUROS</div>
+              <div style={{ color: 'var(--text-parchment)', fontSize: '1rem', fontWeight: 'bold' }}>
+                {spellSaveDCDisplay}
               </div>
             </div>
           </div>
