@@ -1,5 +1,6 @@
 import React from 'react';
 import { calcMod, getProficiencyBonus } from '../../modules/personaje/personaje.utilidades';
+import { Shield, Swords, Hammer, Languages } from 'lucide-react';
 
 export const CharacterStatsPanel = ({
   character,
@@ -118,6 +119,51 @@ export const CharacterStatsPanel = ({
                   })}
                 </div>
               </div>
+
+              {/* OTRAS COMPETENCIAS */}
+              <div style={{ marginTop: '10px' }}>
+                <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '10px', fontSize: '0.8rem' }}>OTRAS COMPETENCIAS</h4>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '4px 8px' }}>
+                  {(() => {
+                    const parsedCls = typeof character.class === 'string' && character.class.startsWith('{')
+                      ? JSON.parse(character.class)
+                      : { [character.class || 'Guerrero']: 1 };
+                    const firstClass = Object.keys(parsedCls)[0] || 'Guerrero';
+                    const baseRace = (character.race || 'Humano').split(' ')[0];
+                    
+                    const eqProfs = getEquipmentProficiencies(firstClass, baseRace);
+
+                    return (
+                      <>
+                        <div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <Shield size={13} style={{ color: 'var(--accent-gold)' }} /> Armaduras
+                          </div>
+                          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.3', paddingLeft: '18px' }}>{eqProfs.armor}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <Swords size={13} style={{ color: 'var(--accent-gold)' }} /> Armas
+                          </div>
+                          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.3', paddingLeft: '18px' }}>{eqProfs.weapons}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <Hammer size={13} style={{ color: 'var(--accent-gold)' }} /> Herramientas
+                          </div>
+                          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.3', paddingLeft: '18px' }}>{eqProfs.tools}</div>
+                        </div>
+                        <div>
+                          <div style={{ fontSize: '0.72rem', color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <Languages size={13} style={{ color: 'var(--accent-gold)' }} /> Idiomas
+                          </div>
+                          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.3', paddingLeft: '18px' }}>{eqProfs.languages}</div>
+                        </div>
+                      </>
+                    );
+                  })()}
+                </div>
+              </div>
             </>
           );
         })()}
@@ -125,5 +171,85 @@ export const CharacterStatsPanel = ({
       </div>
     </>
   );
+};
+
+const getEquipmentProficiencies = (className: string, raceName: string) => {
+  let armor = "";
+  let weapons = "";
+  let tools = "Ninguna";
+  let languages = "Común";
+
+  const cleanClass = className ? className.trim() : "Guerrero";
+  const cleanRace = raceName ? raceName.trim() : "Humano";
+
+  if (cleanClass.includes("Bárbaro")) {
+    armor = "Armaduras Ligeras, Medianas, Escudos";
+    weapons = "Armas Simples, Armas Marciales";
+  } else if (cleanClass.includes("Bardo")) {
+    armor = "Armaduras Ligeras";
+    weapons = "Armas Simples, Ballesta de mano, Espada corta, Estoque";
+    tools = "Tres instrumentos musicales";
+  } else if (cleanClass.includes("Clérigo")) {
+    armor = "Armaduras Ligeras, Medianas, Escudos";
+    weapons = "Armas Simples";
+  } else if (cleanClass.includes("Druida")) {
+    armor = "Armaduras Ligeras, Medianas, Escudos (no metálicos)";
+    weapons = "Bastón, Daga, Honda, Jabalina, Lanza, Maza, Hoz, Dardo";
+    tools = "Kit de Herboristería";
+  } else if (cleanClass.includes("Guerrero")) {
+    armor = "Todas las Armaduras, Escudos";
+    weapons = "Armas Simples, Armas Marciales";
+  } else if (cleanClass.includes("Monje")) {
+    armor = "Ninguna";
+    weapons = "Armas Simples, Espadas cortas";
+    tools = "Un tipo de herramienta de artesano o instrumento musical";
+  } else if (cleanClass.includes("Paladín")) {
+    armor = "Todas las Armaduras, Escudos";
+    weapons = "Armas Simples, Armas Marciales";
+  } else if (cleanClass.includes("Explorador")) {
+    armor = "Armaduras Ligeras, Medianas, Escudos";
+    weapons = "Armas Simples, Armas Marciales";
+  } else if (cleanClass.includes("Pícaro")) {
+    armor = "Armaduras Ligeras";
+    weapons = "Armas Simples, Ballesta de mano, Estoque, Espada corta";
+    tools = "Herramientas de Ladrón";
+  } else if (cleanClass.includes("Hechicero")) {
+    armor = "Ninguna";
+    weapons = "Daga, Dardo, Honda, Bastón, Ballesta ligera";
+  } else if (cleanClass.includes("Brujo")) {
+    armor = "Armaduras Ligeras";
+    weapons = "Armas Simples";
+  } else if (cleanClass.includes("Mago")) {
+    armor = "Ninguna";
+    weapons = "Daga, Dardo, Honda, Bastón, Ballesta ligera";
+  } else {
+    armor = "Armaduras Ligeras, Medianas, Escudos";
+    weapons = "Armas Simples";
+  }
+
+  if (cleanRace.includes("Elfo")) {
+    languages = "Común, Élfico";
+    weapons += (weapons ? ", " : "") + "Espada larga, Espada corta, Arco largo, Arco corto";
+  } else if (cleanRace.includes("Enano")) {
+    languages = "Común, Enano";
+    weapons += (weapons ? ", " : "") + "Hacha de batalla, Hachuela, Martillo ligero, Martillo de guerra";
+    tools = "Herramientas de herrero, cervecero o albañil";
+  } else if (cleanRace.includes("Mediano")) {
+    languages = "Común, Mediano";
+  } else if (cleanRace.includes("Dracónido")) {
+    languages = "Común, Dracónico";
+  } else if (cleanRace.includes("Gnomo")) {
+    languages = "Común, Gnomo";
+  } else if (cleanRace.includes("Semielfo")) {
+    languages = "Común, Élfico, Un idioma adicional";
+  } else if (cleanRace.includes("Semiorco")) {
+    languages = "Común, Orco";
+  } else if (cleanRace.includes("Tiflin")) {
+    languages = "Común, Infernal";
+  } else {
+    languages = "Común, Un idioma adicional";
+  }
+
+  return { armor, weapons, tools, languages };
 };
 

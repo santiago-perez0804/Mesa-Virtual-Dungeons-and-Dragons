@@ -2461,9 +2461,11 @@ Modificador de CON: ${getModStr(charStats.con)}.
                               })()}
                             </div>
                             {/* Descripción */}
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', height: '480px', overflowY: 'auto', paddingRight: '5px' }}>
-                              <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: 0, fontSize: '0.8rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', letterSpacing: '1px' }}>DESCRIPCIÓN / TRASFONDO</h4>
-                              <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: '1.5', fontSize: '0.85rem', fontStyle: selectedCharacter.description ? 'normal' : 'italic' }} dangerouslySetInnerHTML={{ __html: formatDescription(selectedCharacter.description || "Este aventurero aún no tiene una descripción escrita...") }} />
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', height: '480px' }}>
+                              <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: 0, fontSize: '0.8rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', letterSpacing: '1px' }}>TRASFONDO</h4>
+                              <div style={{ flex: 1, overflowY: 'auto', paddingRight: '5px' }}>
+                                <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: '1.5', fontSize: '0.85rem', fontStyle: selectedCharacter.description ? 'normal' : 'italic' }} dangerouslySetInnerHTML={{ __html: formatDescription(selectedCharacter.description || "Este aventurero aún no tiene una descripción escrita...") }} />
+                              </div>
                             </div>
                           </div>
                           <CharacterInventoryTab character={selectedCharacter} setActiveSlotIndex={setActiveSlotIndex} />
