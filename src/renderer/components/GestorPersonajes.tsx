@@ -15,6 +15,9 @@ import { ACModifierModal } from './personaje/ACModifierModal';
 import { InitiativeModifierModal } from './personaje/InitiativeModifierModal';
 import { SpeedModifierModal } from './personaje/SpeedModifierModal';
 import { ProficiencyModifierModal } from './personaje/ProficiencyModifierModal';
+import { AttributeModifierModal } from './personaje/AttributeModifierModal';
+import { SavingThrowModifierModal } from './personaje/SavingThrowModifierModal';
+import { SkillModifierModal } from './personaje/SkillModifierModal';
 
 import { classDesc, classHitDice, raceDesc, raceBonuses, skillList, statDescriptions, subraces } from '../modules/personaje/personaje.constantes';
 
@@ -193,6 +196,9 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [showInitiativeModal, setShowInitiativeModal] = useState(false);
   const [showSpeedModal, setShowSpeedModal] = useState(false);
   const [showProficiencyModal, setShowProficiencyModal] = useState(false);
+  const [selectedAttributeForModal, setSelectedAttributeForModal] = useState<string | null>(null);
+  const [selectedSavingThrowForModal, setSelectedSavingThrowForModal] = useState<string | null>(null);
+  const [selectedSkillForModal, setSelectedSkillForModal] = useState<{ label: string, key: string } | null>(null);
 
 
   const [isLevelingUp, setIsLevelingUp] = useState(false);
@@ -2353,8 +2359,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                   );
                 })}
               </div>
-
-              {/* CONTENIDO PRINCIPAL BASADO EN TAB (Scrollable container) */}
+                {/* CONTENIDO PRINCIPAL BASADO EN TAB (Scrollable container) */}
               <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', paddingRight: '20px' }}>
               {(() => {
                 const activeTab = charDetailTab === 'hoja' || charDetailTab === 'inventario' ? 'hoja' : (charDetailTab === 'rasgos' || charDetailTab === 'trasfondo' ? 'rasgos' : 'conjuros');
@@ -2362,6 +2367,13 @@ Modificador de CON: ${getModStr(charStats.con)}.
                 const activeTabToRender = activeTab === 'conjuros' && !isSpellcaster ? 'hoja' : activeTab;
 
                 if (activeTabToRender === 'hoja') {
+                  const getEffectiveStat = (statKey: string) => {
+                    const baseVal = charStats[statKey] || 10;
+                    const mods = charStats[`custom_${statKey}_modifiers`] || [];
+                    const customSum = mods.reduce((acc: number, m: any) => acc + m.value, 0);
+                    return baseVal + customSum;
+                  };
+
                   return (
                     <>
                       {/* [C] DASHBOARD DE COMBATE */}
@@ -2382,11 +2394,11 @@ Modificador de CON: ${getModStr(charStats.con)}.
                         >
                           <Shield size={20} style={{ color: 'var(--gold-primary)', alignSelf: 'center', marginBottom: '8px' }} />
                           <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--accent-gold)', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Clase de Armadura</div>
-                          <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--gold-primary)', fontWeight: 'bold' }}>{selectedCharacter.ac || (10 + calcMod(charStats.dex || 10))}</div>
+                          <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--gold-primary)', fontWeight: 'bold' }}>{selectedCharacter.ac || (10 + calcMod(getEffectiveStat('dex')))}</div>
                         </div>
                         {(() => {
                           const customInitiative = (charStats.customInitiativeModifiers || []).reduce((acc: number, m: any) => acc + m.value, 0);
-                          const totalInitiativeVal = calcMod(charStats.dex || 10) + customInitiative;
+                          const totalInitiativeVal = calcMod(getEffectiveStat('dex')) + customInitiative;
                           const initStr = totalInitiativeVal >= 0 ? `+${totalInitiativeVal}` : `${totalInitiativeVal}`;
                           return (
                             <div 
@@ -2442,7 +2454,14 @@ Modificador de CON: ${getModStr(charStats.con)}.
                       {/* [D] CUERPO */}
                       <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '30px' }}>
                         {/* Columna Izquierda (Stats Panel) */}
-                        <CharacterStatsPanel character={selectedCharacter} charStats={charStats} selectedSavingThrows={selectedSavingThrows} selectedSkills={selectedSkills} />
+                        <CharacterStatsPanel 
+                          character={selectedCharacter} 
+                          charStats={charStats} 
+                          selectedSavingThrows={selectedSavingThrows} 
+                          selectedSkills={selectedSkills}
+                          onSelectSavingThrow={(key: string) => setSelectedSavingThrowForModal(key)}
+                          onSelectSkill={(label: string, key: string) => setSelectedSkillForModal({ label, key })}
+                        />
                         {/* Columna Derecha (Atributos + Inventario) */}
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '30px' }}>
                           {/* Atributos */}
@@ -2450,15 +2469,33 @@ Modificador de CON: ${getModStr(charStats.con)}.
                             <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '10px', fontSize: '0.8rem' }}>ATRIBUTOS</h4>
                             <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '10px' }}>
                               {['fue', 'dex', 'con', 'int', 'sab', 'car'].map((key) => {
-                                const value = charStats[key] || 10;
-                                const mod = calcMod(value);
+                                const baseValue = charStats[key] || 10;
+                                const effectiveValue = getEffectiveStat(key);
+                                const mod = calcMod(effectiveValue);
                                 const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
                                 const modColor = mod > 0 ? 'var(--gold-primary)' : (mod < 0 ? '#e74c3c' : 'white');
                                 return (
-                                  <div key={key} className="attribute-card-hover" style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '14px 10px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)' }}>
+                                  <div 
+                                    key={key} 
+                                    className="attribute-card-hover" 
+                                    onClick={() => setSelectedAttributeForModal(key)}
+                                    style={{ 
+                                      background: 'var(--bg-base)', 
+                                      border: '1px solid var(--border-color)', 
+                                      borderRadius: '6px', 
+                                      padding: '14px 10px', 
+                                      textAlign: 'center', 
+                                      display: 'flex', 
+                                      flexDirection: 'column', 
+                                      alignItems: 'center', 
+                                      justifyContent: 'center', 
+                                      boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)',
+                                      cursor: 'pointer'
+                                    }}
+                                  >
                                     <div className="font-cinzel" style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 'bold', letterSpacing: '0.5px' }}>{key.toUpperCase()}</div>
                                     <div className="mono" style={{ fontSize: '26px', fontWeight: 'bold', color: modColor, margin: '6px 0', textShadow: '0 0 5px rgba(255,255,255,0.05)' }}>{modStr}</div>
-                                    <div className="mono" style={{ fontSize: '12px', background: 'rgba(255,255,255,0.05)', padding: '3px 12px', borderRadius: '4px', color: 'var(--text-secondary)' }}>{value}</div>
+                                    <div className="mono" style={{ fontSize: '12px', background: 'rgba(255,255,255,0.05)', padding: '3px 12px', borderRadius: '4px', color: 'var(--text-secondary)' }}>{effectiveValue}</div>
                                   </div>
                                 );
                               })}
@@ -2539,6 +2576,37 @@ Modificador de CON: ${getModStr(charStats.con)}.
                   character={selectedCharacter} 
                   socket={socket} 
                   onClose={() => setShowSpeedModal(false)} 
+                  onUpdate={setSelectedCharacter}
+                />
+              )}
+
+              {selectedAttributeForModal && (
+                <AttributeModifierModal 
+                  character={selectedCharacter} 
+                  socket={socket} 
+                  attributeKey={selectedAttributeForModal as any}
+                  onClose={() => setSelectedAttributeForModal(null)} 
+                  onUpdate={setSelectedCharacter}
+                />
+              )}
+
+              {selectedSavingThrowForModal && (
+                <SavingThrowModifierModal 
+                  character={selectedCharacter} 
+                  socket={socket} 
+                  attributeKey={selectedSavingThrowForModal as any}
+                  onClose={() => setSelectedSavingThrowForModal(null)} 
+                  onUpdate={setSelectedCharacter}
+                />
+              )}
+
+              {selectedSkillForModal && (
+                <SkillModifierModal 
+                  character={selectedCharacter} 
+                  socket={socket} 
+                  skillLabel={selectedSkillForModal.label}
+                  attributeKey={selectedSkillForModal.key as any}
+                  onClose={() => setSelectedSkillForModal(null)} 
                   onUpdate={setSelectedCharacter}
                 />
               )}

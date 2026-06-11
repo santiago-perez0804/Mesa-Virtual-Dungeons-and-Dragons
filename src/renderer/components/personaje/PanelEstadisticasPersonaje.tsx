@@ -6,7 +6,9 @@ export const CharacterStatsPanel = ({
   character,
   charStats,
   selectedSavingThrows,
-  selectedSkills
+  selectedSkills,
+  onSelectSavingThrow,
+  onSelectSkill
 }: any) => {
 
   const SKILLS_MAP: Record<string, string> = {
@@ -74,6 +76,13 @@ export const CharacterStatsPanel = ({
             { label: 'Inteligencia', key: 'int' }, { label: 'Sabiduría', key: 'sab' }, { label: 'Carisma', key: 'car' }
           ];
 
+          const getEffectiveStat = (statKey: string) => {
+            const baseVal = charStats[statKey] || 10;
+            const mods = charStats[`custom_${statKey}_modifiers`] || [];
+            const customSum = mods.reduce((acc: number, m: any) => acc + m.value, 0);
+            return baseVal + customSum;
+          };
+
           return (
             <>
               {/* TIRADAS DE SALVACIÓN */}
@@ -81,12 +90,14 @@ export const CharacterStatsPanel = ({
                 <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '10px', fontSize: '0.8rem' }}>SALVACIONES</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {tsList.map((s) => {
-                    const baseMod = calcMod(charStats[s.key] || 10);
+                    const effectiveScore = getEffectiveStat(s.key);
+                    const baseMod = calcMod(effectiveScore);
                     const isProficient = currentSavingThrows.includes(s.key);
-                    const totalMod = baseMod + (isProficient ? currentPb : 0);
+                    const customSaveMod = (charStats[`custom_save_${s.key}_modifiers`] || []).reduce((acc: number, m: any) => acc + m.value, 0);
+                    const totalMod = baseMod + (isProficient ? currentPb : 0) + customSaveMod;
                     const modStr = totalMod >= 0 ? `+${totalMod}` : `${totalMod}`;
                     return (
-                      <div key={s.label} className="stat-row-hover" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px', background: isProficient ? 'rgba(200, 135, 42, 0.08)' : 'transparent', borderRadius: '4px' }}>
+                      <div key={s.label} className="stat-row-hover" onClick={() => onSelectSavingThrow && onSelectSavingThrow(s.key)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px', background: isProficient ? 'rgba(200, 135, 42, 0.08)' : 'transparent', borderRadius: '4px', cursor: 'pointer' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div className="proficiency-dot" style={{ width: '8px', height: '8px', borderRadius: '50%', background: isProficient ? 'var(--gold-primary)' : 'var(--bg-raised)', border: `1px solid ${isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)'}`, boxShadow: isProficient ? '0 0 8px var(--gold-primary), 0 0 12px var(--gold-primary)' : 'none', transition: 'all 0.2s ease' }} />
                           <span className="font-cinzel" style={{ fontSize: '0.88rem', color: isProficient ? 'var(--text-parchment)' : 'var(--text-secondary)', transition: 'all 0.2s ease' }}>{s.label} <span style={{opacity: 0.5}}>({s.key})</span></span>
@@ -103,12 +114,14 @@ export const CharacterStatsPanel = ({
                 <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '10px', fontSize: '0.8rem' }}>HABILIDADES</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   {phList.map((s) => {
-                    const baseMod = calcMod(charStats[s.key] || 10);
+                    const effectiveScore = getEffectiveStat(s.key);
+                    const baseMod = calcMod(effectiveScore);
                     const isProficient = currentSelectedSkills.includes(s.label);
-                    const totalMod = baseMod + (isProficient ? currentPb : 0);
+                    const customSkillMod = (charStats[`custom_skill_${s.label}_modifiers`] || []).reduce((acc: number, m: any) => acc + m.value, 0);
+                    const totalMod = baseMod + (isProficient ? currentPb : 0) + customSkillMod;
                     const modStr = totalMod >= 0 ? `+${totalMod}` : `${totalMod}`;
                     return (
-                      <div key={s.label} className="stat-row-hover" style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 8px', background: isProficient ? 'rgba(200, 135, 42, 0.05)' : 'transparent', borderRadius: '4px' }}>
+                      <div key={s.label} className="stat-row-hover" onClick={() => onSelectSkill && onSelectSkill(s.label, s.key)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 8px', background: isProficient ? 'rgba(200, 135, 42, 0.05)' : 'transparent', borderRadius: '4px', cursor: 'pointer' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div className="proficiency-dot" style={{ width: '8px', height: '8px', borderRadius: '50%', background: isProficient ? 'var(--gold-primary)' : 'var(--bg-raised)', border: `1px solid ${isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)'}`, boxShadow: isProficient ? '0 0 8px var(--gold-primary), 0 0 12px var(--gold-primary)' : 'none', transition: 'all 0.2s ease' }} />
                           <span className="font-cinzel" style={{ fontSize: '0.88rem', color: isProficient ? 'var(--text-parchment)' : 'var(--text-secondary)', transition: 'all 0.2s ease' }}>{s.label} <span style={{opacity: 0.5}}>({s.key})</span></span>

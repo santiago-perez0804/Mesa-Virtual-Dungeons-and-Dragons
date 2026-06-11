@@ -7,7 +7,14 @@ export const CharacterInventoryTab = ({ character, setActiveSlotIndex }: any) =>
   const charStats = safeParseStats(character.stats);
   const charInv = safeParseInventory(character.inventory);
 
-  const fue = charStats.fue || 10;
+  const getEffectiveStat = (statKey: string) => {
+    const baseVal = charStats[statKey] || 10;
+    const mods = charStats[`custom_${statKey}_modifiers`] || [];
+    const customSum = mods.reduce((acc: number, m: any) => acc + m.value, 0);
+    return baseVal + customSum;
+  };
+
+  const fue = getEffectiveStat('fue');
   const maxWeight = fue * 6.8;
   const slots = charInv.slots || {};
   let currentWeight = 0;

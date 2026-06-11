@@ -9,13 +9,20 @@ interface HeroCardProps {
 export const HeroCard: React.FC<HeroCardProps> = ({ character, onClick }) => {
   const stats = typeof character.stats === 'string' ? JSON.parse(character.stats) : (character.stats || {});
   
+  const getEffectiveStat = (statKey: string) => {
+    const baseVal = stats[statKey] || 10;
+    const mods = stats[`custom_${statKey}_modifiers`] || [];
+    const customSum = mods.reduce((acc: number, m: any) => acc + m.value, 0);
+    return baseVal + customSum;
+  };
+
   const statList = [
-    { label: 'STR', value: stats.fue || 10 },
-    { label: 'DEX', value: stats.dex || 10 },
-    { label: 'CON', value: stats.con || 10 },
-    { label: 'INT', value: stats.int || 10 },
-    { label: 'WIS', value: stats.sab || 10 },
-    { label: 'CHA', value: stats.car || 10 }
+    { label: 'STR', value: getEffectiveStat('fue') },
+    { label: 'DEX', value: getEffectiveStat('dex') },
+    { label: 'CON', value: getEffectiveStat('con') },
+    { label: 'INT', value: getEffectiveStat('int') },
+    { label: 'WIS', value: getEffectiveStat('sab') },
+    { label: 'CHA', value: getEffectiveStat('car') }
   ];
 
   return (
