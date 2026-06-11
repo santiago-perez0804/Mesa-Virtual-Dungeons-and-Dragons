@@ -209,8 +209,6 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [featuresLoading, setFeaturesLoading] = useState(false);
   const [activeFeaturesClass, setActiveFeaturesClass] = useState<string>('');
 
-  const SPELLCASTING_CLASSES = ['Brujo', 'Bardo', 'Paladín', 'Mago', 'Hechicero', 'Druida', 'Clérigo'];
-
   const fetchClassFeatures = async (className: string) => {
     setActiveFeaturesClass(className);
     setFeaturesLoading(true);
@@ -2264,6 +2262,34 @@ Modificador de CON: ${getModStr(charStats.con)}.
         const charInv = safeParseInventory(selectedCharacter.inventory);
         const parsedClasses = parseClasses(selectedCharacter.class);
         const classesDisplay = Object.entries(parsedClasses).map(([cls, lvl]) => `${cls} ${lvl}`).join(' / ');
+        const isSpellcaster = Object.keys(parsedClasses).some(cls => {
+          const clsLower = cls.toLowerCase().trim();
+          const castList = [
+            'brujo', 'warlock', 
+            'bardo', 'bard', 
+            'paladin', 'paladín', 
+            'mago', 'wizard', 
+            'hechicero', 'sorcerer', 
+            'druida', 'druid', 
+            'clerigo', 'clérigo', 'cleric', 
+            'explorador', 'ranger', 
+            'artifice', 'artífice', 'artificer'
+          ];
+          const clsClean = clsLower.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+          const isBaseCaster = castList.some(c => {
+            const cClean = c.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+            return clsClean === cClean;
+          });
+          if (isBaseCaster) return true;
+
+          const hasThirdCasterKeyword = clsClean.includes('mistico') || 
+                                       clsClean.includes('arcano') || 
+                                       clsClean.includes('eldritch knight') || 
+                                       clsClean.includes('arcane trickster');
+          if (hasThirdCasterKeyword) return true;
+
+          return false;
+        });
 
         return (
           <>
@@ -2328,42 +2354,46 @@ Modificador de CON: ${getModStr(charStats.con)}.
 
               {/* [E] TABS (Fixed/static header at the top of content) */}
               <div style={{ display: 'flex', gap: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '15px', overflowX: 'auto', justifyContent: 'center', background: 'transparent', zIndex: 50, padding: '10px 0' }}>
-                {[
-                  { id: 'hoja', label: 'HOJA' },
-                  { id: 'rasgos', label: 'RASGOS' },
-                  { id: 'conjuros', label: 'CONJUROS' }
-                ].map(tab => {
-                  const isActive = charDetailTab === tab.id || (charDetailTab === 'inventario' && tab.id === 'hoja') || (charDetailTab === 'trasfondo' && tab.id === 'rasgos');
-                  return (
-                    <button
-                      key={tab.id}
-                      className="font-cinzel"
-                      onClick={() => setCharDetailTab(tab.id as any)}
-                      style={{
-                        background: isActive ? 'var(--gold-primary)' : 'transparent',
-                        border: '1px solid',
-                        borderColor: isActive ? 'var(--gold-primary)' : 'var(--border-color)',
-                        borderRadius: '4px',
-                        color: isActive ? 'black' : 'var(--text-secondary)',
-                        fontSize: '0.85rem',
-                        fontWeight: 'bold',
-                        padding: '8px 24px',
-                        cursor: 'pointer',
-                        letterSpacing: '1px',
-                        transition: 'all 0.2s',
-                        boxShadow: isActive ? '0 0 10px rgba(200,135,42,0.3)' : 'none'
-                      }}
-                    >
-                      {tab.label}
-                    </button>
-                  );
-                })}
+                {(() => {
+                  const tabsList = [
+                    { id: 'hoja', label: 'HOJA' },
+                    { id: 'rasgos', label: 'RASGOS' }
+                  ];
+                  if (isSpellcaster) {
+                    tabsList.push({ id: 'conjuros', label: 'CONJUROS' });
+                  }
+                  return tabsList.map(tab => {
+                    const isActive = charDetailTab === tab.id || (charDetailTab === 'inventario' && tab.id === 'hoja') || (charDetailTab === 'trasfondo' && tab.id === 'rasgos');
+                    return (
+                      <button
+                        key={tab.id}
+                        className="font-cinzel"
+                        onClick={() => setCharDetailTab(tab.id as any)}
+                        style={{
+                          background: isActive ? 'var(--gold-primary)' : 'transparent',
+                          border: '1px solid',
+                          borderColor: isActive ? 'var(--gold-primary)' : 'var(--border-color)',
+                          borderRadius: '4px',
+                          color: isActive ? 'black' : 'var(--text-secondary)',
+                          fontSize: '0.85rem',
+                          fontWeight: 'bold',
+                          padding: '8px 24px',
+                          cursor: 'pointer',
+                          letterSpacing: '1px',
+                          transition: 'all 0.2s',
+                          boxShadow: isActive ? '0 0 10px rgba(200,135,42,0.3)' : 'none'
+                        }}
+                      >
+                        {tab.label}
+                      </button>
+                    );
+                  });
+                })()}
               </div>
                 {/* CONTENIDO PRINCIPAL BASADO EN TAB (Scrollable container) */}
               <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', paddingRight: '20px' }}>
               {(() => {
                 const activeTab = charDetailTab === 'hoja' || charDetailTab === 'inventario' ? 'hoja' : (charDetailTab === 'rasgos' || charDetailTab === 'trasfondo' ? 'rasgos' : 'conjuros');
-                const isSpellcaster = Object.keys(parsedClasses).some(c => SPELLCASTING_CLASSES.includes(c));
                 const activeTabToRender = activeTab === 'conjuros' && !isSpellcaster ? 'hoja' : activeTab;
 
                 if (activeTabToRender === 'hoja') {
