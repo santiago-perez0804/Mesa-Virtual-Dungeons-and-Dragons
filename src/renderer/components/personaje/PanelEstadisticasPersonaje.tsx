@@ -55,12 +55,12 @@ export const CharacterStatsPanel = ({
                     const totalMod = baseMod + (isProficient ? currentPb : 0);
                     const modStr = totalMod >= 0 ? `+${totalMod}` : `${totalMod}`;
                     return (
-                      <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px', background: isProficient ? 'rgba(200, 135, 42, 0.08)' : 'transparent', borderRadius: '4px' }}>
+                      <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px', background: isProficient ? 'rgba(200, 135, 42, 0.15)' : 'transparent', border: isProficient ? '1px solid rgba(200, 135, 42, 0.3)' : '1px solid transparent', borderRadius: '4px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isProficient ? 'var(--gold-primary)' : 'var(--bg-raised)', border: `1px solid ${isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)'}` }} />
-                          <span className="font-cinzel" style={{ fontSize: '0.88rem', color: isProficient ? 'var(--text-parchment)' : 'var(--text-secondary)' }}>{s.label} <span style={{opacity: 0.5}}>({s.key})</span></span>
+                          <span className="font-cinzel" style={{ fontSize: '0.88rem', color: isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)', fontWeight: isProficient ? 'bold' : 'normal', textShadow: isProficient ? '0 0 5px rgba(200, 135, 42, 0.3)' : 'none' }}>{s.label} <span style={{opacity: 0.5}}>({s.key})</span></span>
                         </div>
-                        <span className="mono" style={{ fontSize: '0.98rem', color: isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)' }}>{modStr}</span>
+                        <span className="mono" style={{ fontSize: '0.98rem', color: isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)', fontWeight: isProficient ? 'bold' : 'normal' }}>{modStr}</span>
                       </div>
                     );
                   })}
@@ -77,12 +77,12 @@ export const CharacterStatsPanel = ({
                     const totalMod = baseMod + (isProficient ? currentPb : 0);
                     const modStr = totalMod >= 0 ? `+${totalMod}` : `${totalMod}`;
                     return (
-                      <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 8px', background: isProficient ? 'rgba(200, 135, 42, 0.05)' : 'transparent', borderRadius: '4px' }}>
+                      <div key={s.label} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 8px', background: isProficient ? 'rgba(200, 135, 42, 0.12)' : 'transparent', border: isProficient ? '1px solid rgba(200, 135, 42, 0.25)' : '1px solid transparent', borderRadius: '4px' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div style={{ width: '8px', height: '8px', borderRadius: '50%', background: isProficient ? 'var(--gold-primary)' : 'var(--bg-raised)', border: `1px solid ${isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)'}` }} />
-                          <span className="font-cinzel" style={{ fontSize: '0.88rem', color: isProficient ? 'var(--text-parchment)' : 'var(--text-secondary)' }}>{s.label} <span style={{opacity: 0.5}}>({s.key})</span></span>
+                          <span className="font-cinzel" style={{ fontSize: '0.88rem', color: isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)', fontWeight: isProficient ? 'bold' : 'normal', textShadow: isProficient ? '0 0 5px rgba(200, 135, 42, 0.3)' : 'none' }}>{s.label} <span style={{opacity: 0.5}}>({s.key})</span></span>
                         </div>
-                        <span className="mono" style={{ fontSize: '0.98rem', color: isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)' }}>{modStr}</span>
+                        <span className="mono" style={{ fontSize: '0.98rem', color: isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)', fontWeight: isProficient ? 'bold' : 'normal' }}>{modStr}</span>
                       </div>
                     );
                   })}

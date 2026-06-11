@@ -2249,7 +2249,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
         return (
           <>
           <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '40px', boxSizing: 'border-box' }}>
-            <div className="clipped-frame" style={{ ...styles.card, width: '100%', maxWidth: '1600px', height: '90vh', maxHeight: '90vh', overflowY: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 0 100px rgba(0,0,0,1)', padding: '40px 40px 30px 40px' }}>
+            <div className="clipped-frame" style={{ ...styles.card, width: '100%', maxWidth: '1600px', height: '90vh', maxHeight: '90vh', overflowY: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 0 100px rgba(0,0,0,1)', padding: '40px 50px 30px 40px' }}>
               <div style={{ position: 'absolute', top: '15px', right: '20px', display: 'flex', alignItems: 'center', gap: '10px', zIndex: 10 }}>
                 <button 
                   onClick={() => startEdit(selectedCharacter)} 
@@ -2342,7 +2342,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
               </div>
 
               {/* CONTENIDO PRINCIPAL BASADO EN TAB (Scrollable container) */}
-              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', paddingRight: '5px' }}>
+              <div style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', paddingRight: '20px' }}>
               {(() => {
                 const activeTab = charDetailTab === 'hoja' || charDetailTab === 'inventario' ? 'hoja' : (charDetailTab === 'rasgos' || charDetailTab === 'trasfondo' ? 'rasgos' : 'conjuros');
                 const isSpellcaster = Object.keys(parsedClasses).some(c => SPELLCASTING_CLASSES.includes(c));
@@ -2423,7 +2423,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                       </div>
 
                       {/* [D] CUERPO */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '30px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '30px' }}>
                         {/* Columna Izquierda (Stats Panel) */}
                         <CharacterStatsPanel character={selectedCharacter} charStats={charStats} selectedSavingThrows={selectedSavingThrows} selectedSkills={selectedSkills} />
                         {/* Columna Derecha (Atributos + Inventario) */}
