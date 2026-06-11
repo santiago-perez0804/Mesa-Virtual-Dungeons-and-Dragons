@@ -72,7 +72,7 @@ export const CharacterSpellsTab = ({ character }: any) => {
         return (
           <div style={{ display: 'flex', justifyContent: 'center', gap: '80px', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '20px' }}>
             <div style={{ textAlign: 'center' }}>
-              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '6px' }}>CLASE LANZADORA</div>
+              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '6px' }}>CLASE</div>
               <div style={{ color: 'var(--text-parchment)', fontSize: '1rem', fontWeight: 'bold' }}>
                 {allClassesList.join(' + ')}
               </div>
