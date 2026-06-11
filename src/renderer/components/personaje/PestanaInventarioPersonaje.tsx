@@ -45,8 +45,52 @@ export const CharacterInventoryTab = ({ character, setActiveSlotIndex }: any) =>
             </span>
           )}
         </h4>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '10px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: '8px', maxWidth: '380px' }}>
           {Array.from({ length: 25 }).map((_, i) => {
+            if (i >= 20) {
+              const coinKeys = ['pc', 'pl', 'el', 'po', 'pt'];
+              const coinImages = [
+                'https://dndpp-bucket-2026-949753869312-us-east-1-an.s3.us-east-1.amazonaws.com/public/assets/pc_coin_icon.png',
+                'https://dndpp-bucket-2026-949753869312-us-east-1-an.s3.us-east-1.amazonaws.com/public/assets/pl_coin_icon.png',
+                'https://dndpp-bucket-2026-949753869312-us-east-1-an.s3.us-east-1.amazonaws.com/public/assets/el_coin_icon.png',
+                'https://dndpp-bucket-2026-949753869312-us-east-1-an.s3.us-east-1.amazonaws.com/public/assets/po_coin_icon.png',
+                'https://dndpp-bucket-2026-949753869312-us-east-1-an.s3.us-east-1.amazonaws.com/public/assets/pt_coin_icon.png'
+              ];
+              const coinIdx = i - 20;
+              const coinKey = coinKeys[coinIdx];
+              const coinImg = coinImages[coinIdx];
+              const coinQty = coins[coinKey] || 0;
+
+              return (
+                <div 
+                  key={i} 
+                  style={{ 
+                    aspectRatio: '1/1', 
+                    background: 'var(--bg-raised)', 
+                    border: '1px solid var(--accent-gold)', 
+                    borderRadius: '4px', 
+                    position: 'relative', 
+                    display: 'flex', 
+                    alignItems: 'center', 
+                    justifyContent: 'center', 
+                    cursor: 'pointer', 
+                    overflow: 'hidden', 
+                    boxShadow: 'inset 0 0 10px rgba(200,135,42,0.1)' 
+                  }} 
+                  onClick={() => setActiveSlotIndex(i)}
+                  title={`Editar monedas de ${coinKey.toUpperCase()}`}
+                >
+                  <img src={coinImg} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={coinKey} />
+                  <div className="mono" style={{ position: 'absolute', bottom: '2px', right: '4px', fontSize: '10px', color: '#f1c40f', textShadow: '0 0 3px black', fontWeight: 'bold' }}>
+                    {coinQty}
+                  </div>
+                  <div style={{ position: 'absolute', top: '2px', left: '4px', fontSize: '9px', color: 'var(--accent-gold)', textShadow: '0 0 2px black', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                    {coinKey}
+                  </div>
+                </div>
+              );
+            }
+
             const item = slots[i];
             return (
               <div key={i} style={{ aspectRatio: '1/1', background: 'var(--bg-raised)', border: `1px solid ${item?.isAttuned ? 'var(--gold-primary)' : 'var(--border-color)'}`, borderRadius: '4px', position: 'relative', display: 'flex', alignItems: 'center', justifyContent: 'center', cursor: 'pointer', overflow: 'hidden', boxShadow: item?.isAttuned ? 'inset 0 0 10px rgba(200,135,42,0.3)' : 'none' }} onClick={() => setActiveSlotIndex(i)}>
@@ -55,13 +99,13 @@ export const CharacterInventoryTab = ({ character, setActiveSlotIndex }: any) =>
                     {item.image ? (
                       <img src={item.image} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt="" />
                     ) : (
-                      <div style={{ fontSize: '1.5rem', opacity: 0.5 }}>{item.type === 'weapon' ? '??' : (item.type === 'armor' ? '???' : '??')}</div>
+                      <div style={{ fontSize: '1.5rem', opacity: 0.5 }}>{item.type === 'weapon' ? '⚔️' : (item.type === 'armor' ? '🛡️' : '📦')}</div>
                     )}
                     {item.quantity > 1 && (
                       <div className="mono" style={{ position: 'absolute', bottom: '2px', right: '4px', fontSize: '10px', color: 'white', textShadow: '0 0 2px black' }}>x{item.quantity}</div>
                     )}
                     {item.isAttuned && (
-                      <div style={{ position: 'absolute', top: '2px', left: '2px', fontSize: '10px' }}>?</div>
+                      <div style={{ position: 'absolute', top: '2px', left: '2px', fontSize: '10px' }}>🔮</div>
                     )}
                   </>
                 ) : (

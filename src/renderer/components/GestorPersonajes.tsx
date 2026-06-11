@@ -2541,6 +2541,137 @@ Modificador de CON: ${getModStr(charStats.con)}.
 {/* SUB-MODAL DE SELECCIÓN DE OBJETO PARA SLOT */}
                                       {activeSlotIndex !== null && (() => {
                                         const slots = charInv.slots || {};
+                                        
+                                        if (activeSlotIndex >= 20) {
+                                          const coinKeys = ['pc', 'pl', 'el', 'po', 'pt'];
+                                          const coinLabels = ['Cobre (PC)', 'Plata (PL)', 'Electrum (EL)', 'Oro (PO)', 'Platino (PT)'];
+                                          const coinIdx = activeSlotIndex - 20;
+                                          const coinKey = coinKeys[coinIdx];
+                                          const coinLabel = coinLabels[coinIdx];
+                                          const currentQty = charInv.coins?.[coinKey] || 0;
+
+                                          return (
+                                            <div style={{
+                                              position: 'fixed',
+                                              top: 0,
+                                              left: 0,
+                                              width: '100vw',
+                                              height: '100vh',
+                                              background: 'rgba(0, 0, 0, 0.85)',
+                                              display: 'flex',
+                                              alignItems: 'center',
+                                              justifyContent: 'center',
+                                              zIndex: 1100
+                                            }} onClick={() => setActiveSlotIndex(null)}>
+                                              <div
+                                                className="clipped-frame"
+                                                onClick={e => e.stopPropagation()}
+                                                style={{
+                                                  background: 'var(--bg-surface)',
+                                                  border: '2px solid var(--accent-gold)',
+                                                  padding: '30px',
+                                                  width: '100%',
+                                                  maxWidth: '350px',
+                                                  display: 'flex',
+                                                  flexDirection: 'column',
+                                                  gap: '20px',
+                                                  boxShadow: '0 10px 50px rgba(0,0,0,0.9)'
+                                                }}
+                                              >
+                                                <h3 className="font-cinzel" style={{ margin: 0, color: 'var(--accent-gold)', fontSize: '1.2rem', textAlign: 'center', letterSpacing: '1px' }}>
+                                                  MODIFICAR MONEDAS
+                                                </h3>
+                                                <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>
+                                                  {coinLabel}
+                                                </div>
+
+                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
+                                                  <input
+                                                    type="number"
+                                                    className="mono"
+                                                    style={{
+                                                      padding: '10px 14px',
+                                                      background: 'var(--bg-base)',
+                                                      border: '1px solid var(--border-color)',
+                                                      color: 'white',
+                                                      width: '140px',
+                                                      textAlign: 'center',
+                                                      fontSize: '1.5rem',
+                                                      outline: 'none',
+                                                      borderRadius: '4px'
+                                                    }}
+                                                    value={currentQty}
+                                                    onChange={e => {
+                                                      const val = parseInt(e.target.value) || 0;
+                                                      const newCoins = {
+                                                        ...(charInv.coins || { pc: 0, pl: 0, el: 0, po: 0, pt: 0 }),
+                                                        [coinKey]: Math.max(0, val)
+                                                      };
+                                                      const newInv = {
+                                                        ...charInv,
+                                                        coins: newCoins
+                                                      };
+                                                      const updated = { ...selectedCharacter, inventory: JSON.stringify(newInv) };
+                                                      socket.emit('character:update', updated);
+                                                      setSelectedCharacter(updated);
+                                                    }}
+                                                  />
+                                                  <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
+                                                    {[-10, -1, 1, 10].map((step) => (
+                                                      <button
+                                                        key={step}
+                                                        onClick={() => {
+                                                          const newCoins = {
+                                                            ...(charInv.coins || { pc: 0, pl: 0, el: 0, po: 0, pt: 0 }),
+                                                            [coinKey]: Math.max(0, currentQty + step)
+                                                          };
+                                                          const newInv = {
+                                                            ...charInv,
+                                                            coins: newCoins
+                                                          };
+                                                          const updated = { ...selectedCharacter, inventory: JSON.stringify(newInv) };
+                                                          socket.emit('character:update', updated);
+                                                          setSelectedCharacter(updated);
+                                                        }}
+                                                        style={{
+                                                          background: 'transparent',
+                                                          border: '1px solid var(--border-color)',
+                                                          color: 'var(--accent-gold)',
+                                                          padding: '6px 12px',
+                                                          cursor: 'pointer',
+                                                          borderRadius: '4px',
+                                                          fontWeight: 'bold',
+                                                          minWidth: '45px'
+                                                        }}
+                                                      >
+                                                        {step > 0 ? `+${step}` : step}
+                                                      </button>
+                                                    ))}
+                                                  </div>
+                                                </div>
+
+                                                <button
+                                                  onClick={() => setActiveSlotIndex(null)}
+                                                  className="font-cinzel"
+                                                  style={{
+                                                    background: 'var(--accent-gold)',
+                                                    border: 'none',
+                                                    color: 'var(--bg-base)',
+                                                    padding: '10px',
+                                                    cursor: 'pointer',
+                                                    fontWeight: 'bold',
+                                                    width: '100%',
+                                                    marginTop: '10px',
+                                                    letterSpacing: '1px'
+                                                  }}
+                                                >
+                                                  CONFIRMAR
+                                                </button>
+                                              </div>
+                                            </div>
+                                          );
+                                        }
+
                                         const currentSlotItem = slots[activeSlotIndex];
 
                                         return (
