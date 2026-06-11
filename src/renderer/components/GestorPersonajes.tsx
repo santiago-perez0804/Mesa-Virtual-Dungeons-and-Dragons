@@ -2431,17 +2431,17 @@ Modificador de CON: ${getModStr(charStats.con)}.
                           {/* Atributos */}
                           <div>
                             <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '10px', fontSize: '0.8rem' }}>ATRIBUTOS</h4>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(80px, 1fr))', gap: '8px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '10px' }}>
                               {['fue', 'dex', 'con', 'int', 'sab', 'car'].map((key) => {
                                 const value = charStats[key] || 10;
                                 const mod = calcMod(value);
                                 const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
                                 const modColor = mod > 0 ? 'var(--gold-primary)' : (mod < 0 ? '#e74c3c' : 'white');
                                 return (
-                                  <div key={key} style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '10px 4px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center' }}>
-                                    <div className="font-cinzel" style={{ fontSize: '10px', color: 'var(--text-secondary)', fontWeight: 'bold' }}>{key.toUpperCase()}</div>
-                                    <div className="mono" style={{ fontSize: '18px', fontWeight: 'bold', color: modColor, margin: '4px 0' }}>{modStr}</div>
-                                    <div className="mono" style={{ fontSize: '10px', background: 'rgba(255,255,255,0.05)', padding: '2px 8px', borderRadius: '3px', color: 'var(--text-secondary)' }}>{value}</div>
+                                  <div key={key} className="attribute-card-hover" style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', borderRadius: '6px', padding: '14px 10px', textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', boxShadow: 'inset 0 0 10px rgba(0,0,0,0.5)' }}>
+                                    <div className="font-cinzel" style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 'bold', letterSpacing: '0.5px' }}>{key.toUpperCase()}</div>
+                                    <div className="mono" style={{ fontSize: '26px', fontWeight: 'bold', color: modColor, margin: '6px 0', textShadow: '0 0 5px rgba(255,255,255,0.05)' }}>{modStr}</div>
+                                    <div className="mono" style={{ fontSize: '12px', background: 'rgba(255,255,255,0.05)', padding: '3px 12px', borderRadius: '4px', color: 'var(--text-secondary)' }}>{value}</div>
                                   </div>
                                 );
                               })}

@@ -215,3 +215,12 @@ input[type="number"] {
 .stat-row-hover:hover .mono {
   color: var(--gold-primary) !important;
 }
+
+/* Hover effect for the 6 attribute cards */
+.attribute-card-hover {
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+.attribute-card-hover:hover {
+  border-color: var(--accent-gold) !important;
+  box-shadow: 0 0 12px rgba(200, 135, 42, 0.45), inset 0 0 10px rgba(0,0,0,0.5) !important;
+}
