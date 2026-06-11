@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Lock, Plus, Trash2, Award, Globe, BookOpen, Scroll } from 'lucide-react';
 import { parseClasses, safeParseStats } from '../../utils/personaje';
+import { classDesc, raceDesc } from '../../modules/personaje/personaje.constantes';
 
 const DEFAULT_RACIAL_TRAITS: Record<string, Array<{ name: string, description: string }>> = {
   'Humano': [
@@ -227,6 +228,26 @@ export const CharacterTraitsTab = ({
         {/* SUB-TAB: CLASE */}
         {activeSubTab === 'clase' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Descripción de Clase */}
+            <div style={{
+              background: 'rgba(200, 135, 42, 0.03)',
+              borderLeft: '3px solid var(--accent-gold)',
+              padding: '16px 20px',
+              borderRadius: '0 4px 4px 0',
+              marginBottom: '10px'
+            }}>
+              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.75rem', fontWeight: 'bold', letterSpacing: '1px', marginBottom: '4px' }}>
+                DESCRIPCIÓN DE CLASE
+              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: '1.5' }}>
+                {(() => {
+                  const activeClass = activeFeaturesClass || Object.keys(allClassesMap)[0] || 'Guerrero';
+                  const baseCls = activeClass.split(' ')[0].trim();
+                  return classDesc[baseCls] || classDesc[activeClass] || "Maestros en sus respectivas disciplinas marciales o arcanas.";
+                })()}
+              </div>
+            </div>
+
             {Object.keys(allClassesMap).length > 1 && (
               <div style={{ display: 'flex', gap: '8px', marginBottom: '10px', flexWrap: 'wrap' }}>
                 {Object.entries(allClassesMap as Record<string, number>).map(([cls, lvl]) => (
@@ -297,6 +318,26 @@ export const CharacterTraitsTab = ({
         {/* SUB-TAB: RAZA */}
         {activeSubTab === 'raza' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Descripción de Raza */}
+            <div style={{
+              background: 'rgba(200, 135, 42, 0.03)',
+              borderLeft: '3px solid var(--accent-gold)',
+              padding: '16px 20px',
+              borderRadius: '0 4px 4px 0',
+              marginBottom: '10px'
+            }}>
+              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.75rem', fontWeight: 'bold', letterSpacing: '1px', marginBottom: '4px' }}>
+                DESCRIPCIÓN DE RAZA
+              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: '1.5' }}>
+                {(() => {
+                  const raceName = character.race || 'Humano';
+                  const baseR = raceName.split(' ')[0].trim();
+                  return raceDesc[baseR] || raceDesc[raceName] || "Los aventureros provienen de diversos pueblos y culturas a lo largo del reino.";
+                })()}
+              </div>
+            </div>
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
               <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: 0 }}>RASGOS RACIALES DE {character.race?.toUpperCase() || 'RAZA'}</h4>
               <button
@@ -377,6 +418,22 @@ export const CharacterTraitsTab = ({
         {/* SUB-TAB: TRASFONDO */}
         {activeSubTab === 'trasfondo' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            {/* Descripción Global de Trasfondo */}
+            <div style={{
+              background: 'rgba(200, 135, 42, 0.03)',
+              borderLeft: '3px solid var(--accent-gold)',
+              padding: '16px 20px',
+              borderRadius: '0 4px 4px 0',
+              marginBottom: '10px'
+            }}>
+              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.75rem', fontWeight: 'bold', letterSpacing: '1px', marginBottom: '4px' }}>
+                RASGOS DE TRASFONDO
+              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: '1.5' }}>
+                Los rasgos de trasfondo definen los orígenes, profesión y conexiones previas de tu aventurero en el mundo. Otorgan ventajas narrativas y habilidades únicas que representan la vida del héroe antes de comenzar su viaje.
+              </div>
+            </div>
+
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
               <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: 0 }}>RASGOS DE TRASFONDO PERSONALIZADOS</h4>
               <button
@@ -449,6 +506,22 @@ export const CharacterTraitsTab = ({
         {/* SUB-TAB: DOTES / IDIOMAS */}
         {activeSubTab === 'dotes' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
+            {/* Descripción Global de Dotes e Idiomas */}
+            <div style={{
+              background: 'rgba(200, 135, 42, 0.03)',
+              borderLeft: '3px solid var(--accent-gold)',
+              padding: '16px 20px',
+              borderRadius: '0 4px 4px 0',
+              marginBottom: '10px'
+            }}>
+              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.75rem', fontWeight: 'bold', letterSpacing: '1px', marginBottom: '4px' }}>
+                DOTES E IDIOMAS
+              </div>
+              <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem', lineHeight: '1.5' }}>
+                Las dotes representan talentos especializados, entrenamiento de combate o capacidades singulares fuera de las progresiones normales de clase. Los idiomas definen el entendimiento y la comunicación de tu aventurero a lo largo de sus viajes.
+              </div>
+            </div>
+
             {/* SECCION DOTES */}
             <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px' }}>
