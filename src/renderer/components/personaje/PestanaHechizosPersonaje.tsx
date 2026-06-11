@@ -1,10 +1,50 @@
-
 import React from 'react';
-import { parseClasses } from '../../utils/personaje';
+import { parseClasses, safeParseStats } from '../../utils/personaje';
 
 export const CharacterSpellsTab = ({ character }: any) => {
   const charLevel = character.level || 1;
   const allClassesList = Object.keys(parseClasses(character.class));
+  const charStats = safeParseStats(character.stats);
+  const subclass = charStats?.subclass;
+
+  const getSpellcasterType = (clsName: string) => {
+    const clsLower = clsName.toLowerCase().trim();
+    const clsClean = clsLower.normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+
+    const fullCasters = ['bardo', 'bard', 'clerigo', 'cleric', 'druida', 'druid', 'hechicero', 'sorcerer', 'mago', 'wizard', 'brujo', 'warlock'];
+    const halfCasters = ['paladin', 'explorador', 'ranger', 'artifice', 'artificer'];
+    
+    if (fullCasters.some(c => clsClean.includes(c))) {
+      return 'Lanzador Completo';
+    }
+    if (halfCasters.some(c => clsClean.includes(c))) {
+      return 'Medio Lanzador';
+    }
+
+    const isThirdCasterClass = clsClean.includes('mistico') || 
+                               clsClean.includes('arcano') || 
+                               clsClean.includes('eldritch') || 
+                               clsClean.includes('trickster');
+    if (isThirdCasterClass) {
+      return 'Tercer Lanzador';
+    }
+
+    if (subclass) {
+      const subClean = subclass.toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g, "");
+      const isGuerrero = clsClean.includes('guerrero') || clsClean.includes('fighter');
+      const isPicaro = clsClean.includes('picaro') || clsClean.includes('rogue');
+      
+      if (isGuerrero && (subClean.includes('mistico') || subClean.includes('eldritch'))) {
+        return 'Tercer Lanzador';
+      }
+      if (isPicaro && (subClean.includes('arcano') || subClean.includes('trickster'))) {
+        return 'Tercer Lanzador';
+      }
+    }
+
+    return 'No Lanzador';
+  };
+
   const spellSlotsTable: Record<number, number[]> = {
     1: [2, 0, 0, 0, 0, 0, 0, 0, 0], 2: [3, 0, 0, 0, 0, 0, 0, 0, 0], 3: [4, 2, 0, 0, 0, 0, 0, 0, 0], 4: [4, 3, 0, 0, 0, 0, 0, 0, 0],
     5: [4, 3, 2, 0, 0, 0, 0, 0, 0], 6: [4, 3, 3, 0, 0, 0, 0, 0, 0], 7: [4, 3, 3, 1, 0, 0, 0, 0, 0], 8: [4, 3, 3, 2, 0, 0, 0, 0, 0],
@@ -16,14 +56,37 @@ export const CharacterSpellsTab = ({ character }: any) => {
   
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '30px' }}>
-      <div style={{ textAlign: 'center', padding: '10px 0' }}>
-        <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '6px' }}>CLASE LANZADORA</div>
-        <div style={{ color: 'var(--text-parchment)', fontSize: '1rem', display: 'flex', gap: '10px', justifyContent: 'center' }}>
-          {allClassesList.map((cls, i) => (
-            <span key={cls}>{cls}{i < allClassesList.length - 1 ? ' + ' : ''}</span>
-          ))}
-        </div>
-      </div>
+      {(() => {
+        const casterTypes = allClassesList.map(cls => {
+          const type = getSpellcasterType(cls);
+          if (type === 'Lanzador Completo') return 'Completo';
+          if (type === 'Medio Lanzador') return 'Parcial';
+          if (type === 'Tercer Lanzador') return 'Terciario';
+          return null;
+        }).filter((t): t is string => !!t);
+
+        const casterTypesDisplay = casterTypes.length > 0 
+          ? Array.from(new Set(casterTypes)).join(' / ') 
+          : 'No Lanzador';
+
+        return (
+          <div style={{ display: 'flex', justifyContent: 'center', gap: '80px', padding: '10px 0', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '20px' }}>
+            <div style={{ textAlign: 'center' }}>
+              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '6px' }}>CLASE LANZADORA</div>
+              <div style={{ color: 'var(--text-parchment)', fontSize: '1rem', fontWeight: 'bold' }}>
+                {allClassesList.join(' + ')}
+              </div>
+            </div>
+
+            <div style={{ textAlign: 'center' }}>
+              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '6px' }}>LANZADOR</div>
+              <div style={{ color: 'var(--text-parchment)', fontSize: '1rem', fontWeight: 'bold' }}>
+                {casterTypesDisplay}
+              </div>
+            </div>
+          </div>
+        );
+      })()}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(9, 1fr)', gap: '8px', background: 'rgba(0,0,0,0.2)', padding: '15px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
         {slots.map((sl: number, i: number) => {
           if (sl === 0) return null;
