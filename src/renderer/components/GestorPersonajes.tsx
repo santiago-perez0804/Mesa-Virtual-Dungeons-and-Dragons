@@ -181,6 +181,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [activeSlotIndex, setActiveSlotIndex] = useState<number | null>(null);
   const [slotSearchQuery, setSlotSearchQuery] = useState('');
   const [slotQuantity, setSlotQuantity] = useState(1);
+  const [coinInputVal, setCoinInputVal] = useState<string>('');
 
   // --- MEJORAS DE INVENTARIO ---
   const [viewingItemDetail, setViewingItemDetail] = useState<any>(null);
@@ -247,6 +248,17 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
       }
     }
   }, [isOverlay, forceOpenId, characters]);
+
+  // EFECTO PARA INICIALIZAR INPUT DE MONEDAS
+  useEffect(() => {
+    if (activeSlotIndex !== null && activeSlotIndex >= 20 && selectedCharacter) {
+      const charInv = safeParseInventory(selectedCharacter.inventory);
+      const coinKeys = ['pc', 'pl', 'el', 'po', 'pt'];
+      const coinKey = coinKeys[activeSlotIndex - 20];
+      const qty = charInv.coins?.[coinKey] || 0;
+      setCoinInputVal(qty.toString());
+    }
+  }, [activeSlotIndex]);
 
 
 
@@ -2583,11 +2595,8 @@ Modificador de CON: ${getModStr(charStats.con)}.
                                                 </h3>
                                                 <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.9rem', textTransform: 'uppercase', letterSpacing: '1px', fontWeight: 'bold' }}>
                                                   {coinLabel}
-                                                </div>
-
-                                                <div style={{ display: 'flex', flexDirection: 'column', gap: '10px', alignItems: 'center' }}>
                                                   <input
-                                                    type="number"
+                                                    type="text"
                                                     className="mono"
                                                     style={{
                                                       padding: '10px 14px',
@@ -2598,40 +2607,23 @@ Modificador de CON: ${getModStr(charStats.con)}.
                                                       textAlign: 'center',
                                                       fontSize: '1.5rem',
                                                       outline: 'none',
-                                                      borderRadius: '4px'
+                                                      borderRadius: '4px',
+                                                      display: 'block',
+                                                      margin: '10px auto'
                                                     }}
-                                                    value={currentQty}
+                                                    value={coinInputVal}
                                                     onChange={e => {
-                                                      const val = parseInt(e.target.value) || 0;
-                                                      const newCoins = {
-                                                        ...(charInv.coins || { pc: 0, pl: 0, el: 0, po: 0, pt: 0 }),
-                                                        [coinKey]: Math.max(0, val)
-                                                      };
-                                                      const newInv = {
-                                                        ...charInv,
-                                                        coins: newCoins
-                                                      };
-                                                      const updated = { ...selectedCharacter, inventory: JSON.stringify(newInv) };
-                                                      socket.emit('character:update', updated);
-                                                      setSelectedCharacter(updated);
+                                                      setCoinInputVal(e.target.value);
                                                     }}
                                                   />
-                                                  <div style={{ display: 'flex', gap: '6px', marginTop: '10px' }}>
+                                                  <div style={{ display: 'flex', gap: '6px', marginTop: '10px', justifyContent: 'center' }}>
                                                     {[-10, -1, 1, 10].map((step) => (
                                                       <button
                                                         key={step}
                                                         onClick={() => {
-                                                          const newCoins = {
-                                                            ...(charInv.coins || { pc: 0, pl: 0, el: 0, po: 0, pt: 0 }),
-                                                            [coinKey]: Math.max(0, currentQty + step)
-                                                          };
-                                                          const newInv = {
-                                                            ...charInv,
-                                                            coins: newCoins
-                                                          };
-                                                          const updated = { ...selectedCharacter, inventory: JSON.stringify(newInv) };
-                                                          socket.emit('character:update', updated);
-                                                          setSelectedCharacter(updated);
+                                                          const currentVal = parseInt(coinInputVal) || 0;
+                                                          const newQty = Math.max(0, currentVal + step);
+                                                          setCoinInputVal(newQty.toString());
                                                         }}
                                                         style={{
                                                           background: 'transparent',
@@ -2651,7 +2643,21 @@ Modificador de CON: ${getModStr(charStats.con)}.
                                                 </div>
 
                                                 <button
-                                                  onClick={() => setActiveSlotIndex(null)}
+                                                  onClick={() => {
+                                                    const val = parseInt(coinInputVal) || 0;
+                                                    const newCoins = {
+                                                      ...(charInv.coins || { pc: 0, pl: 0, el: 0, po: 0, pt: 0 }),
+                                                      [coinKey]: Math.max(0, val)
+                                                    };
+                                                    const newInv = {
+                                                      ...charInv,
+                                                      coins: newCoins
+                                                    };
+                                                    const updated = { ...selectedCharacter, inventory: JSON.stringify(newInv) };
+                                                    socket.emit('character:update', updated);
+                                                    setSelectedCharacter(updated);
+                                                    setActiveSlotIndex(null);
+                                                  }}
                                                   className="font-cinzel"
                                                   style={{
                                                     background: 'var(--accent-gold)',

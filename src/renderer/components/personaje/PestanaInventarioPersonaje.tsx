@@ -62,31 +62,48 @@ export const CharacterInventoryTab = ({ character, setActiveSlotIndex }: any) =>
               const coinQty = coins[coinKey] || 0;
 
               return (
-                <div 
-                  key={i} 
-                  style={{ 
-                    aspectRatio: '1/1', 
-                    background: 'var(--bg-raised)', 
-                    border: '1px solid var(--accent-gold)', 
-                    borderRadius: '4px', 
-                    position: 'relative', 
-                    display: 'flex', 
-                    alignItems: 'center', 
-                    justifyContent: 'center', 
-                    cursor: 'pointer', 
-                    overflow: 'hidden', 
-                    boxShadow: 'inset 0 0 10px rgba(200,135,42,0.1)' 
-                  }} 
-                  onClick={() => setActiveSlotIndex(i)}
-                  title={`Editar monedas de ${coinKey.toUpperCase()}`}
-                >
-                  <img src={coinImg} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={coinKey} />
-                  <div className="mono" style={{ position: 'absolute', bottom: '2px', right: '4px', fontSize: '10px', color: '#f1c40f', textShadow: '0 0 3px black', fontWeight: 'bold' }}>
-                    {coinQty}
+                <div key={i} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '4px' }}>
+                  <div 
+                    style={{ 
+                      aspectRatio: '1/1', 
+                      width: '100%',
+                      background: 'var(--bg-raised)', 
+                      border: '1px solid var(--accent-gold)', 
+                      borderRadius: '4px', 
+                      position: 'relative', 
+                      display: 'flex', 
+                      alignItems: 'center', 
+                      justifyContent: 'center', 
+                      cursor: 'pointer', 
+                      overflow: 'hidden', 
+                      boxShadow: 'inset 0 0 10px rgba(200,135,42,0.1)' 
+                    }} 
+                    onClick={() => setActiveSlotIndex(i)}
+                    title={`Editar monedas de ${coinKey.toUpperCase()}`}
+                  >
+                    <img src={coinImg} style={{ width: '100%', height: '100%', objectFit: 'cover' }} alt={coinKey} />
+                    <div 
+                      className="mono" 
+                      style={{ 
+                        position: 'absolute', 
+                        bottom: '2px', 
+                        right: '4px', 
+                        fontSize: '9px', 
+                        color: 'white', 
+                        background: 'rgba(100, 70, 15, 0.9)', 
+                        padding: '1px 4px',
+                        borderRadius: '3px',
+                        border: '1px solid var(--accent-gold)',
+                        fontWeight: 'bold',
+                        textShadow: '0 1px 2px black' 
+                      }}
+                    >
+                      {coinQty}
+                    </div>
                   </div>
-                  <div style={{ position: 'absolute', top: '2px', left: '4px', fontSize: '9px', color: 'var(--accent-gold)', textShadow: '0 0 2px black', fontWeight: 'bold', textTransform: 'uppercase' }}>
+                  <span style={{ fontSize: '9px', color: 'var(--accent-gold)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.5px' }}>
                     {coinKey}
-                  </div>
+                  </span>
                 </div>
               );
             }
