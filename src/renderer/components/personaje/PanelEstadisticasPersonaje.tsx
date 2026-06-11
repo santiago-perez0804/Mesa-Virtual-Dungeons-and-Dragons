@@ -28,7 +28,8 @@ export const CharacterStatsPanel = ({
           const parsedInv = typeof character.inventory === 'string' ? JSON.parse(character.inventory || '{}') : (character.inventory || {});
           const currentSelectedSkills = parsedInv.habilidades || [];
           const charLevel = character.level || 1;
-          const currentPb = getProficiencyBonus(charLevel);
+          const customPb = (charStats.customProficiencyModifiers || []).reduce((acc: number, m: any) => acc + m.value, 0);
+          const currentPb = getProficiencyBonus(charLevel) + customPb;
           
           const phList = [
             { label: 'Atletismo', key: 'fue' },
