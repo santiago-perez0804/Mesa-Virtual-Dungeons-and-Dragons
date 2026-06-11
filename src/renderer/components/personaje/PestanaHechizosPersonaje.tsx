@@ -1,12 +1,26 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { parseClasses } from '../../utils/personaje';
 import { safeParseStats, getProficiencyBonus } from '../../modules/personaje/personaje.utilidades';
 
-export const CharacterSpellsTab = ({ character }: any) => {
+export const CharacterSpellsTab = ({ character, socket }: any) => {
   const charLevel = character.level || 1;
   const allClassesList = Object.keys(parseClasses(character.class));
   const charStats = safeParseStats(character.stats);
   const subclass = charStats?.subclass;
+  const [activeSpellSubTab, setActiveSpellSubTab] = useState<'myBook' | 'global'>('myBook');
+
+  const handleSaveSpellsInfo = (key: 'cantrips_known' | 'spells_known', value: number) => {
+    if (!socket) return;
+    const updatedStats = {
+      ...charStats,
+      [key]: value
+    };
+    const updatedChar = {
+      ...character,
+      stats: JSON.stringify(updatedStats)
+    };
+    socket.emit('character:update', updatedChar);
+  };
 
   const getSpellcasterType = (clsName: string) => {
     const clsLower = clsName.toLowerCase().trim();
@@ -200,9 +214,10 @@ export const CharacterSpellsTab = ({ character }: any) => {
         ESPACIOS TOTALES
       </div>
       <div style={{ display: 'flex', justifyContent: 'center', gap: '12px', flexWrap: 'wrap', width: '100%' }}>
-        {Array.from({ length: 10 }).map((_, i) => {
-          const maxSlots = i === 0 ? 0 : (slots[i - 1] || 0);
-          const isActive = i === 0 || maxSlots > 0;
+        {Array.from({ length: 9 }).map((_, idx) => {
+          const i = idx + 1;
+          const maxSlots = slots[i - 1] || 0;
+          const isActive = maxSlots > 0;
 
           return (
             <div
@@ -226,15 +241,11 @@ export const CharacterSpellsTab = ({ character }: any) => {
               }}
             >
               <div className="font-cinzel" style={{ fontSize: '0.75rem', color: isActive ? 'var(--accent-gold)' : 'var(--text-secondary)', fontWeight: 'bold', letterSpacing: '1px' }}>
-                {i === 0 ? 'TRUCO' : `N${i}`}
+                N{i}
               </div>
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: '4px', justifyContent: 'center', alignItems: 'center', marginTop: '10px' }}>
-                {i === 0 ? (
-                  <span style={{ fontSize: '1.2rem', color: 'var(--accent-gold)', fontWeight: 'bold', lineHeight: 1 }}>∞</span>
-                ) : maxSlots > 0 ? (
-                  Array.from({ length: maxSlots }).map((_, j) => (
-                    <div key={j} style={{ width: '10px', height: '10px', borderRadius: '50%', border: '1px solid var(--accent-gold)', background: 'var(--accent-gold)', boxShadow: '0 0 6px var(--accent-gold)' }}></div>
-                  ))
+              <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', marginTop: '10px' }}>
+                {maxSlots > 0 ? (
+                  <span style={{ fontSize: '1.2rem', color: 'var(--text-parchment)', fontWeight: 'bold', lineHeight: 1 }}>{maxSlots}</span>
                 ) : (
                   <span style={{ fontSize: '0.75rem', color: 'rgba(255, 255, 255, 0.2)' }}>—</span>
                 )}
@@ -243,24 +254,128 @@ export const CharacterSpellsTab = ({ character }: any) => {
           );
         })}
       </div>
+
+      <div style={{ display: 'flex', justifyContent: 'center', gap: '20px', flexWrap: 'wrap', width: '100%', marginTop: '10px', marginBottom: '10px' }}>
+        <div style={{ 
+          textAlign: 'center', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          background: 'rgba(0, 0, 0, 0.25)', 
+          border: '1px solid rgba(200, 135, 42, 0.15)', 
+          borderRadius: '6px', 
+          padding: '12px 20px', 
+          flex: '1 1 180px', 
+          maxWidth: '240px', 
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3), inset 0 0 8px rgba(0,0,0,0.4)'
+        }}>
+          <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.75rem', letterSpacing: '1.5px', marginBottom: '10px', fontWeight: 'bold' }}>
+            TRUCOS CONOCIDOS
+          </div>
+          <input 
+            type="number" 
+            min={0}
+            value={charStats.cantrips_known || 0} 
+            onChange={(e) => handleSaveSpellsInfo('cantrips_known', Math.max(0, parseInt(e.target.value) || 0))}
+            style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.05)',
+              borderRadius: '4px',
+              color: 'var(--text-parchment)',
+              fontSize: '1.3rem',
+              fontWeight: 'bold',
+              textAlign: 'center',
+              width: '70px',
+              outline: 'none',
+              padding: '2px 0'
+            }}
+          />
+        </div>
+
+        <div style={{ 
+          textAlign: 'center', 
+          display: 'flex', 
+          flexDirection: 'column', 
+          alignItems: 'center', 
+          justifyContent: 'center', 
+          background: 'rgba(0, 0, 0, 0.25)', 
+          border: '1px solid rgba(200, 135, 42, 0.15)', 
+          borderRadius: '6px', 
+          padding: '12px 20px', 
+          flex: '1 1 180px', 
+          maxWidth: '240px', 
+          boxShadow: '0 4px 12px rgba(0,0,0,0.3), inset 0 0 8px rgba(0,0,0,0.4)'
+        }}>
+          <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.75rem', letterSpacing: '1.5px', marginBottom: '10px', fontWeight: 'bold' }}>
+            CONJUROS CONOCIDOS
+          </div>
+          <input 
+            type="number" 
+            min={0}
+            value={charStats.spells_known || 0} 
+            onChange={(e) => handleSaveSpellsInfo('spells_known', Math.max(0, parseInt(e.target.value) || 0))}
+            style={{
+              background: 'rgba(255,255,255,0.02)',
+              border: '1px solid rgba(255,255,255,0.05)',
+              borderRadius: '4px',
+              color: 'var(--text-parchment)',
+              fontSize: '1.3rem',
+              fontWeight: 'bold',
+              textAlign: 'center',
+              width: '70px',
+              outline: 'none',
+              padding: '2px 0'
+            }}
+          />
+        </div>
+      </div>
+
       <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
-        {slots.map((sl: number, lvlIdx: number) => {
-          if (sl === 0 && lvlIdx > 0) return null;
-          const lvl = lvlIdx + 1;
-          return (
-            <div key={lvlIdx} style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '4px' }}>
-              <div style={{ padding: '8px 15px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                <span className="font-cinzel" style={{ color: 'var(--text-parchment)', fontSize: '0.9rem' }}>
-                  {lvlIdx === 0 ? 'TRUCOS' : `NIVEL ${lvl}`}
-                </span>
-                {lvlIdx > 0 && <span className="mono" style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>{sl} ESPACIOS</span>}
-              </div>
-              <div style={{ padding: '15px', color: 'var(--text-secondary)', fontSize: '0.85rem', fontStyle: 'italic', textAlign: 'center' }}>
-                (Pr�ximamente: Sistema de arrastre de hechizos desde el compendio)
-              </div>
+        <div style={{ background: 'rgba(255,255,255,0.02)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '4px' }}>
+          <div style={{ padding: '8px 15px', borderBottom: '1px solid rgba(255,255,255,0.05)', background: 'rgba(0,0,0,0.3)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '10px' }}>
+            <span className="font-cinzel" style={{ color: 'var(--text-parchment)', fontSize: '0.9rem' }}>
+              TODOS LOS CONJUROS
+            </span>
+            <div style={{ display: 'flex', gap: '10px' }}>
+              <button 
+                onClick={() => setActiveSpellSubTab('myBook')}
+                style={{
+                  background: activeSpellSubTab === 'myBook' ? 'rgba(200, 135, 42, 0.15)' : 'transparent',
+                  border: `1px solid ${activeSpellSubTab === 'myBook' ? 'var(--accent-gold)' : 'rgba(255,255,255,0.1)'}`,
+                  color: activeSpellSubTab === 'myBook' ? 'var(--accent-gold)' : 'var(--text-secondary)',
+                  fontSize: '0.75rem',
+                  padding: '4px 10px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Mi libro
+              </button>
+              <button 
+                onClick={() => setActiveSpellSubTab('global')}
+                style={{
+                  background: activeSpellSubTab === 'global' ? 'rgba(200, 135, 42, 0.15)' : 'transparent',
+                  border: `1px solid ${activeSpellSubTab === 'global' ? 'var(--accent-gold)' : 'rgba(255,255,255,0.1)'}`,
+                  color: activeSpellSubTab === 'global' ? 'var(--accent-gold)' : 'var(--text-secondary)',
+                  fontSize: '0.75rem',
+                  padding: '4px 10px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontFamily: 'inherit',
+                  transition: 'all 0.2s'
+                }}
+              >
+                Grimorio global
+              </button>
             </div>
-          );
-        })}
+          </div>
+          <div style={{ padding: '20px', color: 'var(--text-secondary)', fontSize: '0.85rem', fontStyle: 'italic', textAlign: 'center' }}>
+            {activeSpellSubTab === 'myBook' ? '(Aún nada)' : '(Aún nada)'}
+          </div>
+        </div>
       </div>
     </div>
   );

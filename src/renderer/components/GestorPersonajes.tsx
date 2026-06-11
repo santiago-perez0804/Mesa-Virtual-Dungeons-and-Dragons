@@ -2574,7 +2574,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                 } else if (activeTabToRender === 'conjuros') {
                   return (
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '30px', width: '100%' }}>
-                      <CharacterSpellsTab character={selectedCharacter} />
+                      <CharacterSpellsTab character={selectedCharacter} socket={socket} />
                     </div>
                   );
                 }
