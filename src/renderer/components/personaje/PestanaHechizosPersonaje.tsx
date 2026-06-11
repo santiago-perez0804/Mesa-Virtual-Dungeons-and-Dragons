@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import { useState } from 'react';
 import { parseClasses } from '../../utils/personaje';
 import { safeParseStats, getProficiencyBonus } from '../../modules/personaje/personaje.utilidades';
 
@@ -112,7 +112,7 @@ export const CharacterSpellsTab = ({ character, socket }: any) => {
           if (type === 'Medio Lanzador') return 'Parcial';
           if (type === 'Tercer Lanzador') return 'Terciario';
           return null;
-        }).filter((t): t is string => !!t);
+        }).filter((t): t is 'Completo' | 'Parcial' | 'Terciario' => t !== null);
 
         const casterTypesDisplay = casterTypes.length > 0 
           ? Array.from(new Set(casterTypes)).join(' / ') 
@@ -120,7 +120,7 @@ export const CharacterSpellsTab = ({ character, socket }: any) => {
 
         const spellcastAbilities = allClassesList
           .map(cls => getSpellcastingAbility(cls))
-          .filter((ability): ability is string => !!ability);
+          .filter((ability): ability is 'Carisma' | 'Sabiduría' | 'Inteligencia' => ability !== null);
         const uniqueAbilities = Array.from(new Set(spellcastAbilities));
         const displayAbilities = uniqueAbilities.length > 0 ? uniqueAbilities : ['Inteligencia'];
 
