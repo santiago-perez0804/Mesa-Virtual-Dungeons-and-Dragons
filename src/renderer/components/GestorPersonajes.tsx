@@ -2447,6 +2447,25 @@ Modificador de CON: ${getModStr(charStats.con)}.
                               })}
                             </div>
                           </div>
+                          {/* Imagen Fullbody y Descripción */}
+                          <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', marginTop: '10px' }}>
+                            {/* Imagen 2:3 */}
+                            <div style={{ width: '320px', height: '480px', borderRadius: '4px', border: '1px solid var(--border-color)', overflow: 'hidden', flexShrink: 0, background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
+                              {(() => {
+                                const baseRace = (selectedCharacter.race || 'Humano').split(' ')[0];
+                                const defaultPortrait = racePortraits[baseRace] || racePortraits['Humano'];
+                                const displayImage = selectedCharacter.full_body_image || defaultPortrait;
+                                return (
+                                  <img src={displayImage} alt="Cuerpo Entero" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                );
+                              })()}
+                            </div>
+                            {/* Descripción */}
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', height: '480px', overflowY: 'auto', paddingRight: '5px' }}>
+                              <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: 0, fontSize: '0.8rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', letterSpacing: '1px' }}>DESCRIPCIÓN / TRASFONDO</h4>
+                              <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: '1.5', fontSize: '0.85rem', fontStyle: selectedCharacter.description ? 'normal' : 'italic' }} dangerouslySetInnerHTML={{ __html: formatDescription(selectedCharacter.description || "Este aventurero aún no tiene una descripción escrita...") }} />
+                            </div>
+                          </div>
                           <CharacterInventoryTab character={selectedCharacter} setActiveSlotIndex={setActiveSlotIndex} />
                         </div>
                       </div>
