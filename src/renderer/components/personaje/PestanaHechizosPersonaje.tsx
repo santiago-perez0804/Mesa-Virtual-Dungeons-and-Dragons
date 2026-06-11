@@ -148,48 +148,48 @@ export const CharacterSpellsTab = ({ character }: any) => {
         const spellSaveDCDisplay = spellSaveDCs.join(' / ');
 
         return (
-          <div style={{ display: 'flex', justifyContent: 'space-around', padding: '20px 80px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '30px', flexWrap: 'wrap', gap: '20px' }}>
-            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '24px', lineHeight: '1.2', height: '32px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', textAlign: 'center' }}>
+          <div style={{ display: 'flex', justifyContent: 'center', padding: '20px 40px', borderBottom: '1px solid rgba(255,255,255,0.05)', paddingBottom: '30px', flexWrap: 'wrap', gap: '20px' }}>
+            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.25)', border: '1px solid rgba(200, 135, 42, 0.15)', borderRadius: '6px', padding: '15px 20px', flex: '1 1 160px', maxWidth: '220px', boxShadow: '0 4px 12px rgba(0,0,0,0.3), inset 0 0 8px rgba(0,0,0,0.4)' }}>
+              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '16px', lineHeight: '1.2', height: '42px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', textAlign: 'center' }}>
                 CLASE
               </div>
-              <div style={{ color: 'var(--text-parchment)', fontSize: '1rem', fontWeight: 'bold' }}>
+              <div style={{ color: 'var(--text-parchment)', fontSize: '1.1rem', fontWeight: 'bold' }}>
                 {allClassesList.join(' + ')}
               </div>
             </div>
 
-            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '24px', lineHeight: '1.2', height: '32px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', textAlign: 'center' }}>
+            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.25)', border: '1px solid rgba(200, 135, 42, 0.15)', borderRadius: '6px', padding: '15px 20px', flex: '1 1 160px', maxWidth: '220px', boxShadow: '0 4px 12px rgba(0,0,0,0.3), inset 0 0 8px rgba(0,0,0,0.4)' }}>
+              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '16px', lineHeight: '1.2', height: '42px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', textAlign: 'center' }}>
                 LANZADOR
               </div>
-              <div style={{ color: 'var(--text-parchment)', fontSize: '1rem', fontWeight: 'bold' }}>
+              <div style={{ color: 'var(--text-parchment)', fontSize: '1.1rem', fontWeight: 'bold' }}>
                 {casterTypesDisplay}
               </div>
             </div>
 
-            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '24px', lineHeight: '1.2', height: '32px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', textAlign: 'center' }}>
+            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.25)', border: '1px solid rgba(200, 135, 42, 0.15)', borderRadius: '6px', padding: '15px 20px', flex: '1 1 160px', maxWidth: '220px', boxShadow: '0 4px 12px rgba(0,0,0,0.3), inset 0 0 8px rgba(0,0,0,0.4)' }}>
+              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '16px', lineHeight: '1.2', height: '42px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', textAlign: 'center' }}>
                 APTITUD MÁGICA
               </div>
-              <div style={{ color: 'var(--text-parchment)', fontSize: '1rem', fontWeight: 'bold' }}>
+              <div style={{ color: 'var(--text-parchment)', fontSize: '1.1rem', fontWeight: 'bold' }}>
                 {displayAbilities.join(' / ')}
               </div>
             </div>
 
-            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '24px', lineHeight: '1.2', height: '32px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', textAlign: 'center' }}>
+            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.25)', border: '1px solid rgba(200, 135, 42, 0.15)', borderRadius: '6px', padding: '15px 20px', flex: '1 1 160px', maxWidth: '220px', boxShadow: '0 4px 12px rgba(0,0,0,0.3), inset 0 0 8px rgba(0,0,0,0.4)' }}>
+              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '16px', lineHeight: '1.2', height: '42px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', textAlign: 'center' }}>
                 BONIF.<br />ATAQUE DE CONJURO
               </div>
-              <div style={{ color: 'var(--text-parchment)', fontSize: '1rem', fontWeight: 'bold' }}>
+              <div style={{ color: 'var(--text-parchment)', fontSize: '1.1rem', fontWeight: 'bold' }}>
                 {spellAttackDisplay}
               </div>
             </div>
 
-            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '24px', lineHeight: '1.2', height: '32px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', textAlign: 'center' }}>
+            <div style={{ textAlign: 'center', display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', background: 'rgba(0, 0, 0, 0.25)', border: '1px solid rgba(200, 135, 42, 0.15)', borderRadius: '6px', padding: '15px 20px', flex: '1 1 160px', maxWidth: '220px', boxShadow: '0 4px 12px rgba(0,0,0,0.3), inset 0 0 8px rgba(0,0,0,0.4)' }}>
+              <div className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', letterSpacing: '2px', marginBottom: '16px', lineHeight: '1.2', height: '42px', display: 'flex', alignItems: 'flex-end', justifyContent: 'center', textAlign: 'center' }}>
                 CD<br />SALVACION DE CONJUROS
               </div>
-              <div style={{ color: 'var(--text-parchment)', fontSize: '1rem', fontWeight: 'bold' }}>
+              <div style={{ color: 'var(--text-parchment)', fontSize: '1.1rem', fontWeight: 'bold' }}>
                 {spellSaveDCDisplay}
               </div>
             </div>
