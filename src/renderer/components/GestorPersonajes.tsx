@@ -36,7 +36,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [showTraits, setShowTraits] = useState(false);
 
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
-  const [selectedSavingThrows, setSelectedSavingThrows] = useState<string[]>([]);
+  const [selectedSavingThrows, setSelectedSavingThrows] = useState<string[]>(['fue', 'con']);
   const [backgroundItems, setBackgroundItems] = useState<string[]>(['', '']);
   const [skillQuery, setSkillQuery] = useState('');
   const [skillDropdownOpen, setSkillDropdownOpen] = useState(false);
@@ -64,7 +64,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     subrace: 'Estándar',
     class: 'Guerrero',
     attributes: { fue: 8, dex: 8, con: 8, int: 8, sab: 8, car: 8 },
-    savingThrows: [],
+    savingThrows: ['fue', 'con'],
     background: null,
     skillProficiencies: [],
     equipment: [],
@@ -418,7 +418,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     setInventory(defaultInventory);
     setStats({ fue: 8, dex: 8, con: 8, int: 8, sab: 8, car: 8 });
     setSelectedSkills([]);
-    setSelectedSavingThrows([]);
+    setSelectedSavingThrows(['fue', 'con']);
     setBackgroundItems(['', '']);
     setHitDieValue(10);
     setShowTraits(false);

@@ -199,3 +199,19 @@ input[type="number"] {
   opacity: 1;
   pointer-events: auto;
 }
+
+/* Hover effect for character saving throws and skills */
+.stat-row-hover {
+  transition: all 0.2s ease;
+}
+.stat-row-hover:hover {
+  background: rgba(200, 135, 42, 0.12) !important;
+  cursor: pointer;
+}
+.stat-row-hover:hover .font-cinzel {
+  color: var(--gold-primary) !important;
+  text-shadow: 0 0 5px rgba(201, 162, 39, 0.4);
+}
+.stat-row-hover:hover .mono {
+  color: var(--gold-primary) !important;
+}

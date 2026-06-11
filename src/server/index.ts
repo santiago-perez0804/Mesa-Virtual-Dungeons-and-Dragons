@@ -50,7 +50,7 @@ function safeParseJSON(field: any, defaultVal: any): any {
 }
 
 function safeParseInventory(inventoryField: any): any {
-  const defaultInventory = { armas: [], armaduras: [], consumibles: [], artefactos: [], coins: { pc: 0, pl: 0, el: 0, po: 0, pt: 0 }, slots: {} };
+  const defaultInventory = { armas: [], armaduras: [], consumibles: [], artefactos: [], coins: { pc: 0, pl: 0, el: 0, po: 0, pt: 0 }, slots: {}, habilidades: [], salvaciones: [], trasfondo: [] };
   const parsed = safeParseJSON(inventoryField, defaultInventory);
   return {
     armas: Array.isArray(parsed.armas) ? parsed.armas : [],
@@ -58,7 +58,10 @@ function safeParseInventory(inventoryField: any): any {
     consumibles: Array.isArray(parsed.consumibles) ? parsed.consumibles : [],
     artefactos: Array.isArray(parsed.artefactos) ? parsed.artefactos : [],
     coins: parsed.coins && typeof parsed.coins === 'object' ? parsed.coins : defaultInventory.coins,
-    slots: parsed.slots && typeof parsed.slots === 'object' ? parsed.slots : {}
+    slots: parsed.slots && typeof parsed.slots === 'object' ? parsed.slots : {},
+    habilidades: Array.isArray(parsed.habilidades) ? parsed.habilidades : [],
+    salvaciones: Array.isArray(parsed.salvaciones) ? parsed.salvaciones : [],
+    trasfondo: Array.isArray(parsed.trasfondo) ? parsed.trasfondo : []
   };
 }
 
