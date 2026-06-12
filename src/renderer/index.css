@@ -121,6 +121,63 @@
   --compendium-search-padding: 12px 20px;
   --compendium-grid-minmax: 300px;
   --compendium-grid-gap: 30px;
+
+  /* Hoja de Personaje responsiva */
+  --char-sheet-dash-columns: repeat(5, 160px);
+  --char-sheet-dash-gap: 50px;
+  --char-sheet-dash-padding: 22px 10px;
+  --char-sheet-dash-min-height: 90px;
+  --char-sheet-dash-icon-size: 20px;
+  --char-sheet-dash-label-size: 0.65rem;
+  --char-sheet-dash-value-size: 1.8rem;
+  --char-sheet-dash-hp-size: 1.6rem;
+  --char-sheet-dash-hp-slash-size: 1.1rem;
+
+  --char-sheet-body-columns: auto 1fr;
+  --char-sheet-body-gap: 30px;
+
+  --char-sheet-stats-min-w: 300px;
+  --char-sheet-stats-max-w: 340px;
+  --char-sheet-stats-gap: 20px;
+  --char-sheet-stats-header-size: 0.8rem;
+  --char-sheet-stats-item-padding: 4px 8px;
+  --char-sheet-stats-item-font-size: 0.88rem;
+  --char-sheet-stats-item-val-size: 0.98rem;
+
+  --char-sheet-attr-padding: 14px 10px;
+  --char-sheet-attr-gap: 10px;
+  --char-sheet-attr-minmax: 110px;
+  --char-sheet-attr-title-size: 13px;
+  --char-sheet-attr-val-size: 26px;
+  --char-sheet-attr-base-size: 12px;
+
+  --char-sheet-portrait-w: 320px;
+  --char-sheet-portrait-h: 480px;
+  --char-sheet-portrait-gap: 20px;
+  --char-sheet-portrait-direction: row;
+
+  --char-sheet-inv-gap: 40px;
+  --char-sheet-inv-flex-direction: row;
+  --char-sheet-inv-col-w: 560px;
+  --char-sheet-atk-col-w: 420px;
+  --char-sheet-inv-flex: 0 0 auto;
+
+  /* Modal Ventana Hoja de Personaje responsiva */
+  --char-sheet-modal-padding: 40px;
+  --char-sheet-card-padding: 40px 50px 30px 40px;
+  --char-sheet-card-gap: 20px;
+  --char-sheet-card-height: 90vh;
+  --char-sheet-card-max-w: 1600px;
+  
+  --char-sheet-header-grid: 120px 1fr auto;
+  --char-sheet-header-gap: 20px;
+  --char-sheet-header-avatar-size: 120px;
+  --char-sheet-header-avatar-font: 2.5rem;
+  --char-sheet-header-name-size: 2.2rem;
+  --char-sheet-header-level-size: 0.9rem;
+  --char-sheet-header-race-size: 13px;
+  --char-sheet-header-btn-top: 15px;
+  --char-sheet-header-btn-right: 20px;
 }
 
 *, *::before, *::after {
@@ -379,6 +436,63 @@ input[type="number"] {
     --hero-card-stat-value-size: 0.75rem;
     --hero-card-min-height: 140px;
     --hero-card-plus-size: 1.5rem;
+
+    /* Hoja de Personaje responsiva - Notebooks */
+    --char-sheet-dash-columns: repeat(5, 120px);
+    --char-sheet-dash-gap: 20px;
+    --char-sheet-dash-padding: 12px 6px;
+    --char-sheet-dash-min-height: 70px;
+    --char-sheet-dash-icon-size: 16px;
+    --char-sheet-dash-label-size: 0.55rem;
+    --char-sheet-dash-value-size: 1.4rem;
+    --char-sheet-dash-hp-size: 1.2rem;
+    --char-sheet-dash-hp-slash-size: 0.95rem;
+
+    --char-sheet-body-columns: auto 1fr;
+    --char-sheet-body-gap: 20px;
+
+    --char-sheet-stats-min-w: 240px;
+    --char-sheet-stats-max-w: 270px;
+    --char-sheet-stats-gap: 15px;
+    --char-sheet-stats-header-size: 0.75rem;
+    --char-sheet-stats-item-padding: 3px 6px;
+    --char-sheet-stats-item-font-size: 0.78rem;
+    --char-sheet-stats-item-val-size: 0.88rem;
+
+    --char-sheet-attr-padding: 8px 6px;
+    --char-sheet-attr-gap: 8px;
+    --char-sheet-attr-minmax: 95px;
+    --char-sheet-attr-title-size: 11px;
+    --char-sheet-attr-val-size: 20px;
+    --char-sheet-attr-base-size: 10px;
+
+    --char-sheet-portrait-w: 220px;
+    --char-sheet-portrait-h: 330px;
+    --char-sheet-portrait-gap: 15px;
+    --char-sheet-portrait-direction: row;
+
+    --char-sheet-inv-gap: 20px;
+    --char-sheet-inv-flex-direction: row;
+    --char-sheet-inv-col-w: 460px;
+    --char-sheet-atk-col-w: 320px;
+    --char-sheet-inv-flex: 0 0 auto;
+
+    /* Modal Ventana Hoja de Personaje responsiva - Notebooks */
+    --char-sheet-modal-padding: 15px;
+    --char-sheet-card-padding: 20px 30px 15px 20px;
+    --char-sheet-card-gap: 12px;
+    --char-sheet-card-height: 94vh;
+    --char-sheet-card-max-w: 1200px;
+
+    --char-sheet-header-grid: 80px 1fr auto;
+    --char-sheet-header-gap: 15px;
+    --char-sheet-header-avatar-size: 80px;
+    --char-sheet-header-avatar-font: 1.8rem;
+    --char-sheet-header-name-size: 1.6rem;
+    --char-sheet-header-level-size: 0.78rem;
+    --char-sheet-header-race-size: 11px;
+    --char-sheet-header-btn-top: 8px;
+    --char-sheet-header-btn-right: 12px;
   }
 }
 
@@ -454,5 +568,63 @@ input[type="number"] {
     --hero-card-stat-value-size: 0.7rem;
     --hero-card-min-height: 110px;
     --hero-card-plus-size: 1.2rem;
+
+    /* Hoja de Personaje responsiva - Tablets / Small Notebooks */
+    --char-sheet-dash-columns: repeat(5, 1fr);
+    --char-sheet-dash-gap: 10px;
+    --char-sheet-dash-padding: 8px 4px;
+    --char-sheet-dash-min-height: 60px;
+    --char-sheet-dash-icon-size: 14px;
+    --char-sheet-dash-label-size: 0.5rem;
+    --char-sheet-dash-value-size: 1.1rem;
+    --char-sheet-dash-hp-size: 1.0rem;
+    --char-sheet-dash-hp-slash-size: 0.8rem;
+
+    --char-sheet-body-columns: 1fr;
+    --char-sheet-body-gap: 20px;
+
+    --char-sheet-stats-min-w: 100%;
+    --char-sheet-stats-max-w: 100%;
+    --char-sheet-stats-gap: 12px;
+    --char-sheet-stats-header-size: 0.7rem;
+    --char-sheet-stats-item-padding: 2px 4px;
+    --char-sheet-stats-item-font-size: 0.72rem;
+    --char-sheet-stats-item-val-size: 0.8rem;
+
+    --char-sheet-attr-padding: 6px 4px;
+    --char-sheet-attr-gap: 6px;
+    --char-sheet-attr-minmax: 75px;
+    --char-sheet-attr-title-size: 10px;
+    --char-sheet-attr-val-size: 16px;
+    --char-sheet-attr-base-size: 9px;
+
+    --char-sheet-portrait-w: 100%;
+    --char-sheet-portrait-h: 300px;
+    --char-sheet-portrait-gap: 10px;
+    --char-sheet-portrait-direction: column;
+    --char-sheet-portrait-desc-h: 200px;
+
+    --char-sheet-inv-gap: 15px;
+    --char-sheet-inv-flex-direction: column;
+    --char-sheet-inv-col-w: 100%;
+    --char-sheet-atk-col-w: 100%;
+    --char-sheet-inv-flex: 1 1 auto;
+
+    /* Modal Ventana Hoja de Personaje responsiva - Tablets / Small Screens */
+    --char-sheet-modal-padding: 8px;
+    --char-sheet-card-padding: 12px 16px 8px 12px;
+    --char-sheet-card-gap: 10px;
+    --char-sheet-card-height: 98vh;
+    --char-sheet-card-max-w: 100%;
+
+    --char-sheet-header-grid: 60px 1fr auto;
+    --char-sheet-header-gap: 10px;
+    --char-sheet-header-avatar-size: 60px;
+    --char-sheet-header-avatar-font: 1.4rem;
+    --char-sheet-header-name-size: 1.25rem;
+    --char-sheet-header-level-size: 0.7rem;
+    --char-sheet-header-race-size: 10px;
+    --char-sheet-header-btn-top: 6px;
+    --char-sheet-header-btn-right: 8px;
   }
 }

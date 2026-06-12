@@ -2293,9 +2293,9 @@ Modificador de CON: ${getModStr(charStats.con)}.
 
         return (
           <>
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: '40px', boxSizing: 'border-box' }}>
-            <div className="clipped-frame" style={{ ...styles.card, width: '100%', maxWidth: '1600px', height: '90vh', maxHeight: '90vh', overflowY: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', gap: '20px', boxShadow: '0 0 100px rgba(0,0,0,1)', padding: '40px 50px 30px 40px' }}>
-              <div style={{ position: 'absolute', top: '15px', right: '20px', display: 'flex', alignItems: 'center', gap: '10px', zIndex: 10 }}>
+          <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 'var(--char-sheet-modal-padding)', boxSizing: 'border-box' }}>
+            <div className="clipped-frame" style={{ ...styles.card, width: '100%', maxWidth: 'var(--char-sheet-card-max-w)', height: 'var(--char-sheet-card-height)', maxHeight: 'var(--char-sheet-card-height)', overflowY: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', gap: 'var(--char-sheet-card-gap)', boxShadow: '0 0 100px rgba(0,0,0,1)', padding: 'var(--char-sheet-card-padding)' }}>
+              <div style={{ position: 'absolute', top: 'var(--char-sheet-header-btn-top)', right: 'var(--char-sheet-header-btn-right)', display: 'flex', alignItems: 'center', gap: '10px', zIndex: 10 }}>
                 <button 
                   onClick={() => startEdit(selectedCharacter)} 
                   style={{ background: 'none', border: 'none', color: 'var(--text-secondary)', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '6px', transition: 'all 0.2s' }} 
@@ -2317,20 +2317,20 @@ Modificador de CON: ${getModStr(charStats.con)}.
               </div>
 
               {/* [A] CABECERA */}
-              <div style={{ display: 'grid', gridTemplateColumns: '120px 1fr auto', gap: '20px', alignItems: 'center' }}>
-                <div style={{ width: '120px', height: '120px', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--gold-primary)', boxShadow: '0 0 20px rgba(200,135,42,0.4)' }}>
+              <div style={{ display: 'grid', gridTemplateColumns: 'var(--char-sheet-header-grid)', gap: 'var(--char-sheet-header-gap)', alignItems: 'center' }}>
+                <div style={{ width: 'var(--char-sheet-header-avatar-size)', height: 'var(--char-sheet-header-avatar-size)', borderRadius: '50%', overflow: 'hidden', border: '2px solid var(--gold-primary)', boxShadow: '0 0 20px rgba(200,135,42,0.4)' }}>
                   {selectedCharacter.image ? (
                     <img src={selectedCharacter.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                   ) : (
-                    <div style={{ width: '100%', height: '100%', background: 'var(--bg-raised)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '2.5rem' }}><User className="w-full h-full p-2" /></div>
+                    <div style={{ width: '100%', height: '100%', background: 'var(--bg-raised)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--char-sheet-header-avatar-font)' }}><User className="w-full h-full p-2" /></div>
                   )}
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center', gap: '4px' }}>
                   <div style={{ display: 'flex', alignItems: 'center', gap: '15px', flexWrap: 'wrap' }}>
-                    <h1 className="font-cinzel" style={{ margin: 0, color: 'var(--gold-primary)', fontSize: '2.2rem', lineHeight: '1.1', textShadow: '0 0 10px rgba(200,135,42,0.2)' }}>{selectedCharacter.name}</h1>
+                    <h1 className="font-cinzel" style={{ margin: 0, color: 'var(--gold-primary)', fontSize: 'var(--char-sheet-header-name-size)', lineHeight: '1.1', textShadow: '0 0 10px rgba(200,135,42,0.2)' }}>{selectedCharacter.name}</h1>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                       <div style={{ background: 'rgba(255,255,255,0.05)', padding: '4px 12px', borderRadius: '20px', border: '1px solid var(--border-color)', display: 'flex', alignItems: 'center' }}>
-                        <span className="font-cinzel" style={{ fontSize: '0.9rem', color: 'var(--text-secondary)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Nivel {selectedCharacter.level || 1}</span>
+                        <span className="font-cinzel" style={{ fontSize: 'var(--char-sheet-header-level-size)', color: 'var(--text-secondary)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>Nivel {selectedCharacter.level || 1}</span>
                       </div>
                       <button 
                         onClick={() => { setIsLevelingUp(true); setLevelUpClass(Object.keys(parsedClasses)[0] || 'Guerrero'); }} 
@@ -2343,7 +2343,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                       </button>
                     </div>
                   </div>
-                  <div className="font-cinzel" style={{ fontSize: '13px', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                  <div className="font-cinzel" style={{ fontSize: 'var(--char-sheet-header-race-size)', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
                     {selectedCharacter.race || 'Humano'} • {classesDisplay}
                   </div>
                 </div>
@@ -2407,24 +2407,24 @@ Modificador de CON: ${getModStr(charStats.con)}.
                   return (
                     <>
                       {/* [C] DASHBOARD DE COMBATE */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 160px)', gap: '50px', justifyContent: 'center', marginBottom: '10px' }}>
-                        <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '22px 10px', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '90px' }}>
-                          <Heart size={20} style={{ color: 'var(--gold-primary)', alignSelf: 'center', marginBottom: '8px' }} />
-                          <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--accent-gold)', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Puntos de Golpe</div>
-                          <div className="mono" style={{ fontSize: '1.6rem', color: 'var(--gold-primary)', fontWeight: 'bold' }}>
-                            {selectedCharacter.current_hp || selectedCharacter.max_hp || 10}<span style={{ color: 'rgba(200, 135, 42, 0.6)', fontSize: '1.1rem', fontWeight: 'normal' }}>/{selectedCharacter.max_hp || 10}</span>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'var(--char-sheet-dash-columns)', gap: 'var(--char-sheet-dash-gap)', justifyContent: 'center', marginBottom: '10px' }}>
+                        <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: 'var(--char-sheet-dash-padding)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 'var(--char-sheet-dash-min-height)' }}>
+                          <Heart size={20} style={{ color: 'var(--gold-primary)', alignSelf: 'center', marginBottom: '8px', width: 'var(--char-sheet-dash-icon-size)', height: 'var(--char-sheet-dash-icon-size)' }} />
+                          <div className="font-cinzel" style={{ fontSize: 'var(--char-sheet-dash-label-size)', color: 'var(--accent-gold)', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Puntos de Golpe</div>
+                          <div className="mono" style={{ fontSize: 'var(--char-sheet-dash-hp-size)', color: 'var(--gold-primary)', fontWeight: 'bold' }}>
+                            {selectedCharacter.current_hp || selectedCharacter.max_hp || 10}<span style={{ color: 'rgba(200, 135, 42, 0.6)', fontSize: 'var(--char-sheet-dash-hp-slash-size)', fontWeight: 'normal' }}>/{selectedCharacter.max_hp || 10}</span>
                           </div>
                         </div>
                         <div 
                           onClick={() => setShowACModal(true)}
-                          style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '22px 10px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '90px' }}
+                          style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: 'var(--char-sheet-dash-padding)', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 'var(--char-sheet-dash-min-height)' }}
                           onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-gold)'}
                           onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
                           title="Editar Clase de Armadura"
                         >
-                          <Shield size={20} style={{ color: 'var(--gold-primary)', alignSelf: 'center', marginBottom: '8px' }} />
-                          <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--accent-gold)', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Clase de Armadura</div>
-                          <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--gold-primary)', fontWeight: 'bold' }}>{selectedCharacter.ac || (10 + calcMod(getEffectiveStat('dex')))}</div>
+                          <Shield size={20} style={{ color: 'var(--gold-primary)', alignSelf: 'center', marginBottom: '8px', width: 'var(--char-sheet-dash-icon-size)', height: 'var(--char-sheet-dash-icon-size)' }} />
+                          <div className="font-cinzel" style={{ fontSize: 'var(--char-sheet-dash-label-size)', color: 'var(--accent-gold)', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Clase de Armadura</div>
+                          <div className="mono" style={{ fontSize: 'var(--char-sheet-dash-value-size)', color: 'var(--gold-primary)', fontWeight: 'bold' }}>{selectedCharacter.ac || (10 + calcMod(getEffectiveStat('dex')))}</div>
                         </div>
                         {(() => {
                           const customInitiative = (charStats.customInitiativeModifiers || []).reduce((acc: number, m: any) => acc + m.value, 0);
@@ -2433,14 +2433,14 @@ Modificador de CON: ${getModStr(charStats.con)}.
                           return (
                             <div 
                               onClick={() => setShowInitiativeModal(true)}
-                              style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '22px 10px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '90px' }}
+                              style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: 'var(--char-sheet-dash-padding)', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 'var(--char-sheet-dash-min-height)' }}
                               onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-gold)'}
                               onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
                               title="Editar Iniciativa"
                             >
-                              <Zap size={20} style={{ color: 'var(--gold-primary)', alignSelf: 'center', marginBottom: '8px' }} />
-                              <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--accent-gold)', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Iniciativa</div>
-                              <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--gold-primary)', fontWeight: 'bold' }}>{initStr}</div>
+                              <Zap size={20} style={{ color: 'var(--gold-primary)', alignSelf: 'center', marginBottom: '8px', width: 'var(--char-sheet-dash-icon-size)', height: 'var(--char-sheet-dash-icon-size)' }} />
+                              <div className="font-cinzel" style={{ fontSize: 'var(--char-sheet-dash-label-size)', color: 'var(--accent-gold)', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Iniciativa</div>
+                              <div className="mono" style={{ fontSize: 'var(--char-sheet-dash-value-size)', color: 'var(--gold-primary)', fontWeight: 'bold' }}>{initStr}</div>
                             </div>
                           );
                         })()}
@@ -2451,14 +2451,14 @@ Modificador de CON: ${getModStr(charStats.con)}.
                           return (
                             <div 
                               onClick={() => setShowSpeedModal(true)}
-                              style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '22px 10px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '90px' }}
+                              style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: 'var(--char-sheet-dash-padding)', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 'var(--char-sheet-dash-min-height)' }}
                               onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-gold)'}
                               onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
                               title="Editar Velocidad"
                             >
-                              <Footprints size={20} style={{ color: 'var(--gold-primary)', alignSelf: 'center', marginBottom: '8px' }} />
-                              <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--accent-gold)', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Velocidad</div>
-                              <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--gold-primary)', fontWeight: 'bold' }}>{totalSpeed}</div>
+                              <Footprints size={20} style={{ color: 'var(--gold-primary)', alignSelf: 'center', marginBottom: '8px', width: 'var(--char-sheet-dash-icon-size)', height: 'var(--char-sheet-dash-icon-size)' }} />
+                              <div className="font-cinzel" style={{ fontSize: 'var(--char-sheet-dash-label-size)', color: 'var(--accent-gold)', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Velocidad</div>
+                              <div className="mono" style={{ fontSize: 'var(--char-sheet-dash-value-size)', color: 'var(--gold-primary)', fontWeight: 'bold' }}>{totalSpeed}</div>
                             </div>
                           );
                         })()}
@@ -2468,21 +2468,21 @@ Modificador de CON: ${getModStr(charStats.con)}.
                           return (
                             <div 
                               onClick={() => setShowProficiencyModal(true)}
-                              style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: '22px 10px', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: '90px' }}
+                              style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: 'var(--char-sheet-dash-padding)', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 'var(--char-sheet-dash-min-height)' }}
                               onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-gold)'}
                               onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
                               title="Editar Competencia"
                             >
-                              <Award size={20} style={{ color: 'var(--gold-primary)', alignSelf: 'center', marginBottom: '8px' }} />
-                              <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--accent-gold)', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Competencia</div>
-                              <div className="mono" style={{ fontSize: '1.8rem', color: 'var(--gold-primary)', fontWeight: 'bold' }}>+{totalProficiency}</div>
+                              <Award size={20} style={{ color: 'var(--gold-primary)', alignSelf: 'center', marginBottom: '8px', width: 'var(--char-sheet-dash-icon-size)', height: 'var(--char-sheet-dash-icon-size)' }} />
+                              <div className="font-cinzel" style={{ fontSize: 'var(--char-sheet-dash-label-size)', color: 'var(--accent-gold)', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Competencia</div>
+                              <div className="mono" style={{ fontSize: 'var(--char-sheet-dash-value-size)', color: 'var(--gold-primary)', fontWeight: 'bold' }}>+{totalProficiency}</div>
                             </div>
                           );
                         })()}
                       </div>
 
                       {/* [D] CUERPO */}
-                      <div style={{ display: 'grid', gridTemplateColumns: 'auto 1fr', gap: '30px' }}>
+                      <div style={{ display: 'grid', gridTemplateColumns: 'var(--char-sheet-body-columns)', gap: 'var(--char-sheet-body-gap)' }}>
                         {/* Columna Izquierda (Stats Panel) */}
                         <CharacterStatsPanel 
                           character={selectedCharacter} 
@@ -2493,13 +2493,12 @@ Modificador de CON: ${getModStr(charStats.con)}.
                           onSelectSkill={(label: string, key: string) => setSelectedSkillForModal({ label, key })}
                         />
                         {/* Columna Derecha (Atributos + Inventario) */}
-                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '30px' }}>
+                        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--char-sheet-body-gap)' }}>
                           {/* Atributos */}
                           <div>
                             <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '10px', fontSize: '0.8rem' }}>ATRIBUTOS</h4>
-                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(110px, 1fr))', gap: '10px' }}>
+                            <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(var(--char-sheet-attr-minmax), 1fr))', gap: 'var(--char-sheet-attr-gap)' }}>
                               {['fue', 'dex', 'con', 'int', 'sab', 'car'].map((key) => {
-                                const baseValue = charStats[key] || 10;
                                 const effectiveValue = getEffectiveStat(key);
                                 const mod = calcMod(effectiveValue);
                                 const modStr = mod >= 0 ? `+${mod}` : `${mod}`;
@@ -2513,7 +2512,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                                       background: 'var(--bg-base)', 
                                       border: '1px solid var(--border-color)', 
                                       borderRadius: '6px', 
-                                      padding: '14px 10px', 
+                                      padding: 'var(--char-sheet-attr-padding)', 
                                       textAlign: 'center', 
                                       display: 'flex', 
                                       flexDirection: 'column', 
@@ -2523,18 +2522,18 @@ Modificador de CON: ${getModStr(charStats.con)}.
                                       cursor: 'pointer'
                                     }}
                                   >
-                                    <div className="font-cinzel" style={{ fontSize: '13px', color: 'var(--text-secondary)', fontWeight: 'bold', letterSpacing: '0.5px' }}>{key.toUpperCase()}</div>
-                                    <div className="mono" style={{ fontSize: '26px', fontWeight: 'bold', color: modColor, margin: '6px 0', textShadow: '0 0 5px rgba(255,255,255,0.05)' }}>{modStr}</div>
-                                    <div className="mono" style={{ fontSize: '12px', background: 'rgba(255,255,255,0.05)', padding: '3px 12px', borderRadius: '4px', color: 'var(--text-secondary)' }}>{effectiveValue}</div>
+                                    <div className="font-cinzel" style={{ fontSize: 'var(--char-sheet-attr-title-size)', color: 'var(--text-secondary)', fontWeight: 'bold', letterSpacing: '0.5px' }}>{key.toUpperCase()}</div>
+                                    <div className="mono" style={{ fontSize: 'var(--char-sheet-attr-val-size)', fontWeight: 'bold', color: modColor, margin: '6px 0', textShadow: '0 0 5px rgba(255,255,255,0.05)' }}>{modStr}</div>
+                                    <div className="mono" style={{ fontSize: 'var(--char-sheet-attr-base-size)', background: 'rgba(255,255,255,0.05)', padding: '3px 12px', borderRadius: '4px', color: 'var(--text-secondary)' }}>{effectiveValue}</div>
                                   </div>
                                 );
                               })}
                             </div>
                           </div>
                           {/* Imagen Fullbody y Descripción */}
-                          <div style={{ display: 'flex', gap: '20px', alignItems: 'flex-start', marginTop: '10px' }}>
+                          <div style={{ display: 'flex', gap: 'var(--char-sheet-portrait-gap)', alignItems: 'flex-start', marginTop: '10px', flexDirection: 'var(--char-sheet-portrait-direction)' as any }}>
                             {/* Imagen 2:3 */}
-                            <div style={{ width: '320px', height: '480px', borderRadius: '4px', border: '1px solid var(--border-color)', overflow: 'hidden', flexShrink: 0, background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
+                            <div style={{ width: 'var(--char-sheet-portrait-w)', height: 'var(--char-sheet-portrait-h)', borderRadius: '4px', border: '1px solid var(--border-color)', overflow: 'hidden', flexShrink: 0, background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
                               {(() => {
                                 const baseRace = (selectedCharacter.race || 'Humano').split(' ')[0];
                                 const defaultPortrait = racePortraits[baseRace] || racePortraits['Humano'];
@@ -2545,7 +2544,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                               })()}
                             </div>
                             {/* Descripción */}
-                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', height: '480px' }}>
+                            <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', height: 'var(--char-sheet-portrait-desc-h, var(--char-sheet-portrait-h))', width: '100%' }}>
                               <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: 0, fontSize: '0.8rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', letterSpacing: '1px' }}>TRASFONDO</h4>
                               <div style={{ flex: 1, overflowY: 'auto', paddingRight: '5px' }}>
                                 <p style={{ margin: 0, color: 'var(--text-secondary)', lineHeight: '1.5', fontSize: '0.85rem', fontStyle: selectedCharacter.description ? 'normal' : 'italic' }} dangerouslySetInnerHTML={{ __html: formatDescription(selectedCharacter.description || "Este aventurero aún no tiene una descripción escrita...") }} />

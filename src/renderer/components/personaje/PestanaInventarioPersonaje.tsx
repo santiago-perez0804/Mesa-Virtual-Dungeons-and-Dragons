@@ -38,9 +38,9 @@ export const CharacterInventoryTab = ({ character, setActiveSlotIndex }: any) =>
   ];
 
   return (
-    <div style={{ display: 'flex', gap: '40px', alignItems: 'flex-start', justifyContent: 'flex-start', width: '100%' }}>
+    <div style={{ display: 'flex', gap: 'var(--char-sheet-inv-gap)', alignItems: 'flex-start', justifyContent: 'flex-start', width: '100%', flexDirection: 'var(--char-sheet-inv-flex-direction)' as any }}>
       {/* Columna Izquierda: Inventario */}
-      <section style={{ flex: '0 0 auto', width: '560px' }}>
+      <section style={{ flex: 'var(--char-sheet-inv-flex)', width: 'var(--char-sheet-inv-col-w)' }}>
         <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '15px', display: 'flex', justifyContent: 'space-between', alignItems: 'center', height: '27px', marginTop: 0 }}>
           <span>INVENTARIO ({currentWeight.toFixed(1)} / {maxWeight.toFixed(1)} kg)</span>
           {overEncumbered && (
@@ -218,7 +218,7 @@ export const CharacterInventoryTab = ({ character, setActiveSlotIndex }: any) =>
       </section>
 
       {/* Columna Derecha: Acciones y Ataques */}
-      <section style={{ flex: '0 0 auto', width: '420px' }}>
+      <section style={{ flex: 'var(--char-sheet-inv-flex)', width: 'var(--char-sheet-atk-col-w)' }}>
         <h4 className="font-cinzel" style={{ color: 'var(--combat-red)', borderBottom: '1px solid rgba(231,76,60,0.3)', paddingBottom: '6px', marginBottom: '15px', height: '27px', marginTop: 0, display: 'flex', alignItems: 'center' }}>ACCIONES Y ATAQUES</h4>
         <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
           {Object.values(slots).filter((i: any) => i && i.isDamage).length === 0 ? (

@@ -24,7 +24,7 @@ export const CharacterStatsPanel = ({
   return (
     <>
       {/* Columna Izquierda (Mecánicas) */}
-      <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', minWidth: '300px', maxWidth: '340px' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 'var(--char-sheet-stats-gap)', minWidth: 'var(--char-sheet-stats-min-w)', maxWidth: 'var(--char-sheet-stats-max-w)' }}>
         
 
         {(() => {
@@ -87,7 +87,7 @@ export const CharacterStatsPanel = ({
             <>
               {/* TIRADAS DE SALVACIÓN */}
               <div>
-                <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '10px', fontSize: '0.8rem' }}>SALVACIONES</h4>
+                <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '10px', fontSize: 'var(--char-sheet-stats-header-size)' }}>SALVACIONES</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
                   {tsList.map((s) => {
                     const effectiveScore = getEffectiveStat(s.key);
@@ -97,12 +97,12 @@ export const CharacterStatsPanel = ({
                     const totalMod = baseMod + (isProficient ? currentPb : 0) + customSaveMod;
                     const modStr = totalMod >= 0 ? `+${totalMod}` : `${totalMod}`;
                     return (
-                      <div key={s.label} className="stat-row-hover" onClick={() => onSelectSavingThrow && onSelectSavingThrow(s.key)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '4px 8px', background: isProficient ? 'rgba(200, 135, 42, 0.08)' : 'transparent', borderRadius: '4px', cursor: 'pointer' }}>
+                      <div key={s.label} className="stat-row-hover" onClick={() => onSelectSavingThrow && onSelectSavingThrow(s.key)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--char-sheet-stats-item-padding)', background: isProficient ? 'rgba(200, 135, 42, 0.08)' : 'transparent', borderRadius: '4px', cursor: 'pointer' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div className="proficiency-dot" style={{ width: '8px', height: '8px', borderRadius: '50%', background: isProficient ? 'var(--gold-primary)' : 'var(--bg-raised)', border: `1px solid ${isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)'}`, boxShadow: isProficient ? '0 0 8px var(--gold-primary), 0 0 12px var(--gold-primary)' : 'none', transition: 'all 0.2s ease' }} />
-                          <span className="font-cinzel" style={{ fontSize: '0.88rem', color: isProficient ? 'var(--text-parchment)' : 'var(--text-secondary)', transition: 'all 0.2s ease' }}>{s.label} <span style={{opacity: 0.5}}>({s.key})</span></span>
+                          <span className="font-cinzel" style={{ fontSize: 'var(--char-sheet-stats-item-font-size)', color: isProficient ? 'var(--text-parchment)' : 'var(--text-secondary)', transition: 'all 0.2s ease' }}>{s.label} <span style={{opacity: 0.5}}>({s.key})</span></span>
                         </div>
-                        <span className="mono" style={{ fontSize: '0.98rem', color: isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)', transition: 'all 0.2s ease' }}>{modStr}</span>
+                        <span className="mono" style={{ fontSize: 'var(--char-sheet-stats-item-val-size)', color: isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)', transition: 'all 0.2s ease' }}>{modStr}</span>
                       </div>
                     );
                   })}
@@ -111,7 +111,7 @@ export const CharacterStatsPanel = ({
 
               {/* HABILIDADES */}
               <div>
-                <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '10px', fontSize: '0.8rem' }}>HABILIDADES</h4>
+                <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '10px', fontSize: 'var(--char-sheet-stats-header-size)' }}>HABILIDADES</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '2px' }}>
                   {phList.map((s) => {
                     const effectiveScore = getEffectiveStat(s.key);
@@ -121,12 +121,12 @@ export const CharacterStatsPanel = ({
                     const totalMod = baseMod + (isProficient ? currentPb : 0) + customSkillMod;
                     const modStr = totalMod >= 0 ? `+${totalMod}` : `${totalMod}`;
                     return (
-                      <div key={s.label} className="stat-row-hover" onClick={() => onSelectSkill && onSelectSkill(s.label, s.key)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '3px 8px', background: isProficient ? 'rgba(200, 135, 42, 0.05)' : 'transparent', borderRadius: '4px', cursor: 'pointer' }}>
+                      <div key={s.label} className="stat-row-hover" onClick={() => onSelectSkill && onSelectSkill(s.label, s.key)} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: 'var(--char-sheet-stats-item-padding)', background: isProficient ? 'rgba(200, 135, 42, 0.05)' : 'transparent', borderRadius: '4px', cursor: 'pointer' }}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
                           <div className="proficiency-dot" style={{ width: '8px', height: '8px', borderRadius: '50%', background: isProficient ? 'var(--gold-primary)' : 'var(--bg-raised)', border: `1px solid ${isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)'}`, boxShadow: isProficient ? '0 0 8px var(--gold-primary), 0 0 12px var(--gold-primary)' : 'none', transition: 'all 0.2s ease' }} />
-                          <span className="font-cinzel" style={{ fontSize: '0.88rem', color: isProficient ? 'var(--text-parchment)' : 'var(--text-secondary)', transition: 'all 0.2s ease' }}>{s.label} <span style={{opacity: 0.5}}>({s.key})</span></span>
+                          <span className="font-cinzel" style={{ fontSize: 'var(--char-sheet-stats-item-font-size)', color: isProficient ? 'var(--text-parchment)' : 'var(--text-secondary)', transition: 'all 0.2s ease' }}>{s.label} <span style={{opacity: 0.5}}>({s.key})</span></span>
                         </div>
-                        <span className="mono" style={{ fontSize: '0.98rem', color: isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)', transition: 'all 0.2s ease' }}>{modStr}</span>
+                        <span className="mono" style={{ fontSize: 'var(--char-sheet-stats-item-val-size)', color: isProficient ? 'var(--gold-primary)' : 'var(--text-secondary)', transition: 'all 0.2s ease' }}>{modStr}</span>
                       </div>
                     );
                   })}
@@ -135,7 +135,7 @@ export const CharacterStatsPanel = ({
 
               {/* OTRAS COMPETENCIAS */}
               <div style={{ marginTop: '10px' }}>
-                <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '10px', fontSize: '0.8rem' }}>OTRAS COMPETENCIAS</h4>
+                <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '10px', fontSize: 'var(--char-sheet-stats-header-size)' }}>OTRAS COMPETENCIAS</h4>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', padding: '4px 8px' }}>
                   {(() => {
                     const parsedCls = typeof character.class === 'string' && character.class.startsWith('{')
@@ -149,28 +149,28 @@ export const CharacterStatsPanel = ({
                     return (
                       <>
                         <div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                            <Shield size={13} style={{ color: 'var(--accent-gold)' }} /> Armaduras
+                          <div style={{ fontSize: 'var(--char-sheet-stats-item-font-size)', color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <Shield size={13} style={{ color: 'var(--accent-gold)', width: 'var(--char-sheet-stats-icon-size, 13px)', height: 'var(--char-sheet-stats-icon-size, 13px)' }} /> Armaduras
                           </div>
-                          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.3', paddingLeft: '18px' }}>{eqProfs.armor}</div>
+                          <div style={{ fontSize: 'var(--char-sheet-stats-item-font-size)', color: 'var(--text-secondary)', lineHeight: '1.3', paddingLeft: '18px' }}>{eqProfs.armor}</div>
                         </div>
                         <div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                            <Swords size={13} style={{ color: 'var(--accent-gold)' }} /> Armas
+                          <div style={{ fontSize: 'var(--char-sheet-stats-item-font-size)', color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <Swords size={13} style={{ color: 'var(--accent-gold)', width: 'var(--char-sheet-stats-icon-size, 13px)', height: 'var(--char-sheet-stats-icon-size, 13px)' }} /> Armas
                           </div>
-                          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.3', paddingLeft: '18px' }}>{eqProfs.weapons}</div>
+                          <div style={{ fontSize: 'var(--char-sheet-stats-item-font-size)', color: 'var(--text-secondary)', lineHeight: '1.3', paddingLeft: '18px' }}>{eqProfs.weapons}</div>
                         </div>
                         <div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                            <Hammer size={13} style={{ color: 'var(--accent-gold)' }} /> Herramientas
+                          <div style={{ fontSize: 'var(--char-sheet-stats-item-font-size)', color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <Hammer size={13} style={{ color: 'var(--accent-gold)', width: 'var(--char-sheet-stats-icon-size, 13px)', height: 'var(--char-sheet-stats-icon-size, 13px)' }} /> Herramientas
                           </div>
-                          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.3', paddingLeft: '18px' }}>{eqProfs.tools}</div>
+                          <div style={{ fontSize: 'var(--char-sheet-stats-item-font-size)', color: 'var(--text-secondary)', lineHeight: '1.3', paddingLeft: '18px' }}>{eqProfs.tools}</div>
                         </div>
                         <div>
-                          <div style={{ fontSize: '0.72rem', color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
-                            <Languages size={13} style={{ color: 'var(--accent-gold)' }} /> Idiomas
+                          <div style={{ fontSize: 'var(--char-sheet-stats-item-font-size)', color: 'var(--accent-gold)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: '4px', display: 'flex', alignItems: 'center', gap: '5px' }}>
+                            <Languages size={13} style={{ color: 'var(--accent-gold)', width: 'var(--char-sheet-stats-icon-size, 13px)', height: 'var(--char-sheet-stats-icon-size, 13px)' }} /> Idiomas
                           </div>
-                          <div style={{ fontSize: '0.82rem', color: 'var(--text-secondary)', lineHeight: '1.3', paddingLeft: '18px' }}>{eqProfs.languages}</div>
+                          <div style={{ fontSize: 'var(--char-sheet-stats-item-font-size)', color: 'var(--text-secondary)', lineHeight: '1.3', paddingLeft: '18px' }}>{eqProfs.languages}</div>
                         </div>
                       </>
                     );
