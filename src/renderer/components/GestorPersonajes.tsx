@@ -570,7 +570,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
       boxShadow: '0 20px 60px rgba(0,0,0,0.6)'
     },
     input: {
-      padding: '14px 18px',
+      padding: 'var(--search-input-padding)',
       background: 'var(--bg-base)',
       border: '1px solid var(--border-color)',
       borderRadius: '2px',
@@ -598,20 +598,20 @@ Modificador de CON: ${getModStr(charStats.con)}.
   return (
     <div style={styles.container}>
       <section style={{ display: isOverlay ? 'none' : 'block' }}>
-        <div style={{ display: 'flex', gap: '20px', alignItems: 'center', marginBottom: '40px', background: 'var(--bg-surface)', padding: '25px', border: '1px solid var(--border-color)' }} className="clipped-frame">
+        <div style={{ display: 'flex', gap: '20px', alignItems: 'center', marginBottom: 'var(--search-container-margin)', background: 'var(--bg-surface)', padding: 'var(--search-container-padding)', border: '1px solid var(--border-color)' }} className="clipped-frame">
           <div style={{ flex: 1, position: 'relative' }}>
             <input
               className="mono"
-              style={{ ...styles.input, paddingLeft: '45px' }}
+              style={{ ...styles.input, paddingLeft: 'var(--search-input-padding-left)' }}
               placeholder="Buscar héroe en la reserva..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
-            <span style={{ position: 'absolute', left: '15px', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔍</span>
+            <span style={{ position: 'absolute', left: 'var(--search-icon-left)', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }}>🔍</span>
           </div>
         </div>
 
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))', gap: '24px' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(var(--char-grid-minmax), 1fr))', gap: 'var(--char-grid-gap)' }}>
           {/* Botón de Crear Nuevo Héroe (Dashed Card) */}
           <div
             onClick={() => { resetForm(); setIsCreating(true); }}
@@ -623,7 +623,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
               alignItems: 'center',
               justifyContent: 'center',
               cursor: 'pointer',
-              minHeight: '220px',
+              minHeight: 'var(--hero-card-min-height)',
               transition: 'all 0.2s ease',
               background: 'rgba(200, 135, 42, 0.05)',
               color: 'var(--accent-gold)'
@@ -637,8 +637,8 @@ Modificador de CON: ${getModStr(charStats.con)}.
               e.currentTarget.style.transform = 'translateY(0)';
             }}
           >
-            <span style={{ fontSize: '3rem', marginBottom: '10px' }}>+</span>
-            <span className="font-cinzel" style={{ fontSize: '1.2rem', fontWeight: 'bold', letterSpacing: '1px' }}>NUEVO HÉROE</span>
+            <span style={{ fontSize: 'var(--hero-card-plus-size)', marginBottom: '10px' }}>+</span>
+            <span className="font-cinzel" style={{ fontSize: 'var(--hero-card-title-size)', fontWeight: 'bold', letterSpacing: '1px' }}>NUEVO HÉROE</span>
           </div>
 
           {filteredCharacters.map((c: any) => {

@@ -71,6 +71,30 @@
   --tab-padding: 12px 25px;
   --tab-font-size: 0.9rem;
   --tab-margin-top-inactive: 5px;
+
+  /* GestorPersonajes responsivo */
+  --search-container-padding: 25px;
+  --search-container-margin: 40px;
+  --search-input-padding: 14px 18px;
+  --search-input-padding-left: 45px;
+  --search-icon-left: 15px;
+  
+  --char-grid-gap: 24px;
+  --char-grid-minmax: 280px;
+
+  /* HeroCard responsiva */
+  --hero-card-padding: 16px;
+  --hero-card-gap: 16px;
+  --hero-card-avatar-size: 64px;
+  --hero-card-avatar-font-size: 1.5rem;
+  --hero-card-title-size: 1.2rem;
+  --hero-card-subtitle-size: 0.85rem;
+  --hero-card-stats-padding: 10px;
+  --hero-card-stats-gap: 8px;
+  --hero-card-stat-label-size: 0.65rem;
+  --hero-card-stat-value-size: 0.9rem;
+  --hero-card-min-height: 220px;
+  --hero-card-plus-size: 3rem;
 }
 
 *, *::before, *::after {
@@ -268,6 +292,30 @@ input[type="number"] {
     --tab-padding: 8px 18px;
     --tab-font-size: 0.8rem;
     --tab-margin-top-inactive: 3px;
+
+    /* GestorPersonajes responsivo */
+    --search-container-padding: 10px 14px;
+    --search-container-margin: 16px;
+    --search-input-padding: 8px 12px;
+    --search-input-padding-left: 36px;
+    --search-icon-left: 12px;
+    
+    --char-grid-gap: 16px;
+    --char-grid-minmax: 200px;
+
+    /* HeroCard responsiva */
+    --hero-card-padding: 10px;
+    --hero-card-gap: 10px;
+    --hero-card-avatar-size: 40px;
+    --hero-card-avatar-font-size: 1rem;
+    --hero-card-title-size: 0.95rem;
+    --hero-card-subtitle-size: 0.7rem;
+    --hero-card-stats-padding: 5px;
+    --hero-card-stats-gap: 4px;
+    --hero-card-stat-label-size: 0.5rem;
+    --hero-card-stat-value-size: 0.75rem;
+    --hero-card-min-height: 140px;
+    --hero-card-plus-size: 1.5rem;
   }
 }
 
@@ -282,7 +330,7 @@ input[type="number"] {
     --header-user-padding: 3px 8px 3px 3px;
     --header-avatar-size: 26px;
     --header-avatar-font-size: 0.75rem;
-    --header-role-size: 0.5rem;
+    --header-role-size: 0.55rem;
     --header-name-size: 0.75rem;
     --header-button-padding: 5px 10px;
     --header-button-font-size: 0.7rem;
@@ -293,5 +341,29 @@ input[type="number"] {
     --tab-padding: 6px 12px;
     --tab-font-size: 0.75rem;
     --tab-margin-top-inactive: 2px;
+
+    /* GestorPersonajes responsivo */
+    --search-container-padding: 8px 12px;
+    --search-container-margin: 12px;
+    --search-input-padding: 6px 10px;
+    --search-input-padding-left: 30px;
+    --search-icon-left: 10px;
+    
+    --char-grid-gap: 12px;
+    --char-grid-minmax: 160px;
+
+    /* HeroCard responsiva */
+    --hero-card-padding: 8px;
+    --hero-card-gap: 8px;
+    --hero-card-avatar-size: 32px;
+    --hero-card-avatar-font-size: 0.8rem;
+    --hero-card-title-size: 0.8rem;
+    --hero-card-subtitle-size: 0.6rem;
+    --hero-card-stats-padding: 4px;
+    --hero-card-stats-gap: 3px;
+    --hero-card-stat-label-size: 0.45rem;
+    --hero-card-stat-value-size: 0.7rem;
+    --hero-card-min-height: 110px;
+    --hero-card-plus-size: 1.2rem;
   }
 }

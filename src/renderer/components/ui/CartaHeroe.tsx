@@ -29,10 +29,10 @@ export const HeroCard: React.FC<HeroCardProps> = ({ character, onClick }) => {
     <div
       onClick={onClick}
       style={{
-        padding: '16px',
+        padding: 'var(--hero-card-padding)',
         display: 'flex',
         flexDirection: 'column',
-        gap: '16px',
+        gap: 'var(--hero-card-gap)',
         cursor: 'pointer',
         background: 'var(--bg-surface)',
         border: '1px solid var(--border-normal)',
@@ -53,33 +53,33 @@ export const HeroCard: React.FC<HeroCardProps> = ({ character, onClick }) => {
       }}
     >
       {/* 3. Header */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-        <div style={{ width: '64px', height: '64px', borderRadius: '50%', border: '2px solid var(--gold-primary)', overflow: 'hidden', background: 'var(--bg-raised)', flexShrink: 0 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--hero-card-gap)' }}>
+        <div style={{ width: 'var(--hero-card-avatar-size)', height: 'var(--hero-card-avatar-size)', borderRadius: '50%', border: '2px solid var(--gold-primary)', overflow: 'hidden', background: 'var(--bg-raised)', flexShrink: 0 }}>
           {character.avatar || character.image ? (
             <img src={character.avatar || character.image} alt={character.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
           ) : (
-            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1.5rem', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
+            <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--hero-card-avatar-font-size)', fontWeight: 'bold', color: 'var(--text-secondary)' }}>
               {character.name?.[0]}
             </div>
           )}
         </div>
         
         <div style={{ flex: 1, overflow: 'hidden' }}>
-          <div className="font-cinzel" style={{ fontSize: '1.2rem', fontWeight: 'bold', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+          <div className="font-cinzel" style={{ fontSize: 'var(--hero-card-title-size)', fontWeight: 'bold', color: 'var(--text-primary)', whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
             {character.name}
           </div>
-          <div style={{ fontSize: '0.85rem', color: 'var(--text-secondary)', marginTop: '2px' }}>
+          <div style={{ fontSize: 'var(--hero-card-subtitle-size)', color: 'var(--text-secondary)', marginTop: '2px' }}>
             Nivel {character.level || 1} • {character.class || 'Clase'}
           </div>
         </div>
       </div>
 
       {/* 4. Stats simplificados en grid 3x2 */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '8px', background: 'var(--bg-base)', padding: '10px', borderRadius: 'var(--radius-md)' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 'var(--hero-card-stats-gap)', background: 'var(--bg-base)', padding: 'var(--hero-card-stats-padding)', borderRadius: 'var(--radius-md)' }}>
         {statList.map(s => (
           <div key={s.label} style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', background: 'var(--bg-raised)', borderRadius: 'var(--radius-sm)', padding: '4px 0' }}>
-            <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', fontWeight: 'bold', letterSpacing: '0.5px' }}>{s.label}</span>
-            <span className="mono" style={{ fontSize: '0.9rem', color: 'var(--text-primary)', fontWeight: 'bold' }}>{s.value}</span>
+            <span style={{ fontSize: 'var(--hero-card-stat-label-size)', color: 'var(--text-secondary)', fontWeight: 'bold', letterSpacing: '0.5px' }}>{s.label}</span>
+            <span className="mono" style={{ fontSize: 'var(--hero-card-stat-value-size)', color: 'var(--text-primary)', fontWeight: 'bold' }}>{s.value}</span>
           </div>
         ))}
       </div>
