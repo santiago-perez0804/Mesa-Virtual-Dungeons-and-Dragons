@@ -327,7 +327,7 @@ function App() {
         ))}
       </div>
 
-      <main className="vtt-main-container" style={{ width: '100%', boxSizing: 'border-box', margin: '0 auto' }}>
+      <main className={`vtt-main-container ${activeTab === 'database' ? 'database-view-active' : ''}`} style={{ width: '100%', boxSizing: 'border-box', margin: '0 auto' }}>
         {activeTab === 'combat' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
 

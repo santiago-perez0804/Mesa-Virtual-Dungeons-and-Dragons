@@ -936,15 +936,15 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
   }
 
   return (
-    <div style={{ width: '100%', height: isOverlay ? 0 : 'calc(100vh - 120px)', background: 'var(--bg-base)', display: 'flex', overflow: isOverlay ? 'visible' : 'hidden' }}>
+    <div style={{ width: '100%', height: isOverlay ? 0 : 'var(--db-view-height, calc(100vh - 120px))', background: 'var(--bg-base)', display: 'flex', overflow: isOverlay ? 'visible' : 'hidden' }}>
       {/* SIDEBAR DE CATEGORÍAS */}
-      <div style={{ width: '220px', background: 'var(--bg-surface)', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', padding: '30px 0' }}>
-        <div style={{ padding: '0 20px', marginBottom: '30px' }}>
-          <h2 className="font-cinzel" style={{ margin: 0, color: 'var(--accent-gold)', fontSize: '1.2rem', letterSpacing: '2px' }}>BIBLIOTECA</h2>
+      <div style={{ width: 'var(--sidebar-width)', background: 'var(--bg-surface)', borderRight: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', padding: 'var(--sidebar-padding)' }}>
+        <div style={{ padding: '0 20px', marginBottom: 'var(--sidebar-header-margin)' }}>
+          <h2 className="font-cinzel" style={{ margin: 0, color: 'var(--accent-gold)', fontSize: 'var(--sidebar-header-size)', letterSpacing: '2px' }}>BIBLIOTECA</h2>
           <div style={{ width: '40px', height: '2px', background: 'var(--accent-gold)', marginTop: '10px' }} />
         </div>
         
-        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '5px' }}>
+        <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--sidebar-btn-gap)', overflowY: 'auto' }} className="custom-scrollbar">
           {['all', 'monster', 'spell', 'item', 'class', 'subclass', 'race', 'subrace', 'condition', 'features'].map(cat => (
             <button
               key={cat}
@@ -952,13 +952,13 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
               className="font-cinzel torch-glow"
               style={{
                 textAlign: 'left',
-                padding: '12px 25px',
+                padding: 'var(--sidebar-btn-padding)',
                 background: category === cat ? 'rgba(200, 135, 42, 0.1)' : 'transparent',
                 color: category === cat ? 'var(--accent-gold)' : 'var(--text-secondary)',
                 border: 'none',
                 borderLeft: category === cat ? '3px solid var(--accent-gold)' : '3px solid transparent',
                 cursor: 'pointer',
-                fontSize: '0.85rem',
+                fontSize: 'var(--sidebar-btn-size)',
                 transition: 'all 0.2s'
               }}
             >
@@ -1041,7 +1041,7 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
           const isPlaceholder = ['subclass', 'race', 'subrace', 'condition', 'all'].includes(category);
 
           return (
-            <div style={{ padding: '0 20px', marginTop: '20px' }}>
+            <div style={{ padding: '0 20px', marginTop: 'var(--sidebar-create-margin)' }}>
               <button
                 onClick={btnAction}
                 className="font-cinzel torch-glow"
@@ -1050,11 +1050,11 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
                   background: isPlaceholder ? 'rgba(255,255,255,0.03)' : 'var(--accent-gold)', 
                   color: isPlaceholder ? 'var(--text-secondary)' : 'white', 
                   border: isPlaceholder ? '1px solid var(--border-color)' : 'none', 
-                  padding: '12px', 
+                  padding: 'var(--sidebar-create-padding)', 
                   borderRadius: '4px', 
                   fontWeight: 'bold', 
                   cursor: 'pointer', 
-                  fontSize: '0.75rem',
+                  fontSize: 'var(--sidebar-create-size)',
                   opacity: isPlaceholder ? 0.6 : 1,
                   transition: 'all 0.2s'
                 }}

@@ -95,6 +95,22 @@
   --hero-card-stat-value-size: 0.9rem;
   --hero-card-min-height: 220px;
   --hero-card-plus-size: 3rem;
+
+  /* Main Container responsivo */
+  --main-padding-top: 25px;
+  --db-view-height: calc(100vh - 120px - var(--main-padding-top));
+
+  /* Biblioteca Sidebar responsiva */
+  --sidebar-width: 220px;
+  --sidebar-padding: 30px 0;
+  --sidebar-header-margin: 30px;
+  --sidebar-header-size: 1.2rem;
+  --sidebar-btn-padding: 12px 25px;
+  --sidebar-btn-size: 0.85rem;
+  --sidebar-btn-gap: 5px;
+  --sidebar-create-margin: 20px;
+  --sidebar-create-padding: 12px;
+  --sidebar-create-size: 0.75rem;
 }
 
 *, *::before, *::after {
@@ -190,7 +206,10 @@ input[type="number"] {
 
 /* Responsive VTT Classes */
 .vtt-main-container {
-  padding: 25px;
+  padding: var(--main-padding-top) 25px 25px 25px;
+}
+.vtt-main-container.database-view-active {
+  padding: var(--main-padding-top) 0 0 0;
 }
 
 .dm-quick-sections {
@@ -198,14 +217,22 @@ input[type="number"] {
 }
 
 @media (max-width: 1200px) {
+  :root {
+    --main-padding-top: 12px;
+    --db-view-height: calc(100vh - 95px - var(--main-padding-top));
+  }
   .vtt-main-container {
-    padding: 12px;
+    padding: var(--main-padding-top) 12px 12px 12px;
   }
 }
 
 @media (max-width: 900px) {
+  :root {
+    --main-padding-top: 6px;
+    --db-view-height: calc(100vh - 75px - var(--main-padding-top));
+  }
   .vtt-main-container {
-    padding: 6px;
+    padding: var(--main-padding-top) 6px 6px 6px;
   }
   .dm-quick-sections {
     grid-template-columns: 1fr !important;
@@ -293,6 +320,22 @@ input[type="number"] {
     --tab-font-size: 0.8rem;
     --tab-margin-top-inactive: 3px;
 
+    /* Main Container responsivo */
+    --main-padding-top: 15px;
+    --db-view-height: calc(100vh - 95px - var(--main-padding-top));
+
+    /* Biblioteca Sidebar responsiva */
+    --sidebar-width: 180px;
+    --sidebar-padding: 15px 0;
+    --sidebar-header-margin: 15px;
+    --sidebar-header-size: 1rem;
+    --sidebar-btn-padding: 8px 15px;
+    --sidebar-btn-size: 0.75rem;
+    --sidebar-btn-gap: 2px;
+    --sidebar-create-margin: 10px;
+    --sidebar-create-padding: 8px;
+    --sidebar-create-size: 0.65rem;
+
     /* GestorPersonajes responsivo */
     --search-container-padding: 10px 14px;
     --search-container-margin: 16px;
@@ -341,6 +384,22 @@ input[type="number"] {
     --tab-padding: 6px 12px;
     --tab-font-size: 0.75rem;
     --tab-margin-top-inactive: 2px;
+
+    /* Main Container responsivo */
+    --main-padding-top: 10px;
+    --db-view-height: calc(100vh - 75px - var(--main-padding-top));
+
+    /* Biblioteca Sidebar responsiva */
+    --sidebar-width: 150px;
+    --sidebar-padding: 10px 0;
+    --sidebar-header-margin: 10px;
+    --sidebar-header-size: 0.85rem;
+    --sidebar-btn-padding: 6px 10px;
+    --sidebar-btn-size: 0.65rem;
+    --sidebar-btn-gap: 1px;
+    --sidebar-create-margin: 8px;
+    --sidebar-create-padding: 6px;
+    --sidebar-create-size: 0.6rem;
 
     /* GestorPersonajes responsivo */
     --search-container-padding: 8px 12px;
