@@ -245,9 +245,9 @@ function App() {
       )}
 
       {/* HEADER */}
-      <header style={{ background: 'var(--bg-surface)', padding: '15px 30px', borderBottom: '2px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
+      <header style={{ background: 'var(--bg-surface)', padding: 'var(--header-padding)', borderBottom: '2px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span className="font-cinzel" style={{ fontSize: '1.8rem', fontWeight: '900', color: 'var(--accent-gold)', textShadow: '0 0 15px rgba(200, 135, 42, 0.4)', lineHeight: '1' }}>
+          <span className="font-cinzel" style={{ fontSize: 'var(--header-title-size)', fontWeight: '900', color: 'var(--accent-gold)', textShadow: '0 0 15px rgba(200, 135, 42, 0.4)', lineHeight: '1' }}>
             {(() => {
               const activeCampaign = campaigns.find(c => c.is_active === 1);
               if (activeCampaign) {
@@ -256,18 +256,18 @@ function App() {
               return 'D&D PP';
             })()}
           </span>
-          <span className="font-cinzel" style={{ fontSize: '0.7rem', color: 'var(--text-parchment)', letterSpacing: '4px', opacity: 0.7 }}>
+          <span className="font-cinzel" style={{ fontSize: 'var(--header-subtitle-size)', color: 'var(--text-parchment)', letterSpacing: '4px', opacity: 0.7 }}>
             {campaigns.find(c => c.is_active === 1) ? 'CAMPAÑA ACTIVA' : 'PARA POBRES'}
           </span>
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: '20px' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '12px', background: 'rgba(0,0,0,0.3)', padding: '6px 16px 6px 6px', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
-            <div style={{ position: 'relative', width: '36px', height: '36px', overflow: 'hidden', background: 'var(--bg-base)', border: '1px solid var(--accent-gold)', cursor: 'pointer' }} title="Cambiar foto de perfil">
+        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--header-gap)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--header-user-gap)', background: 'rgba(0,0,0,0.3)', padding: 'var(--header-user-padding)', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
+            <div style={{ position: 'relative', width: 'var(--header-avatar-size)', height: 'var(--header-avatar-size)', overflow: 'hidden', background: 'var(--bg-base)', border: '1px solid var(--accent-gold)', cursor: 'pointer' }} title="Cambiar foto de perfil">
               {user.profile_image ? (
                 <img src={user.profile_image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
-                <div className="font-cinzel" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '1rem', fontWeight: 'bold', color: 'var(--accent-gold)' }}>
+                <div className="font-cinzel" style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 'var(--header-avatar-font-size)', fontWeight: 'bold', color: 'var(--accent-gold)' }}>
                   {user.name.charAt(0).toUpperCase()}
                 </div>
               )}
@@ -279,24 +279,24 @@ function App() {
               />
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
-              <span style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+              <span style={{ fontSize: 'var(--header-role-size)', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
                 {user.role === 'dm' ? 'Dungeon Master' : (user.role === 'admin' ? 'Administrador' : 'Aventurero')}
               </span>
-              <span className="font-cinzel" style={{ fontSize: '0.95rem', color: 'var(--text-parchment)', fontWeight: 'bold' }}>{user.name}</span>
+              <span className="font-cinzel" style={{ fontSize: 'var(--header-name-size)', color: 'var(--text-parchment)', fontWeight: 'bold' }}>{user.name}</span>
             </div>
           </div>
           <button 
             onClick={() => setUser(null)}
             className="torch-glow"
-            style={{ background: 'transparent', border: '1px solid var(--combat-red)', color: 'var(--combat-red)', padding: '8px 16px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '8px' }}
+            style={{ background: 'transparent', border: '1px solid var(--combat-red)', color: 'var(--combat-red)', padding: 'var(--header-button-padding)', borderRadius: '4px', cursor: 'pointer', fontSize: 'var(--header-button-font-size)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 'var(--header-button-gap)' }}
           >
-            <LogOut size={16} /> SALIR
+            <LogOut style={{ width: 'var(--header-logout-icon-size)', height: 'var(--header-logout-icon-size)' }} /> SALIR
           </button>
         </div>
       </header>
 
       {/* TABS NAVEGACIÓN */}
-      <div style={{ display: 'flex', gap: '2px', background: 'var(--bg-base)', padding: '0 30px' }}>
+      <div style={{ display: 'flex', gap: '2px', background: 'var(--bg-base)', padding: 'var(--tabs-padding)' }}>
         {[
           { id: 'combat', label: 'COMBATE', color: 'var(--combat-red)', visible: user.role !== 'admin' },
           { id: 'characters', label: 'HÉROES', color: 'var(--natural-green)', visible: user.role !== 'admin' },
@@ -309,17 +309,17 @@ function App() {
             onClick={() => setActiveTab(tab.id as any)}
             className="font-cinzel"
             style={{ 
-              padding: '12px 25px', 
+              padding: 'var(--tab-padding)', 
               border: '1px solid var(--border-color)',
               borderBottom: 'none',
               background: activeTab === tab.id ? 'var(--bg-surface)' : 'transparent', 
               color: activeTab === tab.id ? tab.color : 'var(--text-secondary)', 
               fontWeight: 'bold', 
               cursor: 'pointer', 
-              fontSize: '0.9rem',
+              fontSize: 'var(--tab-font-size)',
               transition: 'all 0.2s',
               borderTop: activeTab === tab.id ? `3px solid ${tab.color}` : '1px solid var(--border-color)',
-              marginTop: activeTab === tab.id ? '0' : '5px'
+              marginTop: activeTab === tab.id ? '0' : 'var(--tab-margin-top-inactive)'
             }}
           >
             {tab.label}

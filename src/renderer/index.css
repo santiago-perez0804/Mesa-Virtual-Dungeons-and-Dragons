@@ -50,6 +50,27 @@
   --font-display: 'Cinzel', serif;
   --font-body: 'Inter', system-ui, sans-serif;
   --font-mono: 'JetBrains Mono', monospace;
+
+  /* Header y Tabs variables responsivas */
+  --header-padding: 15px 30px;
+  --header-title-size: 1.8rem;
+  --header-subtitle-size: 0.7rem;
+  --header-gap: 20px;
+  --header-user-gap: 12px;
+  --header-user-padding: 6px 16px 6px 6px;
+  --header-avatar-size: 36px;
+  --header-avatar-font-size: 1rem;
+  --header-role-size: 0.65rem;
+  --header-name-size: 0.95rem;
+  --header-button-padding: 8px 16px;
+  --header-button-font-size: 0.8rem;
+  --header-button-gap: 8px;
+  --header-logout-icon-size: 16px;
+
+  --tabs-padding: 0 30px;
+  --tab-padding: 12px 25px;
+  --tab-font-size: 0.9rem;
+  --tab-margin-top-inactive: 5px;
 }
 
 *, *::before, *::after {
@@ -223,4 +244,54 @@ input[type="number"] {
 .attribute-card-hover:hover {
   border-color: var(--accent-gold) !important;
   box-shadow: 0 0 12px rgba(200, 135, 42, 0.45), inset 0 0 10px rgba(0,0,0,0.5) !important;
+}
+
+/* Responsividad para Notebook / Laptop (pantallas medianas) */
+@media (max-width: 1440px) {
+  :root {
+    --header-padding: 10px 20px;
+    --header-title-size: 1.45rem;
+    --header-subtitle-size: 0.6rem;
+    --header-gap: 12px;
+    --header-user-gap: 8px;
+    --header-user-padding: 4px 10px 4px 4px;
+    --header-avatar-size: 30px;
+    --header-avatar-font-size: 0.85rem;
+    --header-role-size: 0.55rem;
+    --header-name-size: 0.85rem;
+    --header-button-padding: 6px 12px;
+    --header-button-font-size: 0.75rem;
+    --header-button-gap: 6px;
+    --header-logout-icon-size: 14px;
+
+    --tabs-padding: 0 20px;
+    --tab-padding: 8px 18px;
+    --tab-font-size: 0.8rem;
+    --tab-margin-top-inactive: 3px;
+  }
+}
+
+/* Responsividad para pantallas aún más pequeñas (tabletas / laptops pequeñas) */
+@media (max-width: 1024px) {
+  :root {
+    --header-padding: 8px 12px;
+    --header-title-size: 1.2rem;
+    --header-subtitle-size: 0.55rem;
+    --header-gap: 8px;
+    --header-user-gap: 6px;
+    --header-user-padding: 3px 8px 3px 3px;
+    --header-avatar-size: 26px;
+    --header-avatar-font-size: 0.75rem;
+    --header-role-size: 0.5rem;
+    --header-name-size: 0.75rem;
+    --header-button-padding: 5px 10px;
+    --header-button-font-size: 0.7rem;
+    --header-button-gap: 4px;
+    --header-logout-icon-size: 12px;
+
+    --tabs-padding: 0 12px;
+    --tab-padding: 6px 12px;
+    --tab-font-size: 0.75rem;
+    --tab-margin-top-inactive: 2px;
+  }
 }
