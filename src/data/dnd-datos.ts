@@ -81,17 +81,7 @@ export interface CharacterDraft {
   flaw: string;
 }
 
-export const alignments = [
-  { id: 'lawful-good', label: 'Legal Bueno', desc: 'Hacen lo correcto como se espera de la sociedad.' },
-  { id: 'neutral-good', label: 'Neutral Bueno', desc: 'Ayudan a los demás según sus necesidades.' },
-  { id: 'chaotic-good', label: 'Caótico Bueno', desc: 'Siguen su propia moral para hacer el bien.' },
-  { id: 'lawful-neutral', label: 'Legal Neutral', desc: 'Actúan según la ley, tradición o códigos.' },
-  { id: 'true-neutral', label: 'Neutral Auténtico', desc: 'Prefieren evitar los extremos morales.' },
-  { id: 'chaotic-neutral', label: 'Caótico Neutral', desc: 'Siguen sus caprichos valorando su libertad.' },
-  { id: 'lawful-evil', label: 'Legal Malvado', desc: 'Toman lo que quieren dentro de los límites de un código.' },
-  { id: 'neutral-evil', label: 'Neutral Malvado', desc: 'Hacen cualquier cosa para salir impunes.' },
-  { id: 'chaotic-evil', label: 'Caótico Malvado', desc: 'Actúan con violencia impredecible.' },
-];
+
 
 export const races: RaceType[] = [];
 

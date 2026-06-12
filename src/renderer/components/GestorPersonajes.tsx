@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
 import { User, Shield, Backpack, X, Link, Scale, Lock, RefreshCw, ChevronLeft, ChevronRight, Check, Dices, ChevronUp, Pencil, Heart, Zap, Footprints, Award } from 'lucide-react';
-import { classes, backgrounds, alignments } from '../../data/dnd-datos';
+import { classes, backgrounds } from '../../data/dnd-datos';
 import type { CharacterDraft, AlignmentType, AttributeKey } from '../../data/dnd-datos';
 import { calcMod, calculateHP, calculateAC, getRandomItem } from '../../utils/dnd-calculos';
 import { HeroCard } from './ui/CartaHeroe';
@@ -108,7 +108,10 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
           bonuses: bonuses,
           bonusText: bonusTexts.length > 0 ? bonusTexts.join(', ') : '+1 a todo',
           subraces: subr,
-          languages: languagesKnown.length > 0 ? languagesKnown : ['Común']
+          languages: languagesKnown.length > 0 ? languagesKnown : ['Común'],
+          alignment: parsedData.alignment || '',
+          alignmentDesc: parsedData.alignment_desc || '',
+          image: parsedData.image || ''
         };
       });
   }, [compendium]);
@@ -123,6 +126,29 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     if (baseRace === 'Enano' || baseRace === 'Mediano' || baseRace === 'Gnomo') return 5;
     return 6;
   };
+
+  const dbAlignments = useMemo(() => {
+    if (!compendium) return [];
+    return compendium
+      .filter((item: any) => item.type === 'alignment')
+      .map((item: any) => {
+        let parsedData: any = {};
+        try {
+          parsedData = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
+        } catch (e) {
+          parsedData = {};
+        }
+        let id = parsedData.index || item.name;
+        if (id === 'neutral') id = 'true-neutral';
+        return {
+          id: id,
+          label: item.name,
+          desc: parsedData.desc || ''
+        };
+      });
+  }, [compendium]);
+
+
 
   // --- ESTADOS DEL FORMULARIO DE CREACIÓN ---
   const [name, setName] = useState('');
@@ -217,18 +243,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     setCropOffsetY(prev => Math.min(maxOffsetY, Math.max(-maxOffsetY, prev)));
   }, [cropScale, cropImgDims, cropMode]);
 
-  // --- PORTRAITS PREESTABLECIDOS PARA RAZAS ---
-  const racePortraits: Record<string, string> = {
-    'Humano': 'https://images.unsplash.com/photo-1579783900882-c0d3dad7b119?w=300&q=80',
-    'Elfo': 'https://images.unsplash.com/photo-1618336753974-aae8e04506aa?w=300&q=80',
-    'Enano': 'https://images.unsplash.com/photo-1599420186946-7b6fb4e297f0?w=300&q=80',
-    'Mediano': 'https://images.unsplash.com/photo-1534447677768-be436bb09401?w=300&q=80',
-    'Gnomo': 'https://images.unsplash.com/photo-1516339901601-2e1b62dc0c45?w=300&q=80',
-    'Semielfo': 'https://images.unsplash.com/photo-1607604276583-eef5d076aa5f?w=300&q=80',
-    'Semiorco': 'https://images.unsplash.com/photo-1614036417651-efe5912149d8?w=300&q=80',
-    'Tiefling': 'https://images.unsplash.com/photo-1561557944-6e7860d1a7eb?w=300&q=80',
-    'Dracónido': 'https://images.unsplash.com/photo-1608889175123-8ec330b86f84?w=300&q=80',
-  };
+
 
 
 
@@ -905,11 +920,13 @@ Modificador de CON: ${getModStr(charStats.con)}.
                               <div
                                 key={r.id}
                                 onClick={() => {
+                                  const defaultAlign = r.alignment || 'true-neutral';
                                   setDraft(prev => ({
                                     ...prev,
                                     race: r.id,
                                     subrace: r.subraces.length > 0 ? r.subraces[0].id : null,
-                                    languages: r.languages || ['Común']
+                                    languages: r.languages || ['Común'],
+                                    alignment: defaultAlign as any
                                   }));
                                   setRaceQuery(r.name);
                                   setRaceDropdownOpen(false);
@@ -1056,9 +1073,9 @@ Modificador de CON: ${getModStr(charStats.con)}.
                             />
                           </div>
                         )}
-                        {draft.race && (fullBodyImage || racePortraits[draft.race]) ? (
+                        {draft.race && (fullBodyImage || dbRaces.find(r => r.id === draft.race || r.name === draft.race)?.image) ? (
                           <img
-                            src={fullBodyImage || racePortraits[draft.race]}
+                            src={fullBodyImage || dbRaces.find(r => r.id === draft.race || r.name === draft.race)?.image}
                             alt={draft.race}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           />
@@ -1135,17 +1152,17 @@ Modificador de CON: ${getModStr(charStats.con)}.
                   {/* Alineamiento (3x3 Grid) */}
                   <div>
                     <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '12px', display: 'block' }}>ALINEAMIENTO</label>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px' }}>
-                      {alignments.map(align => {
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '12px' }}>
+                      {dbAlignments.map(align => {
                         const isSelected = draft.alignment === align.id;
                         return (
                           <div
                             key={align.id}
                             onClick={() => setDraft(prev => ({ ...prev, alignment: align.id as any }))}
                             style={{
-                              background: isSelected ? 'rgba(200, 135, 42, 0.1)' : 'rgba(255,255,255,0.01)',
+                              background: isSelected ? 'rgba(200, 135, 42, 0.15)' : 'rgba(255,255,255,0.01)',
                               border: isSelected ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)',
-                              padding: '12px',
+                              padding: '12px 6px',
                               borderRadius: '4px',
                               cursor: 'pointer',
                               textAlign: 'center',
@@ -1153,20 +1170,65 @@ Modificador de CON: ${getModStr(charStats.con)}.
                               display: 'flex',
                               flexDirection: 'column',
                               justifyContent: 'center',
-                              minHeight: '70px',
+                              alignItems: 'center',
+                              minHeight: '50px',
                               boxShadow: isSelected ? '0 0 10px rgba(200, 135, 42, 0.2)' : 'none'
                             }}
-                            title={align.desc}
+                            onMouseEnter={e => !isSelected && (e.currentTarget.style.background = 'rgba(255,255,255,0.03)')}
+                            onMouseLeave={e => !isSelected && (e.currentTarget.style.background = 'rgba(255,255,255,0.01)')}
                           >
-                            <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: isSelected ? 'var(--accent-gold)' : 'var(--text-parchment)', marginBottom: '4px' }}>
+                            <div style={{ fontWeight: 'bold', fontSize: '0.85rem', color: isSelected ? 'var(--accent-gold)' : 'var(--text-parchment)' }}>
                               {align.label}
-                            </div>
-                            <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', lineHeight: '1.2' }}>
-                              {align.desc}
                             </div>
                           </div>
                         );
                       })}
+                    </div>
+
+                    {/* Descripciones de Alineamiento y Raza */}
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                      {/* Información Completa del Alineamiento Elegido */}
+                      {(() => {
+                        const selectedAlignObj = dbAlignments.find(a => a.id === draft.alignment);
+                        if (!selectedAlignObj) return null;
+                        return (
+                          <div style={{ 
+                            fontSize: '0.8rem', 
+                            color: 'var(--text-secondary)', 
+                            padding: '12px 16px', 
+                            background: 'rgba(255, 255, 255, 0.02)', 
+                            border: '1px solid var(--border-color)',
+                            borderRadius: '4px',
+                            lineHeight: '1.4'
+                          }}>
+                            <strong style={{ color: 'var(--accent-gold)', display: 'block', marginBottom: '4px', fontSize: '0.85rem' }}>
+                              {selectedAlignObj.label.toUpperCase()}
+                            </strong>
+                            {selectedAlignObj.desc}
+                          </div>
+                        );
+                      })()}
+
+                      {/* Guía de Alineamiento según la Raza */}
+                      {(() => {
+                        const selectedRaceObj = dbRaces.find(r => r.id === draft.race || r.name === draft.race);
+                        const alignDesc = selectedRaceObj?.alignmentDesc;
+                        if (!alignDesc) return null;
+                        return (
+                          <div style={{ 
+                            fontSize: '0.8rem', 
+                            color: 'var(--text-parchment)', 
+                            opacity: 0.85, 
+                            fontStyle: 'italic', 
+                            padding: '10px 14px', 
+                            background: 'rgba(200, 135, 42, 0.03)', 
+                            borderLeft: '2px solid var(--accent-gold)', 
+                            lineHeight: '1.4'
+                          }}>
+                            <strong>Inclinación de la raza ({selectedRaceObj.name}):</strong> {alignDesc}
+                          </div>
+                        );
+                      })()}
                     </div>
                   </div>
 
@@ -2634,16 +2696,17 @@ Modificador de CON: ${getModStr(charStats.con)}.
                           {/* Imagen Fullbody y Descripción */}
                           <div style={{ display: 'flex', gap: 'var(--char-sheet-portrait-gap)', alignItems: 'flex-start', marginTop: '10px', flexDirection: 'var(--char-sheet-portrait-direction)' as any }}>
                             {/* Imagen 2:3 */}
-                            <div style={{ width: 'var(--char-sheet-portrait-w)', height: 'var(--char-sheet-portrait-h)', borderRadius: '4px', border: '1px solid var(--border-color)', overflow: 'hidden', flexShrink: 0, background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
-                              {(() => {
-                                const baseRace = (selectedCharacter.race || 'Humano').split(' ')[0];
-                                const defaultPortrait = racePortraits[baseRace] || racePortraits['Humano'];
-                                const displayImage = selectedCharacter.full_body_image || defaultPortrait;
-                                return (
-                                  <img src={displayImage} alt="Cuerpo Entero" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                                );
-                              })()}
-                            </div>
+                             <div style={{ width: 'var(--char-sheet-portrait-w)', height: 'var(--char-sheet-portrait-h)', borderRadius: '4px', border: '1px solid var(--border-color)', overflow: 'hidden', flexShrink: 0, background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
+                               {(() => {
+                                 const baseRace = (selectedCharacter.race || 'Humano').split(' ')[0].trim();
+                                 const dbRaceMatch = dbRaces.find(r => r.name === baseRace || r.id === baseRace);
+                                 const defaultPortrait = dbRaceMatch?.image || '';
+                                 const displayImage = selectedCharacter.full_body_image || defaultPortrait;
+                                 return (
+                                   <img src={displayImage} alt="Cuerpo Entero" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                                 );
+                               })()}
+                             </div>
                             {/* Descripción */}
                             <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: '8px', height: 'var(--char-sheet-portrait-desc-h, var(--char-sheet-portrait-h))', width: '100%' }}>
                               <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: 0, fontSize: '0.8rem', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', letterSpacing: '1px' }}>TRASFONDO</h4>
