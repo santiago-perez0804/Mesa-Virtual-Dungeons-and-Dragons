@@ -94,6 +94,10 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
           bonusTexts.push(`+${val} ${attr.toUpperCase()}`);
         }
 
+        const languagesKnown = (parsedData.languages_known || []).map((l: string) => 
+          l.charAt(0).toUpperCase() + l.slice(1)
+        );
+
         return {
           id: item.name,
           name: item.name,
@@ -103,7 +107,8 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
           speed: parsedData.speed || 30,
           bonuses: bonuses,
           bonusText: bonusTexts.length > 0 ? bonusTexts.join(', ') : '+1 a todo',
-          subraces: subr
+          subraces: subr,
+          languages: languagesKnown.length > 0 ? languagesKnown : ['Común']
         };
       });
   }, [compendium]);
@@ -484,7 +489,8 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
         ...inventory,
         trasfondo: backgroundItems.filter(i => i.trim() !== ''),
         habilidades: selectedSkills,
-        salvaciones: selectedSavingThrows
+        salvaciones: selectedSavingThrows,
+        idiomas: draft.languages
       }),
       level: payloadLevel,
       max_hp: payloadMaxHp,
@@ -902,7 +908,8 @@ Modificador de CON: ${getModStr(charStats.con)}.
                                   setDraft(prev => ({
                                     ...prev,
                                     race: r.id,
-                                    subrace: r.subraces.length > 0 ? r.subraces[0].id : null
+                                    subrace: r.subraces.length > 0 ? r.subraces[0].id : null,
+                                    languages: r.languages || ['Común']
                                   }));
                                   setRaceQuery(r.name);
                                   setRaceDropdownOpen(false);
@@ -2584,6 +2591,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                           selectedSkills={selectedSkills}
                           onSelectSavingThrow={(key: string) => setSelectedSavingThrowForModal(key)}
                           onSelectSkill={(label: string, key: string) => setSelectedSkillForModal({ label, key })}
+                          dbRaces={dbRaces}
                         />
                         {/* Columna Derecha (Atributos + Inventario) */}
                         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--char-sheet-body-gap)' }}>
