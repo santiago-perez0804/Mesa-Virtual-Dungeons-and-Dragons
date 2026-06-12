@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useMemo } from 'react';
 import { User, Shield, Backpack, X, Link, Scale, Lock, RefreshCw, ChevronLeft, ChevronRight, Check, Dices, ChevronUp, Pencil, Heart, Zap, Footprints, Award } from 'lucide-react';
-import { races, classes, backgrounds, alignments } from '../../data/dnd-datos';
+import { classes, backgrounds, alignments } from '../../data/dnd-datos';
 import type { CharacterDraft, AlignmentType, AttributeKey } from '../../data/dnd-datos';
 import { calcMod, calculateHP, calculateAC, getRandomItem } from '../../utils/dnd-calculos';
 import { HeroCard } from './ui/CartaHeroe';
@@ -19,9 +19,106 @@ import { AttributeModifierModal } from './personaje/AttributeModifierModal';
 import { SavingThrowModifierModal } from './personaje/SavingThrowModifierModal';
 import { SkillModifierModal } from './personaje/SkillModifierModal';
 
-import { classDesc, classHitDice, raceDesc, raceBonuses, skillList, statDescriptions, subraces } from '../modules/personaje/personaje.constantes';
+import { classDesc, classHitDice, skillList, statDescriptions } from '../modules/personaje/personaje.constantes';
 
 export const CharacterManager = ({ socket, characters, compendium, userRole, triggerDiceRoll, isOverlay, forceOpenId, onCloseOverlay }: any) => {
+  const dbClasses = useMemo(() => {
+    if (!compendium) return [];
+    return compendium
+      .filter((item: any) => item.type === 'class')
+      .map((item: any) => {
+        let parsedData: any = {};
+        try {
+          parsedData = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
+        } catch (e) {
+          parsedData = {};
+        }
+        return {
+          id: item.name,
+          name: item.name,
+          description: parsedData.description || parsedData.desc || '',
+          hitDice: parsedData.hit_die || parsedData.hit_dice || 8,
+          savingThrows: item.name === 'Bárbaro' ? ['fue', 'con'] :
+                        item.name === 'Bardo' ? ['dex', 'car'] :
+                        item.name === 'Clérigo' ? ['sab', 'car'] :
+                        item.name === 'Druida' ? ['int', 'sab'] :
+                        item.name === 'Guerrero' ? ['fue', 'con'] :
+                        item.name === 'Monje' ? ['fue', 'dex'] :
+                        item.name === 'Paladín' ? ['sab', 'car'] :
+                        item.name === 'Explorador' ? ['fue', 'dex'] :
+                        item.name === 'Pícaro' ? ['dex', 'int'] :
+                        item.name === 'Hechicero' ? ['con', 'car'] :
+                        item.name === 'Brujo' ? ['sab', 'car'] :
+                        item.name === 'Mago' ? ['int', 'sab'] : ['fue', 'con']
+        };
+      });
+  }, [compendium]);
+
+  const getHitDieForClass = (className: string) => {
+    const found = dbClasses.find(c => c.name === className || c.id === className);
+    if (found) return found.hitDice;
+    return classHitDice[className] || 10;
+  };
+
+  const dbRaces = useMemo(() => {
+    if (!compendium) return [];
+    return compendium
+      .filter((item: any) => item.type === 'race')
+      .map((item: any) => {
+        let parsedData: any = {};
+        try {
+          parsedData = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
+        } catch (e) {
+          parsedData = {};
+        }
+        
+        const subr = (parsedData.subraces || []).map((s: any) => ({
+          id: s.name,
+          name: s.name,
+          description: s.desc || s.description || 'Sin descripción.',
+          bonuses: s.ability_bonuses || {},
+          bonusText: ''
+        }));
+
+        const bonuses: any = {};
+        if (Array.isArray(parsedData.ability_bonuses)) {
+          parsedData.ability_bonuses.forEach((b: any) => {
+            if (b.ability_score && b.ability_score.index) {
+              bonuses[b.ability_score.index] = b.bonus;
+            }
+          });
+        }
+
+        const bonusTexts = [];
+        for (const [attr, val] of Object.entries(bonuses)) {
+          bonusTexts.push(`+${val} ${attr.toUpperCase()}`);
+        }
+
+        return {
+          id: item.name,
+          name: item.name,
+          description: parsedData.size_description || parsedData.age || 'Sin descripción.',
+          age: parsedData.age || '',
+          size: parsedData.size || 'Medio',
+          speed: parsedData.speed || 30,
+          bonuses: bonuses,
+          bonusText: bonusTexts.length > 0 ? bonusTexts.join(', ') : '+1 a todo',
+          subraces: subr
+        };
+      });
+  }, [compendium]);
+
+  const getCharacterBaseSpeed = (charRaceStr: string) => {
+    if (!charRaceStr) return 6;
+    const baseRace = charRaceStr.split('(')[0].trim();
+    const found = dbRaces.find(r => r.name === baseRace || r.id === baseRace);
+    if (found) {
+      return Math.floor(found.speed / 5);
+    }
+    if (baseRace === 'Enano' || baseRace === 'Mediano' || baseRace === 'Gnomo') return 5;
+    return 6;
+  };
+
   // --- ESTADOS DEL FORMULARIO DE CREACIÓN ---
   const [name, setName] = useState('');
   const [charClass, setCharClass] = useState('Guerrero');
@@ -128,21 +225,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     'Dracónido': 'https://images.unsplash.com/photo-1608889175123-8ec330b86f84?w=300&q=80',
   };
 
-  // --- DESCRIPCIONES DETALLADAS DE CLASES (250-300 CARACTERES) ---
-  const classDetailedDescriptions: Record<string, string> = {
-    'Bárbaro': 'Un guerrero feroz de trasfondo primitivo que puede entrar en una furia de batalla indomable. Su fuerza física desmedida y su increíble resistencia al daño lo convierten en el defensor definitivo de primera línea, capaz de soportar golpes mortales mientras inflige un daño masivo con sus armas a dos manos.',
-    'Bardo': 'Un maestro de la canción, la oratoria y la magia que teje melodías místicas para inspirar a sus aliados, desmoralizar a sus enemigos y manipular el entorno. Su versatilidad sin igual le permite adaptarse a cualquier rol en el grupo, combinando habilidades de combate, sigilo y magia divina o arcana.',
-    'Clérigo': 'Un campeón sacerdotal que empuña magia divina al servicio de una deidad benevolente o destructora. Son sanadores invaluables capaces de restaurar la vitalidad de sus compañeros caídos, pero también temibles combatientes con armadura pesada que canalizan la ira de sus dioses contra las fuerzas del mal.',
-    'Druida': 'Un guardián de la naturaleza que canaliza las fuerzas primordiales del cosmos para conjurar tormentas, curar heridas y adoptar la forma física de bestias salvajes. Su profunda conexión con el mundo natural les otorga una sabiduría ancestral que les permite comunicarse con la fauna y proteger el equilibrio de la tierra.',
-    'Guerrero': 'Un especialista en combate marcial que domina una inmensa variedad de armas, estilos de combate y armaduras. Su riguroso entrenamiento físico les permite realizar hazañas tácticas inigualables en el campo de batalla, siendo letales tanto con una espada y escudo como con un arco o un mandoble pesado.',
-    'Monje': 'Un artista marcial que canaliza la energía mística del Ki a través de su propio cuerpo para lograr una velocidad sobrehumana y asestar golpes letales desarmado. Evitan el uso de armaduras pesadas, confiando en sus reflejos felinos y su agilidad para esquivar ataques mientras aturden a sus oponentes.',
-    'Paladín': 'Un guerrero sagrado ligado a un juramento solemne para defender la justicia, la luz y la verdad. Imbuidos de poder divino, pueden curar con su imposición de manos, proteger a sus aliados con auras místicas y desatar castigos devastadores infundiendo sus armas con energía radiante pura.',
-    'Explorador': 'Un cazador letal y rastreador experto de los desiertos y bosques profundos. Especializados en combatir enemigos específicos en terrenos salvajes, combinan el sigilo, la maestría en el combate a distancia o con dos armas, y un toque de magia de la naturaleza para guiar y proteger a su grupo.',
-    'Pícaro': 'Un bribón sigiloso, astuto y sumamente técnico que se especializa en encontrar las debilidades de sus enemigos y asestar golpes furtivos letales. Maestros de las ganzúas, las trampas y la infiltración, su capacidad para evitar el peligro los convierte en espías y saqueadores insuperables.',
-    'Hechicero': 'Un usuario de magia innata cuya sangre o linaje arrastra un poder arcano salvaje y misterioso, heredado de dragones, feéricos o el propio caos. A diferencia de otros magos, no necesitan libros de conjuros, sino que manipulan la magia de forma instintiva alterando el tejido mismo de sus hechizos.',
-    'Brujo': 'Un taumaturgo que obtiene su poder mágico a través de un pacto místico con una entidad del más allá, como un archifeérico, un demonio o un ser antiguo. A cambio de su lealtad, reciben secretos oscuros, invocaciones sobrenaturales y la capacidad de lanzar conjuros extremadamente potentes.',
-    'Mago': 'Un estudioso supremo de las artes arcanas que manipula la realidad mediante el estudio meticuloso de fórmulas y libros de conjuros. Su inmenso conocimiento les permite aprender y catalogar la mayor lista de hechizos del multiverso, preparados para resolver cualquier situación con el conjuro adecuado.'
-  };
+
 
   const [raceQuery, setRaceQuery] = useState(draft.race || '');
   const [raceDropdownOpen, setRaceDropdownOpen] = useState(false);
@@ -159,11 +242,13 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     setRaceQuery(draft.race || '');
     setSubraceQuery(draft.subrace || '');
     setClassQuery(draft.class || '');
+    if (draft.race) setRace(draft.race);
+    if (draft.subrace) setSubrace(draft.subrace);
   }, [draft.race, draft.subrace, draft.class]);
 
   useEffect(() => {
-    setHitDieValue(classHitDice[charClass] || 10);
-  }, [charClass]);
+    setHitDieValue(getHitDieForClass(charClass));
+  }, [charClass, dbClasses]);
 
   // --- ESTADOS DE VISTA ---
   
@@ -376,7 +461,9 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
 
     const finalStats = { ...stats };
     if (!editingId) {
-      const bonuses = raceBonuses[race] || {};
+      const baseRace = race.split('(')[0].trim();
+      const dbRaceObj = dbRaces.find(r => r.name === baseRace || r.id === baseRace);
+      const bonuses = dbRaceObj?.bonuses || {};
       Object.keys(bonuses).forEach((s: string) => {
         (finalStats as any)[s] += bonuses[s];
       });
@@ -500,7 +587,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const handleLevelUp = () => {
     if (!levelUpClass) return alert("Elige una clase para tomar tu nuevo nivel.");
 
-    const hitDie = classHitDice[levelUpClass];
+    const hitDie = getHitDieForClass(levelUpClass);
     const roll = Math.floor(Math.random() * hitDie) + 1;
     const charStats = safeParseStats(selectedCharacter.stats);
     const conMod = calcMod(charStats.con);
@@ -808,7 +895,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                             zIndex: 100, maxHeight: '200px', overflowY: 'auto', marginTop: '5px',
                             boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
                           }}>
-                            {races.filter(r => r.name.toLowerCase().includes(raceQuery.toLowerCase())).map(r => (
+                            {dbRaces.filter(r => r.name.toLowerCase().includes(raceQuery.toLowerCase())).map(r => (
                               <div
                                 key={r.id}
                                 onClick={() => {
@@ -828,7 +915,6 @@ Modificador de CON: ${getModStr(charStats.con)}.
                                 onMouseEnter={e => e.currentTarget.style.background = 'rgba(200, 135, 42, 0.15)'}
                                 onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
                               >
-                                <span>{r.icon}</span>
                                 <strong style={{ color: 'var(--accent-gold)' }}>{r.name}</strong>
                               </div>
                             ))}
@@ -838,14 +924,14 @@ Modificador de CON: ${getModStr(charStats.con)}.
                         {/* Descripción de Raza */}
                         {draft.race && (
                           <div style={{ fontSize: '0.85rem', color: 'var(--text-parchment)', opacity: 0.9, fontStyle: 'italic', padding: '12px 18px', background: 'rgba(200, 135, 42, 0.04)', borderLeft: '3px solid var(--accent-gold)', marginTop: '8px' }}>
-                            <strong>{draft.race}:</strong> {races.find(r => r.id === draft.race)?.description}
+                            <strong>{draft.race}:</strong> {dbRaces.find(r => r.id === draft.race || r.name === draft.race)?.description}
                           </div>
                         )}
                       </div>
 
                       {/* Buscador de Subraza (si la raza elegida tiene subrazas) */}
                       {(() => {
-                        const selectedRaceObj = races.find(r => r.id === draft.race);
+                        const selectedRaceObj = dbRaces.find(r => r.id === draft.race || r.name === draft.race);
                         if (!selectedRaceObj || !selectedRaceObj.subraces || selectedRaceObj.subraces.length === 0) return null;
 
                         return (
@@ -1333,7 +1419,9 @@ Modificador de CON: ${getModStr(charStats.con)}.
                     <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '15px', display: 'block' }}>ATRIBUTOS Y TIRADAS DE SALVACIÓN</label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
                       {Object.entries(draft.attributes).map(([key, value]) => {
-                        const raceBonus = (raceBonuses[draft.race || 'Humano'] || {})[key] || 0;
+                        const baseRace = (draft.race || 'Humano').split('(')[0].trim();
+                        const dbRaceObj = dbRaces.find(r => r.name === baseRace || r.id === baseRace);
+                        const raceBonus = dbRaceObj?.bonuses?.[key] || 0;
                         const total = value + raceBonus;
                         const mod = calcMod(total);
                         const modStr = mod >= 0 ? "+" + mod : "" + mod;
@@ -1579,7 +1667,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                           zIndex: 100, maxHeight: '200px', overflowY: 'auto', marginBottom: '0px',
                           boxShadow: '0 -10px 30px rgba(0,0,0,0.8)'
                         }}>
-                          {classes.filter(c => c.name.toLowerCase().includes(classQuery.toLowerCase())).map(cls => (
+                          {(dbClasses.length > 0 ? dbClasses : classes).filter(c => c.name.toLowerCase().includes(classQuery.toLowerCase())).map(cls => (
                             <div
                               key={cls.id}
                               onClick={() => {
@@ -1610,11 +1698,16 @@ Modificador de CON: ${getModStr(charStats.con)}.
                     </div>
 
                     {/* Descripción Detallada de la Clase Elegida */}
-                    {draft.class && classDetailedDescriptions[draft.class] && (
-                      <div style={{ fontSize: '0.85rem', color: 'var(--text-parchment)', opacity: 0.9, fontStyle: 'italic', padding: '15px 20px', background: 'rgba(200, 135, 42, 0.04)', borderLeft: '3px solid var(--accent-gold)', marginTop: '12px', lineHeight: '1.5' }}>
-                        <strong>{draft.class}:</strong> {classDetailedDescriptions[draft.class]}
-                      </div>
-                    )}
+                    {(() => {
+                      const selectedDbClass = dbClasses.find(c => c.name === draft.class || c.id === draft.class);
+                      const descToShow = selectedDbClass?.description || '';
+                      if (!descToShow) return null;
+                      return (
+                        <div style={{ fontSize: '0.85rem', color: 'var(--text-parchment)', opacity: 0.9, fontStyle: 'italic', padding: '15px 20px', background: 'rgba(200, 135, 42, 0.04)', borderLeft: '3px solid var(--accent-gold)', marginTop: '12px', lineHeight: '1.5' }}>
+                          {descToShow}
+                        </div>
+                      );
+                    })()}
                   </div>
                 </>
               )}
@@ -1708,15 +1801,15 @@ Modificador de CON: ${getModStr(charStats.con)}.
                         <input
                           type="number"
                           min={1}
-                          max={classHitDice[charClass] || 10}
+                          max={getHitDieForClass(charClass)}
                           value={hitDieValue}
                           onChange={(e) => {
                             const raw = e.target.value;
                             if (raw === '') {
-                              setHitDieValue('');
-                              return;
+                                setHitDieValue('');
+                                return;
                             }
-                            const maxVal = classHitDice[charClass] || 10;
+                            const maxVal = getHitDieForClass(charClass);
                             let val = parseInt(raw);
                             if (isNaN(val)) return;
                             if (val > maxVal) val = maxVal;
@@ -1742,7 +1835,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
 
                         <div
                           onClick={() => {
-                            const maxVal = classHitDice[charClass] || 10;
+                            const maxVal = getHitDieForClass(charClass);
                             const roll = Math.floor(Math.random() * maxVal) + 1;
                             setHitDieValue(roll);
                           }}
@@ -1765,10 +1858,10 @@ Modificador de CON: ${getModStr(charStats.con)}.
                             e.currentTarget.style.color = 'var(--accent-gold)';
                             e.currentTarget.style.transform = 'scale(1)';
                           }}
-                          title={`Lanzar d${classHitDice[charClass] || 10}`}
+                          title={`Lanzar d${getHitDieForClass(charClass)}`}
                         >
                           <Dices className="w-6 h-6" />
-                          <span className="mono">d{classHitDice[charClass] || 10}</span>
+                          <span className="mono">d{getHitDieForClass(charClass)}</span>
                         </div>
                       </div>
 
@@ -1912,11 +2005,11 @@ Modificador de CON: ${getModStr(charStats.con)}.
                         </h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem', color: 'var(--text-parchment)', lineHeight: '1.4' }}>
                           <div>
-                            <strong>{race}:</strong> {races.find(r => r.id === race)?.description} <span style={{ color: 'var(--accent-gold)' }}>({races.find(r => r.id === race)?.bonusText})</span>
+                            <strong>{race}:</strong> {dbRaces.find(r => r.id === race || r.name === race)?.description} <span style={{ color: 'var(--accent-gold)' }}>({dbRaces.find(r => r.id === race || r.name === race)?.bonusText})</span>
                           </div>
                           {subrace && subrace !== 'Estándar' && (
                             <div>
-                              <strong>{subrace}:</strong> {races.find(r => r.id === race)?.subraces.find(sr => sr.id === subrace)?.description}
+                              <strong>{subrace}:</strong> {dbRaces.find(r => r.id === race || r.name === race)?.subraces.find(sr => sr.id === subrace || sr.name === subrace)?.description}
                             </div>
                           )}
                         </div>
@@ -2446,7 +2539,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                         })()}
                         {(() => {
                           const customSpeed = (charStats.customSpeedModifiers || []).reduce((acc: number, m: any) => acc + m.value, 0);
-                          const baseSpeedVal = 6;
+                          const baseSpeedVal = getCharacterBaseSpeed(selectedCharacter.race);
                           const totalSpeed = baseSpeedVal + customSpeed;
                           return (
                             <div 
@@ -2567,6 +2660,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                         fetchClassFeatures={fetchClassFeatures} 
                         socket={socket}
                         onUpdate={setSelectedCharacter}
+                        dbRaces={dbRaces}
                       />
                     </div>
                   );
@@ -3726,7 +3820,10 @@ Modificador de CON: ${getModStr(charStats.con)}.
                                                 onChange={(e) => setLevelUpClass(e.target.value)}
                                               >
                                                 <option value="">-- ELIGE CLASE --</option>
-                                                {Object.keys(classDesc).map(c => <option key={c} value={c}>{c}</option>)}
+                                                {(() => {
+                                                  const classNamesList = dbClasses.length > 0 ? dbClasses.map(c => c.name) : Object.keys(classDesc);
+                                                  return classNamesList.map(c => <option key={c} value={c}>{c}</option>);
+                                                })()}
                                               </select>
                                             </div>
 
