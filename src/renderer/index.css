@@ -111,6 +111,16 @@
   --sidebar-create-margin: 20px;
   --sidebar-create-padding: 12px;
   --sidebar-create-size: 0.75rem;
+
+  /* Compendio Content responsivo */
+  --compendium-content-padding: 60px;
+  --compendium-header-margin: 50px;
+  --compendium-title-size: 3rem;
+  --compendium-subtitle-size: 0.8rem;
+  --compendium-search-width: 350px;
+  --compendium-search-padding: 12px 20px;
+  --compendium-grid-minmax: 300px;
+  --compendium-grid-gap: 30px;
 }
 
 *, *::before, *::after {
@@ -336,6 +346,16 @@ input[type="number"] {
     --sidebar-create-padding: 8px;
     --sidebar-create-size: 0.65rem;
 
+    /* Compendio Content responsivo */
+    --compendium-content-padding: 24px;
+    --compendium-header-margin: 25px;
+    --compendium-title-size: 2rem;
+    --compendium-subtitle-size: 0.7rem;
+    --compendium-search-width: 260px;
+    --compendium-search-padding: 8px 14px;
+    --compendium-grid-minmax: 230px;
+    --compendium-grid-gap: 16px;
+
     /* GestorPersonajes responsivo */
     --search-container-padding: 10px 14px;
     --search-container-margin: 16px;
@@ -400,6 +420,16 @@ input[type="number"] {
     --sidebar-create-margin: 8px;
     --sidebar-create-padding: 6px;
     --sidebar-create-size: 0.6rem;
+
+    /* Compendio Content responsivo */
+    --compendium-content-padding: 15px;
+    --compendium-header-margin: 15px;
+    --compendium-title-size: 1.6rem;
+    --compendium-subtitle-size: 0.6rem;
+    --compendium-search-width: 200px;
+    --compendium-search-padding: 6px 10px;
+    --compendium-grid-minmax: 180px;
+    --compendium-grid-gap: 12px;
 
     /* GestorPersonajes responsivo */
     --search-container-padding: 8px 12px;
