@@ -1,21 +1,3 @@
-export const classDesc: any = {
-  "Artífice": "",
-  "Bárbaro": "",
-  "Bardo": "",
-  "Brujo": "",
-  "Clérigo": "",
-  "Druida": "",
-  "Explorador": "",
-  "Guerrero": "",
-  "Hechicero": "",
-  "Mago": "",
-  "Monje": "",
-  "Paladín": "",
-  "Pícaro": ""
-};
-
-export const classHitDice: any = {};
-
 export const skillList = [
   "Acrobacias", "Atletismo", "Arcanos", "Engaño", "Historia",
   "Intuición", "Intimidación", "Investigación", "Medicina",

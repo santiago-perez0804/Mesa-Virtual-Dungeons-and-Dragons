@@ -1,7 +1,6 @@
 import React, { useState } from 'react';
 import { Lock, Plus, Trash2, Award, Globe, BookOpen, Scroll } from 'lucide-react';
 import { parseClasses, safeParseStats } from '../../utils/personaje';
-import { classDesc } from '../../modules/personaje/personaje.constantes';
 
 const DEFAULT_RACIAL_TRAITS: Record<string, Array<{ name: string, description: string }>> = {
   'Humano': [
@@ -72,7 +71,8 @@ export const CharacterTraitsTab = ({
   fetchClassFeatures,
   socket,
   onUpdate,
-  dbRaces = []
+  dbRaces = [],
+  dbClasses = []
 }: any) => {
   const [activeSubTab, setActiveSubTab] = useState<'clase' | 'raza' | 'trasfondo' | 'dotes'>('clase');
   const charLevel = character.level || 1;
@@ -244,7 +244,8 @@ export const CharacterTraitsTab = ({
                 {(() => {
                   const activeClass = activeFeaturesClass || Object.keys(allClassesMap)[0] || 'Guerrero';
                   const baseCls = activeClass.split(' ')[0].trim();
-                  return classDesc[baseCls] || classDesc[activeClass] || "Maestros en sus respectivas disciplinas marciales o arcanas.";
+                  const foundClass = dbClasses.find((c: any) => c.name === baseCls || c.name === activeClass);
+                  return foundClass?.description || "Maestros en sus respectivas disciplinas marciales o arcanas.";
                 })()}
               </div>
             </div>
@@ -278,7 +279,7 @@ export const CharacterTraitsTab = ({
                 {levels.map(lvl => {
                   const isUnlocked = lvl <= activeClassLevel;
                   return (
-                    <div key={lvl} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', pb: '10px' }}>
+                    <div key={lvl} style={{ borderBottom: '1px solid rgba(255,255,255,0.04)', paddingBottom: '10px' }}>
                       <div style={{ display: 'flex', alignItems: 'center', gap: '12px', padding: '10px 0', opacity: isUnlocked ? 1 : 0.35 }}>
                         <div style={{
                           width: '30px', height: '30px', borderRadius: '50%',

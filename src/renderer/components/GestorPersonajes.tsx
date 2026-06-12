@@ -19,7 +19,7 @@ import { AttributeModifierModal } from './personaje/AttributeModifierModal';
 import { SavingThrowModifierModal } from './personaje/SavingThrowModifierModal';
 import { SkillModifierModal } from './personaje/SkillModifierModal';
 
-import { classDesc, classHitDice, skillList, statDescriptions } from '../modules/personaje/personaje.constantes';
+import { skillList, statDescriptions } from '../modules/personaje/personaje.constantes';
 
 export const CharacterManager = ({ socket, characters, compendium, userRole, triggerDiceRoll, isOverlay, forceOpenId, onCloseOverlay }: any) => {
   const dbClasses = useMemo(() => {
@@ -57,7 +57,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const getHitDieForClass = (className: string) => {
     const found = dbClasses.find(c => c.name === className || c.id === className);
     if (found) return found.hitDice;
-    return classHitDice[className] || 10;
+    return 10;
   };
 
   const dbRaces = useMemo(() => {
@@ -2732,6 +2732,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                         socket={socket}
                         onUpdate={setSelectedCharacter}
                         dbRaces={dbRaces}
+                        dbClasses={dbClasses}
                       />
                     </div>
                   );
@@ -3892,7 +3893,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                                               >
                                                 <option value="">-- ELIGE CLASE --</option>
                                                 {(() => {
-                                                  const classNamesList = dbClasses.length > 0 ? dbClasses.map(c => c.name) : Object.keys(classDesc);
+                                                  const classNamesList = dbClasses.map(c => c.name);
                                                   return classNamesList.map(c => <option key={c} value={c}>{c}</option>);
                                                 })()}
                                               </select>
