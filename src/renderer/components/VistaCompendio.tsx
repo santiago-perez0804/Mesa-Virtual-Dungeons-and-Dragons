@@ -14,15 +14,16 @@ import { useDatabaseForms } from '../modules/compendium/hooks/useFormulariosBase
 import { ACTION_TYPES, DAMAGE_TYPES, EMERGENCY_SRD_CLASSES } from '../modules/compendium/compendio.traducciones';
 
 export const typeIcons: Record<string, React.ReactNode> = {
-  monster: <><Ghost className="w-4 h-4 inline-block mr-1" /> Monstruos</>,
-  spell: <><Scroll className="w-4 h-4 inline-block mr-1" /> Hechizos</>,
-  item: <><Swords className="w-4 h-4 inline-block mr-1" /> Objetos</>,
-  class: <><Shield className="w-4 h-4 inline-block mr-1" /> Clases</>,
-  subclass: <><Sparkles className="w-4 h-4 inline-block mr-1" /> Subclases</>,
-  race: <><Footprints className="w-4 h-4 inline-block mr-1" /> Razas</>,
-  subrace: <><Dna className="w-4 h-4 inline-block mr-1" /> Subrazas</>,
-  condition: <><AlertTriangle className="w-4 h-4 inline-block mr-1" /> Estados</>,
-  features: <><Zap className="w-4 h-4 inline-block mr-1" /> Rasgos</>
+  all: <><BookOpen className="w-4 h-4 flex-shrink-0" /> Ver Todo</>,
+  monster: <><Ghost className="w-4 h-4 flex-shrink-0" /> Monstruos</>,
+  spell: <><Scroll className="w-4 h-4 flex-shrink-0" /> Hechizos</>,
+  item: <><Swords className="w-4 h-4 flex-shrink-0" /> Objetos</>,
+  class: <><Shield className="w-4 h-4 flex-shrink-0" /> Clases</>,
+  subclass: <><Sparkles className="w-4 h-4 flex-shrink-0" /> Subclases</>,
+  race: <><Footprints className="w-4 h-4 flex-shrink-0" /> Razas</>,
+  subrace: <><Dna className="w-4 h-4 flex-shrink-0" /> Subrazas</>,
+  condition: <><AlertTriangle className="w-4 h-4 flex-shrink-0" /> Estados</>,
+  features: <><Zap className="w-4 h-4 flex-shrink-0" /> Rasgos</>
 };
 /*
 const parseMarkdownTable = (tableStr: string) => {
@@ -951,6 +952,9 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
               onClick={() => handleCategory(cat as any)}
               className="font-cinzel torch-glow"
               style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px',
                 textAlign: 'left',
                 padding: 'var(--sidebar-btn-padding)',
                 background: category === cat ? 'rgba(200, 135, 42, 0.1)' : 'transparent',
@@ -962,7 +966,7 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
                 transition: 'all 0.2s'
               }}
             >
-              {cat === 'all' ? 'Ver Todo' : typeIcons[cat]}
+              {typeIcons[cat]}
             </button>
           ))}
         </div>
