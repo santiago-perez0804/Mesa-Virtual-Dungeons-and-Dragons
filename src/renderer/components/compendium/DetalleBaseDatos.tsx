@@ -1,6 +1,6 @@
 
 import { formatDescription } from '../../utils/formateador';
-import { Ghost, Scroll, Swords, Link, AlertTriangle } from 'lucide-react';
+import { Ghost, Scroll, Swords, Link, AlertTriangle, Dna } from 'lucide-react';
 import { typeIcons } from '../VistaCompendio';
 export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onCloseOverlay, userRole }: any) => {
   const d = selectedItem.data ? (typeof selectedItem.data === 'string' ? JSON.parse(selectedItem.data) : selectedItem.data) : {};
@@ -218,7 +218,7 @@ export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onClo
                             <div>
                               <h1 className="font-cinzel" style={{ margin: 0, color: 'var(--accent-gold)', fontSize: '2.8rem', textShadow: '0 0 20px rgba(200, 135, 42, 0.2)' }}>{selectedItem.name}</h1>
                               <div style={{ display: 'flex', gap: '15px', alignItems: 'center', marginTop: '5px' }}>
-                                <span className="font-cinzel" style={{ color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '2px', fontSize: '0.9rem' }}>{selectedItem.type === 'monster' ? <><Ghost className="w-4 h-4 inline-block mr-1" /> MONSTRUO</> : selectedItem.type === 'spell' ? <><Scroll className="w-4 h-4 inline-block mr-1" /> HECHIZO</> : selectedItem.type === 'condition' ? <><AlertTriangle className="w-4 h-4 inline-block mr-1" /> ESTADO</> : <><Swords className="w-4 h-4 inline-block mr-1" /> OBJETO</>}</span>
+                                <span className="font-cinzel" style={{ color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '2px', fontSize: '0.9rem' }}>{selectedItem.type === 'monster' ? <><Ghost className="w-4 h-4 inline-block mr-1" /> MONSTRUO</> : selectedItem.type === 'spell' ? <><Scroll className="w-4 h-4 inline-block mr-1" /> HECHIZO</> : selectedItem.type === 'condition' ? <><AlertTriangle className="w-4 h-4 inline-block mr-1" /> ESTADO</> : selectedItem.type === 'subrace' ? <><Dna className="w-4 h-4 inline-block mr-1" /> SUBRAZA</> : <><Swords className="w-4 h-4 inline-block mr-1" /> OBJETO</>}</span>
                                 {isMonster && d.size && <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>• {d.size}</span>}
                                 {isMonster && cr !== '—' && <span style={{ color: 'var(--accent-gold)', fontSize: '0.9rem', fontWeight: 'bold' }}>• CR {cr}</span>}
                               </div>
@@ -247,6 +247,7 @@ export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onClo
                                       {selectedItem.type === 'monster' ? <Ghost size={80} /> : 
                                        selectedItem.type === 'spell' ? <Scroll size={80} /> : 
                                        selectedItem.type === 'condition' ? <AlertTriangle size={80} /> :
+                                       selectedItem.type === 'subrace' ? <Dna size={80} /> :
                                        <Swords size={80} />}
                                     </div>
                                   )}
@@ -454,6 +455,45 @@ export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onClo
                                     <p style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: formatDescription(d.description || d.desc || 'Sin descripción.') }} />
                                   )}
                                 </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {selectedItem.type === 'subrace' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                              <div>
+                                <h3 className="font-cinzel" style={{ fontSize: '1.05rem', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', margin: '0 0 10px 0' }}>Raza Padre</h3>
+                                <p style={{ fontSize: '0.95rem', margin: 0, color: 'var(--text-parchment)' }}>
+                                  {d.race?.name || 'Desconocida'}
+                                </p>
+                              </div>
+                              {d.ability_bonuses && d.ability_bonuses.length > 0 && (
+                                <div>
+                                  <h3 className="font-cinzel" style={{ fontSize: '1.05rem', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', margin: '0 0 10px 0' }}>Bonificadores de Atributos</h3>
+                                  <ul style={{ margin: 0, paddingLeft: '20px', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+                                    {d.ability_bonuses.map((b: any, bIdx: number) => (
+                                      <li key={bIdx}>
+                                        <b>{b.ability_score?.name?.toUpperCase()}:</b> +{b.bonus}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              {d.racial_traits && d.racial_traits.length > 0 && (
+                                <div>
+                                  <h3 className="font-cinzel" style={{ fontSize: '1.05rem', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', margin: '0 0 10px 0' }}>Rasgos Raciales Especiales</h3>
+                                  <ul style={{ margin: 0, paddingLeft: '20px', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+                                    {d.racial_traits.map((t: any, tIdx: number) => (
+                                      <li key={tIdx}>
+                                        <b>{t.name}</b>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              <div>
+                                <h3 className="font-cinzel" style={{ fontSize: '1.05rem', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', margin: '0 0 10px 0' }}>Descripción</h3>
+                                <p style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: formatDescription(d.description || d.desc || 'Sin descripción.') }} />
                               </div>
                             </div>
                           )}
