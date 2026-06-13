@@ -13,7 +13,11 @@ import { parseAndRollHP } from './utils/utilidadesDados';
 
 type DiceType = 'd3' | 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20';
 
-const socket = io(window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin);
+const socket = io(
+  window.location.port === '5173'
+    ? `${window.location.protocol}//${window.location.hostname}:3000`
+    : window.location.origin
+);
 
 function App() {
   const [user, setUser] = useState<{ name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string } | null>(null);
@@ -30,6 +34,16 @@ function App() {
   const [activeTab, setActiveTab] = useState<'combat' | 'database' | 'admin' | 'characters' | 'campaigns'>('combat');
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
+
+  const activeCampaign = campaigns.find(c => c.is_active === 1);
+  const currentRole = user
+    ? (user.role === 'admin' ? 'admin' : (activeCampaign && activeCampaign.owner === user.name ? 'dm' : 'player'))
+    : 'player';
+
+  const currentRoleRef = useRef(currentRole);
+  useEffect(() => {
+    currentRoleRef.current = currentRole;
+  }, [currentRole]);
   const [imageToast, setImageToast] = useState<{ id: number; name: string; status: 'generating' | 'ready' | 'failed' } | null>(null);
 
   const [overlayCharacterId, setOverlayCharacterId] = useState<number | null>(null);
@@ -91,7 +105,7 @@ function App() {
       const currentUser = userRef.current;
       const rollTo = data.to || 'all';
       const isSender = data.user === currentUser?.name;
-      const isRecipient = rollTo === currentUser?.name || (rollTo === 'Dungeon Master' && currentUser?.role === 'dm');
+      const isRecipient = rollTo === currentUser?.name || (rollTo === 'Dungeon Master' && currentRoleRef.current === 'dm');
       const isPublic = rollTo === 'all';
 
       if (isPublic || isSender || isRecipient) {
@@ -344,7 +358,7 @@ function App() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <span style={{ fontSize: 'var(--header-role-size)', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                {user.role === 'dm' ? 'Dungeon Master' : (user.role === 'admin' ? 'Administrador' : 'Aventurero')}
+                {currentRole === 'dm' ? 'Dungeon Master' : (currentRole === 'admin' ? 'Administrador' : 'Aventurero')}
               </span>
               <span className="font-cinzel" style={{ fontSize: 'var(--header-name-size)', color: 'var(--text-parchment)', fontWeight: 'bold' }}>{user.name}</span>
             </div>
@@ -365,11 +379,11 @@ function App() {
       {/* TABS NAVEGACIÓN */}
       <div style={{ display: 'flex', gap: '2px', background: 'var(--bg-base)', padding: 'var(--tabs-padding)' }}>
         {[
-          { id: 'combat', label: 'COMBATE', color: 'var(--combat-red)', visible: user.role !== 'admin' },
-          { id: 'characters', label: 'HÉROES', color: 'var(--natural-green)', visible: user.role !== 'admin' },
+          { id: 'combat', label: 'COMBATE', color: 'var(--combat-red)', visible: currentRole !== 'admin' },
+          { id: 'characters', label: 'HÉROES', color: 'var(--natural-green)', visible: currentRole !== 'admin' },
           { id: 'campaigns', label: 'CAMPAÑAS', color: 'var(--accent-gold)', visible: true },
           { id: 'database', label: 'COMPENDIO', color: 'var(--accent-gold)', visible: true },
-          { id: 'admin', label: 'ADMIN', color: '#f59e0b', visible: user.role === 'admin' }
+          { id: 'admin', label: 'ADMIN', color: '#f59e0b', visible: currentRole === 'admin' }
         ].filter(t => t.visible !== false).map(tab => (
           <button
             key={tab.id}
@@ -405,7 +419,7 @@ function App() {
                   characters={characters}
                   monsters={monsters}
                   compendium={compendium}
-                  userRole={user.role}
+                  userRole={currentRole}
                   currentUser={user}
                   activeTab={activeTab}
                   onOpenCharacterSheet={setOverlayCharacterId}
@@ -415,7 +429,7 @@ function App() {
                 />
               </section>
 
-              {(user.role === 'dm' || user.role === 'admin') && (
+              {(currentRole === 'dm' || currentRole === 'admin') && (
                 <div className="dm-quick-sections" style={{
                   display: 'grid', 
                   gridTemplateColumns: '1fr 1fr', 
@@ -656,7 +670,7 @@ function App() {
                 socket={socket} 
                 characters={characters} 
                 compendium={compendium} 
-                userRole={user.role} 
+                userRole={currentRole} 
                 triggerDiceRoll={triggerDiceRoll} 
                 isOverlay={true}
                 forceOpenId={overlayCharacterId}
@@ -668,7 +682,7 @@ function App() {
               <DatabaseView 
                 compendium={compendium}
                 socket={socket}
-                userRole={user.role} 
+                userRole={currentRole} 
                 isOverlay={true}
                 forceOpenId={overlayMonsterId}
                 onCloseOverlay={() => setOverlayMonsterId(null)}
@@ -677,19 +691,19 @@ function App() {
           </div>
         )}
         {activeTab === 'database' && (
-          <DatabaseView compendium={compendium} socket={socket} userRole={user.role} />
+          <DatabaseView compendium={compendium} socket={socket} userRole={currentRole} />
         )}
-        {activeTab === 'admin' && user.role === 'admin' && (
+        {activeTab === 'admin' && currentRole === 'admin' && (
           <AdminPanel socket={socket} />
         )}
-        {activeTab === 'characters' && (user.role === 'player' || user.role === 'dm' || user.role === 'admin') && (
+        {activeTab === 'characters' && (currentRole === 'player' || currentRole === 'dm' || currentRole === 'admin') && (
           <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
             <CharacterManager
               socket={socket}
               characters={characters}
               monsters={monsters}
               compendium={compendium}
-              userRole={user.role}
+              userRole={currentRole}
               triggerDiceRoll={triggerDiceRoll}
             />
           </div>
@@ -698,7 +712,7 @@ function App() {
           <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
             <CampaignsView 
               socket={socket}
-              userRole={user.role}
+              userRole={currentRole}
               characters={characters}
               campaigns={campaigns}
             />

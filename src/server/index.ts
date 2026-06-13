@@ -83,6 +83,19 @@ function safeParseStats(statsField: any): any {
   };
 }
 
+function getSocketRole(socket: any): string {
+  if (socket.data.role === 'admin') return 'admin';
+  try {
+    const activeCampaign = db.prepare("SELECT owner FROM campaigns WHERE is_active = 1").get() as { owner: string | null } | undefined;
+    if (activeCampaign && activeCampaign.owner === socket.data.userName) {
+      return 'dm';
+    }
+  } catch (e) {
+    console.error("Error al obtener rol dinámico de socket:", e);
+  }
+  return 'player';
+}
+
 // Estado volátil del tablero: se sincroniza en tiempo real entre todos los clientes[cite: 1]
 let boardTokens: any[] = [];
 let currentGridBg: string = '';
@@ -606,7 +619,8 @@ export const startServer = async () => {
     });
 
     socket.on('content:create', async (payload) => {
-      if (socket.data.role === 'admin' || socket.data.role === 'dm') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'admin' || currentRole === 'dm') {
         const { name, type, data, source } = payload;
         const result = db.prepare("INSERT INTO content_items (name, type, data, source) VALUES (?, ?, ?, ?)")
           .run(name, type, JSON.stringify(data), source || 'homebrew');
@@ -646,7 +660,8 @@ export const startServer = async () => {
     });
 
     socket.on('content:update', (payload) => {
-      if (socket.data.role === 'admin' || socket.data.role === 'dm') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'admin' || currentRole === 'dm') {
         const { id, name, type, data } = payload;
         updateCompendiumItem(id, name, type, data);
 
@@ -660,7 +675,8 @@ export const startServer = async () => {
     });
 
     socket.on('content:delete', (id) => {
-      if (socket.data.role === 'admin' || socket.data.role === 'dm') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'admin' || currentRole === 'dm') {
         db.prepare("DELETE FROM content_items WHERE id = ?").run(id);
         const allContent = db.prepare("SELECT * FROM content_items").all();
         io.emit('content:list', allContent);
@@ -669,7 +685,8 @@ export const startServer = async () => {
 
     // MOTOR DE TOKENS (GRID)[cite: 1]
     socket.on('token:spawn', (data) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
         const newToken = {
           instanceId: `${data.type}-${data.id}-${Date.now()}`,
           originalId: data.id,
@@ -724,7 +741,8 @@ export const startServer = async () => {
     });
 
     socket.on('token:update-hp', (data: { tokenId: string; amount: number }) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
         const token = boardTokens.find(t => t.instanceId === data.tokenId);
         if (token) {
           token.hp = Math.max(0, Math.min(token.hp + data.amount, token.max_hp));
@@ -734,7 +752,8 @@ export const startServer = async () => {
     });
 
     socket.on('token:update-combat-state', (data: { tokenId: string; hp?: number; max_hp?: number; tempHp?: number; condition?: string | null }) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
         const token = boardTokens.find(t => t.instanceId === data.tokenId);
         if (token) {
           if (data.hp !== undefined) token.hp = data.hp;
@@ -747,7 +766,8 @@ export const startServer = async () => {
     });
 
     socket.on('token:update-team', (data: { tokenId: string; color: string | null }) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
         const token = boardTokens.find(t => t.instanceId === data.tokenId);
         if (token) {
           token.teamColor = data.color;
@@ -757,35 +777,40 @@ export const startServer = async () => {
     });
 
     socket.on('token:remove', (instanceId) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
         boardTokens = boardTokens.filter(t => t.instanceId !== instanceId);
         io.emit('token:board-list', boardTokens);
       }
     });
 
     socket.on('grid:set-bg', (imageUrl: string) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
         currentGridBg = imageUrl;
         io.emit('grid:bg-update', imageUrl); // Cambia el mapa para todos los jugadores
       }
     });
 
     socket.on('grid:update-solid', (cells: string[]) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
         solidCells = cells;
         io.emit('grid:solid-update', solidCells);
       }
     });
 
     socket.on('grid:set-night', (isNight: boolean) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
         isNightMode = isNight;
         io.emit('grid:night-update', isNightMode);
       }
     });
 
     socket.on('board:clear', () => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
         boardTokens = [];
         currentGridBg = '';
         solidCells = [];
@@ -822,14 +847,16 @@ export const startServer = async () => {
     });
 
     socket.on('combat:reorder-initiative', (newOrder: { tokenId: string; value: number }[]) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
         combatState.initiativeOrder = newOrder;
         io.emit('combat:state-update', combatState);
       }
     });
 
     socket.on('combat:toggle-turn-mode', (isActive: boolean) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
         combatState.turnModeActive = isActive;
         if (!isActive) {
           combatState.currentTurnIndex = 0;
@@ -857,14 +884,16 @@ export const startServer = async () => {
     });
 
     socket.on('combat:reset', () => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
         combatState = { turnModeActive: false, initiativeOrder: [], currentTurnIndex: 0 };
         io.emit('combat:state-update', combatState);
       }
     });
 
     socket.on('combat:request-save', (data: { targetName: string; stat: string; statKey: string; dc: number }) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
         io.emit('combat:save-notification', data);
       }
     });
@@ -897,7 +926,9 @@ export const startServer = async () => {
     });
 
     socket.on('character:delete', (id: number) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+      const currentRole = getSocketRole(socket);
+      const character = db.prepare("SELECT owner FROM characters WHERE id = ?").get(id) as { owner: string } | undefined;
+      if (character && (character.owner === socket.data.userName || currentRole === 'dm' || currentRole === 'admin')) {
         db.prepare('DELETE FROM characters WHERE id = ?').run(id);
         refreshAllCharacters();
       }
@@ -944,18 +975,19 @@ export const startServer = async () => {
     });
 
     socket.on('campaign:create', (data: any) => {
-      if (socket.data.role === 'dm') {
+      if (socket.data.userName) {
         const { name, description, image, active_heroes, is_ai_dm } = data;
-        db.prepare('INSERT INTO campaigns (name, description, image, active_heroes, is_ai_dm) VALUES (?, ?, ?, ?, ?)')
-          .run(name, description || null, image || null, JSON.stringify(active_heroes || []), is_ai_dm ? 1 : 0);
+        db.prepare('INSERT INTO campaigns (name, description, image, active_heroes, is_ai_dm, owner) VALUES (?, ?, ?, ?, ?, ?)')
+          .run(name, description || null, image || null, JSON.stringify(active_heroes || []), is_ai_dm ? 1 : 0, socket.data.userName);
         const allCampaigns = db.prepare("SELECT * FROM campaigns").all();
         io.emit('campaign:list', allCampaigns);
       }
     });
 
     socket.on('campaign:update', (data: any) => {
-      if (socket.data.role === 'dm') {
-        const { id, name, description, image, active_heroes, is_ai_dm } = data;
+      const { id, name, description, image, active_heroes, is_ai_dm } = data;
+      const campaign = db.prepare("SELECT owner FROM campaigns WHERE id = ?").get(id) as { owner: string | null } | undefined;
+      if (campaign && (campaign.owner === socket.data.userName || socket.data.role === 'admin')) {
         db.prepare('UPDATE campaigns SET name = ?, description = ?, image = ?, active_heroes = ?, is_ai_dm = ? WHERE id = ?')
           .run(name, description || null, image || null, JSON.stringify(active_heroes || []), is_ai_dm ? 1 : 0, id);
         const allCampaigns = db.prepare("SELECT * FROM campaigns").all();
@@ -964,24 +996,29 @@ export const startServer = async () => {
     });
 
     socket.on('campaign:set_active', (id: number) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin' || socket.data.role === 'player') {
+      const campaign = db.prepare("SELECT owner FROM campaigns WHERE id = ?").get(id) as { owner: string | null } | undefined;
+      if (campaign && (campaign.owner === socket.data.userName || socket.data.role === 'admin')) {
         db.prepare('UPDATE campaigns SET is_active = 0').run();
         db.prepare('UPDATE campaigns SET is_active = 1 WHERE id = ?').run(id);
         const allCampaigns = db.prepare("SELECT * FROM campaigns").all();
         io.emit('campaign:list', allCampaigns);
 
         // Auto-login AI si la campaña lo tiene
-        const campaign: any = db.prepare("SELECT * FROM campaigns WHERE id = ?").get(id);
-        if (campaign && campaign.is_ai_dm) {
+        const fullCampaign: any = db.prepare("SELECT * FROM campaigns WHERE id = ?").get(id);
+        if (fullCampaign && fullCampaign.is_ai_dm) {
           handleStartAiSession(id);
         } else if (activeAiCampaignId !== null) {
           handleEndAiSession(activeAiCampaignId);
         }
+
+        // Re-sincronizar personajes de todos los usuarios según su rol dinámico en la nueva campaña activa
+        refreshAllCharacters();
       }
     });
 
     socket.on('campaign:delete', (id: number) => {
-      if (socket.data.role === 'dm') {
+      const campaign = db.prepare("SELECT owner FROM campaigns WHERE id = ?").get(id) as { owner: string | null } | undefined;
+      if (campaign && (campaign.owner === socket.data.userName || socket.data.role === 'admin')) {
         db.prepare('DELETE FROM campaigns WHERE id = ?').run(id);
         db.prepare('DELETE FROM campaign_diary WHERE campaign_id = ?').run(id);
         const allCampaigns = db.prepare("SELECT * FROM campaigns").all();
@@ -1055,7 +1092,8 @@ export const startServer = async () => {
 
     // IA DM SESSION
     socket.on('ai:start_session', (campaignId: number) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'player') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin' || currentRole === 'player') {
         handleStartAiSession(campaignId);
       }
     });
@@ -1069,7 +1107,8 @@ export const startServer = async () => {
 
   // HELPERS DE SINCRONIZACIÓN[cite: 1]
   function sendCharactersToSocket(s: any) {
-    const list = (s.data.role === 'dm' || s.data.role === 'admin')
+    const currentRole = getSocketRole(s);
+    const list = (currentRole === 'dm' || currentRole === 'admin')
       ? db.prepare('SELECT * FROM characters').all()
       : db.prepare('SELECT * FROM characters WHERE owner = ?').all(s.data.userName);
     s.emit('character:list', list);

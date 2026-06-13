@@ -9,6 +9,7 @@ interface Campaign {
   active_heroes: string; // JSON array of character IDs
   is_ai_dm: number;
   is_active: number;
+  owner?: string;
   created_at: string;
 }
 
@@ -26,9 +27,10 @@ interface CampaignsViewProps {
   userRole: string;
   characters: any[];
   campaigns?: any[];
+  currentUser?: { name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string } | null;
 }
 
-export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, characters }) => {
+export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, characters, currentUser }) => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [isCreating, setIsCreating] = useState(false);
@@ -154,7 +156,7 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
     }
   };
 
-  if (isCreating || (selectedCampaign && userRole === 'dm' && isCreating)) {
+  if (isCreating) {
     // FORMULARIO DE CREACIÓN/EDICIÓN (DM SOLO)
     return (
       <div style={{ padding: '20px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border-color)', color: 'var(--text-parchment)' }}>
@@ -248,7 +250,7 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
                   <span style={{ background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', border: '1px solid #22c55e' }}><Star className="w-3 h-3 inline-block mr-1" /> Activa</span>
                 )}
               </div>
-              {userRole === 'dm' && (
+              {(selectedCampaign.owner === currentUser?.name || currentUser?.role === 'admin') && (
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={() => socket.emit('campaign:set_active', selectedCampaign.id)} style={{ background: selectedCampaign.is_active === 1 ? 'var(--natural-green)' : '#444', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}>
                     {selectedCampaign.is_active === 1 ? <><Check className="w-4 h-4 inline-block mr-1" /> Activa</> : 'Establecer Activa'}
@@ -347,7 +349,7 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
     <div style={{ color: 'var(--text-parchment)' }}>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
         <h1 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: 0 }}>Tus Campañas</h1>
-        {userRole === 'dm' && (
+        {currentUser?.role !== 'admin' && (
           <button 
             onClick={() => { setName(''); setDescription(''); setImage(''); setActiveHeroes([]); setIsAiDm(false); setIsCreating(true); }}
             style={{ background: 'var(--natural-green)', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
@@ -393,7 +395,7 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
                 <p style={{ margin: 0, color: '#aaa', fontSize: '0.9rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: '15px' }}>
                   {campaign.description || 'Sin descripción'}
                 </p>
-                {(userRole === 'dm' || userRole === 'admin' || userRole === 'player') && (
+                {(campaign.owner === currentUser?.name || currentUser?.role === 'admin') && (
                   <button 
                     onClick={(e) => { e.stopPropagation(); socket.emit('campaign:set_active', campaign.id); }} 
                     style={{ background: campaign.is_active === 1 ? 'var(--natural-green)' : '#444', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', width: '100%' }}

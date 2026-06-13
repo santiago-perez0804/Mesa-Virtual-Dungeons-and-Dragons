@@ -30,7 +30,7 @@ export const initDB = () => {
 
   try { db.exec("ALTER TABLE users ADD COLUMN profile_image TEXT"); } catch (e) { /* Columna ya existe */ }
 
-  // Insertar administrador y DM por defecto si no existen, hasheando contraseñas
+  // Insertar administrador por defecto si no existe, hasheando contraseñas
   try {
     const adminCheck = db.prepare("SELECT count(*) as count FROM users WHERE username = 'admin'").get() as { count: number };
     if (adminCheck.count === 0) {
@@ -38,11 +38,8 @@ export const initDB = () => {
       db.prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)").run('admin', hashedAdmin, 'admin');
     }
 
-    const dmCheck = db.prepare("SELECT count(*) as count FROM users WHERE role = 'dm'").get() as { count: number };
-    if (dmCheck.count === 0) {
-      const hashedDm = bcrypt.hashSync('dm', 10);
-      db.prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)").run('Dungeon Master', hashedDm, 'dm');
-    }
+    // Eliminar el Dungeon Master por defecto si existe
+    db.prepare("DELETE FROM users WHERE username = 'Dungeon Master' AND role = 'dm'").run();
 
     // Migrar cualquier contraseña existente en texto plano a hash de bcrypt
     const allUsers = db.prepare("SELECT id, password FROM users").all() as { id: number, password: string }[];
@@ -66,6 +63,8 @@ export const initDB = () => {
       image TEXT,
       active_heroes TEXT, -- JSON array of character IDs
       is_ai_dm BOOLEAN DEFAULT 0,
+      is_active BOOLEAN DEFAULT 0,
+      owner TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -75,6 +74,7 @@ export const initDB = () => {
   try { db.exec("ALTER TABLE campaigns ADD COLUMN active_heroes TEXT"); } catch (e) { /* Columna ya existe */ }
   try { db.exec("ALTER TABLE campaigns ADD COLUMN is_ai_dm BOOLEAN DEFAULT 0"); } catch (e) { /* Columna ya existe */ }
   try { db.exec("ALTER TABLE campaigns ADD COLUMN is_active BOOLEAN DEFAULT 0"); } catch (e) { /* Columna ya existe */ }
+  try { db.exec("ALTER TABLE campaigns ADD COLUMN owner TEXT"); } catch (e) { /* Columna ya existe */ }
 
   // Diario de Campañas
   db.exec(`
