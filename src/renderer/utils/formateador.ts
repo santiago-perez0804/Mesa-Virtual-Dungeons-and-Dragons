@@ -1,5 +1,11 @@
-export const formatDescription = (text: string): string => {
+export const formatDescription = (text: any): string => {
   if (!text) return '';
+  if (Array.isArray(text)) {
+    text = text.join('\n');
+  }
+  if (typeof text !== 'string') {
+    text = String(text);
+  }
   
   // 1. Escapar caracteres HTML básicos para prevenir XSS
   let html = text
