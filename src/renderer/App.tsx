@@ -41,6 +41,9 @@ function App() {
     return saved ? Number(saved) : null;
   });
 
+  const [showHeroSelectorForCampaignId, setShowHeroSelectorForCampaignId] = useState<number | null>(null);
+  const [pendingRoomJoin, setPendingRoomJoin] = useState<number | null>(null);
+
   const joinedCampaign = campaigns.find(c => c.id === currentRoomCampaignId);
   const currentRole = user
     ? (user.role === 'admin' ? 'admin' : (joinedCampaign && joinedCampaign.owner === user.name ? 'dm' : 'player'))
@@ -50,6 +53,36 @@ function App() {
   useEffect(() => {
     currentRoleRef.current = currentRole;
   }, [currentRole]);
+
+  const handleJoinCampaignRoom = (campaignId: number) => {
+    const campaign = campaigns.find(c => c.id === campaignId);
+    if (!campaign) return;
+
+    const isPlayer = user && user.role !== 'admin' && campaign.owner !== user.name;
+    if (isPlayer) {
+      // Verificar si ya tiene un héroe asignado para esta campaña
+      const savedHeroId = localStorage.getItem(`dnd_vtt_campaign_${campaignId}_hero`);
+      if (!savedHeroId) {
+        // Es la primera vez que se une: validar héroes del jugador
+        const playerCharacters = characters.filter(c => c.owner === user.name);
+        if (playerCharacters.length === 0) {
+          alert("⚔️ ¡No tienes ningún héroe creado! Te redirigiremos a la pestaña de HÉROES para que crees tu personaje antes de entrar a la aventura.");
+          setActiveTab('characters');
+          return;
+        }
+        
+        // Mostrar selector de héroes
+        setShowHeroSelectorForCampaignId(campaignId);
+        return;
+      }
+    }
+
+    // Entrar directo si es DM, admin o ya eligió personaje
+    setCurrentRoomCampaignId(campaignId);
+    localStorage.setItem('dnd_vtt_campaign_room', String(campaignId));
+    socket.emit('room:join', { campaignId });
+    setActiveTab('combat');
+  };
 
   const handleLeaveRoom = () => {
     socket.emit('room:leave');
@@ -63,6 +96,40 @@ function App() {
 
     setActiveTab('campaigns');
   };
+
+  // Efecto para procesar ingresos pendientes (link o recargas)
+  useEffect(() => {
+    if (pendingRoomJoin !== null && campaigns.length > 0 && user && characters.length >= 0) {
+      const roomId = pendingRoomJoin;
+      setPendingRoomJoin(null); // Limpiar para evitar bucles
+      
+      const campaign = campaigns.find(c => c.id === roomId);
+      if (campaign) {
+        const isPlayer = user.role !== 'admin' && campaign.owner !== user.name;
+        if (isPlayer) {
+          const savedHeroId = localStorage.getItem(`dnd_vtt_campaign_${roomId}_hero`);
+          if (!savedHeroId) {
+            const playerCharacters = characters.filter(c => c.owner === user.name);
+            if (playerCharacters.length === 0) {
+              alert("⚔️ ¡No tienes ningún héroe creado! Te redirigiremos a la pestaña de HÉROES para que crees tu personaje antes de entrar a la aventura.");
+              setActiveTab('characters');
+              return;
+            }
+            setShowHeroSelectorForCampaignId(roomId);
+            return;
+          }
+        }
+        
+        // Si ya tiene personaje o es DM/admin, entra directo
+        setCurrentRoomCampaignId(roomId);
+        localStorage.setItem('dnd_vtt_campaign_room', String(roomId));
+        socket.emit('room:join', { campaignId: roomId });
+        if (user.role !== 'admin') {
+          setActiveTab('combat');
+        }
+      }
+    }
+  }, [pendingRoomJoin, campaigns, user, characters]);
 
   useEffect(() => {
     if (isCampaignsLoaded && currentRoomCampaignId === null && activeTab === 'combat') {
@@ -105,28 +172,22 @@ function App() {
       socket.emit('campaign:request');
       setIsCheckingToken(false);
 
-      // Revisar si hay parámetro de sala en la URL
+      // Programar la unión de sala tras cargar campañas
       const urlParams = new URLSearchParams(window.location.search);
       const roomParam = urlParams.get('room');
       if (roomParam) {
         const roomId = Number(roomParam);
         if (!isNaN(roomId)) {
-          setCurrentRoomCampaignId(roomId);
-          localStorage.setItem('dnd_vtt_campaign_room', String(roomId));
-          socket.emit('room:join', { campaignId: roomId });
-          if (user.role !== 'admin') {
-            setActiveTab('combat');
-          }
+          setPendingRoomJoin(roomId);
           return;
         }
       }
 
-      // Si no hay parámetro en la URL, pero sí en localStorage, unirse a esa sala
       const savedRoom = localStorage.getItem('dnd_vtt_campaign_room');
       if (savedRoom) {
         const roomId = Number(savedRoom);
         if (!isNaN(roomId)) {
-          socket.emit('room:join', { campaignId: roomId });
+          setPendingRoomJoin(roomId);
         }
       }
     });
@@ -790,15 +851,139 @@ function App() {
                characters={characters}
                campaigns={campaigns}
                currentUser={user}
-               onEnterCampaign={(campaignId: number) => {
-                 setCurrentRoomCampaignId(campaignId);
-                 localStorage.setItem('dnd_vtt_campaign_room', String(campaignId));
-                 socket.emit('room:join', { campaignId });
-                 setActiveTab('combat');
-               }}
+               onEnterCampaign={handleJoinCampaignRoom}
              />
           </div>
         )}
+      </main>
+
+      {/* MODAL: SELECCIONAR HÉROE AL ENTRAR POR PRIMERA VEZ */}
+      {showHeroSelectorForCampaignId !== null && (() => {
+        const campaign = campaigns.find(c => c.id === showHeroSelectorForCampaignId);
+        const playerCharacters = characters.filter(c => c.owner === user?.name);
+        
+        return (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+            zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(5px)',
+            padding: '20px'
+          }}>
+            <div style={{
+              background: 'var(--bg-surface)',
+              border: '2px solid var(--accent-gold)',
+              borderRadius: '12px',
+              padding: '30px',
+              maxWidth: '600px',
+              width: '100%',
+              boxShadow: '0 10px 40px rgba(0,0,0,0.9)',
+              color: 'var(--text-parchment)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px'
+            }}>
+              <div style={{ textAlign: 'center' }}>
+                <span className="font-cinzel" style={{ fontSize: '0.8rem', color: 'var(--accent-gold)', letterSpacing: '2px' }}>
+                  {campaign?.name.toUpperCase()}
+                </span>
+                <h2 className="font-cinzel" style={{ margin: '5px 0 10px 0', fontSize: '1.8rem', color: 'var(--text-parchment)' }}>
+                  ELIGE TU HÉROE
+                </h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>
+                  Selecciona el personaje con el que participarás en esta campaña. Esta elección se recordará para futuras sesiones.
+                </p>
+              </div>
+
+              <div style={{ 
+                maxHeight: '300px', 
+                overflowY: 'auto', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '12px',
+                paddingRight: '6px'
+              }} className="custom-scrollbar">
+                {playerCharacters.map(char => (
+                  <div
+                    key={char.id}
+                    onClick={() => {
+                      localStorage.setItem(`dnd_vtt_campaign_${showHeroSelectorForCampaignId}_hero`, String(char.id));
+                      
+                      setCurrentRoomCampaignId(showHeroSelectorForCampaignId);
+                      localStorage.setItem('dnd_vtt_campaign_room', String(showHeroSelectorForCampaignId));
+                      socket.emit('room:join', { campaignId: showHeroSelectorForCampaignId });
+                      setActiveTab('combat');
+                      
+                      setShowHeroSelectorForCampaignId(null);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '15px',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(201,168,76,0.2)',
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = 'rgba(201,168,76,0.06)';
+                      e.currentTarget.style.borderColor = 'var(--accent-gold)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                      e.currentTarget.style.borderColor = 'rgba(201,168,76,0.2)';
+                    }}
+                  >
+                    <div style={{
+                      width: '45px', height: '45px', borderRadius: '50%',
+                      background: 'rgba(201,168,76,0.1)', border: '1px solid var(--accent-gold)',
+                      overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      {char.image ? (
+                        <img src={char.image} alt={char.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <span className="font-cinzel" style={{ fontSize: '1.2rem', color: 'var(--accent-gold)' }}>
+                          {char.name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontWeight: 'bold', fontSize: '1.05rem', color: 'var(--text-parchment)' }}>
+                        {char.name}
+                      </span>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        Nivel {char.level || 1} • {char.race || 'Humano'} • {char.class || char.charClass || 'Guerrero'}
+                      </span>
+                    </div>
+                    <div className="font-cinzel" style={{ fontSize: '0.8rem', color: 'var(--accent-gold)' }}>
+                      SELECCIONAR →
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setShowHeroSelectorForCampaignId(null)}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #444',
+                  color: 'var(--text-secondary)',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '0.9rem',
+                  marginTop: '10px'
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        );
+      })()}
       </main>
     </div>
   );
