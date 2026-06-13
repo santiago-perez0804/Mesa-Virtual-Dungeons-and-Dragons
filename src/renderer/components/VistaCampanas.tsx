@@ -410,9 +410,32 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
         {currentUser?.role !== 'admin' && (
           <button 
             onClick={() => { setName(''); setDescription(''); setImage(''); setActiveHeroes([]); setIsAiDm(false); setIsCreating(true); }}
-            style={{ background: 'var(--natural-green)', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+            className="font-cinzel torch-glow"
+            style={{ 
+              background: 'transparent', 
+              color: 'var(--accent-gold)', 
+              border: '1px solid var(--accent-gold)', 
+              padding: '8px 20px', 
+              borderRadius: '4px', 
+              cursor: 'pointer', 
+              fontWeight: 'bold',
+              fontSize: '0.85rem',
+              letterSpacing: '1px',
+              transition: 'all 0.2s ease',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
+            }}
+            onMouseEnter={e => {
+              e.currentTarget.style.background = 'var(--accent-gold)';
+              e.currentTarget.style.color = '#111';
+            }}
+            onMouseLeave={e => {
+              e.currentTarget.style.background = 'transparent';
+              e.currentTarget.style.color = 'var(--accent-gold)';
+            }}
           >
-            + Nueva Campaña
+            ✦ NUEVA CAMPAÑA
           </button>
         )}
       </div>
