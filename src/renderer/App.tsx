@@ -17,6 +17,7 @@ const socket = io(window.location.hostname === 'localhost' ? 'http://localhost:3
 
 function App() {
   const [user, setUser] = useState<{ name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string } | null>(null);
+  const [isCheckingToken, setIsCheckingToken] = useState(!!localStorage.getItem('dnd_vtt_token'));
   const userRef = useRef(user);
   useEffect(() => {
     userRef.current = user;
@@ -47,6 +48,25 @@ function App() {
   const [monsterSearch, setMonsterSearch] = useState('');
 
   useEffect(() => {
+    socket.on('auth:token_invalid', () => {
+      localStorage.removeItem('dnd_vtt_token');
+      setUser(null);
+      setIsCheckingToken(false);
+    });
+
+    socket.on('auth:success', ({ user, token }: { user: any; token?: string }) => {
+      setUser({ name: user.username, role: user.role, profile_image: user.profile_image });
+      if (token) {
+        localStorage.setItem('dnd_vtt_token', token);
+      }
+      if (user.role === 'admin') {
+        setActiveTab('database');
+      }
+      socket.emit('content:request');
+      socket.emit('campaign:request');
+      setIsCheckingToken(false);
+    });
+
     socket.on('character:list', (list) => {
       setCharacters(list);
     });
@@ -105,7 +125,14 @@ function App() {
       setTimeout(() => setImageToast(null), 4000);
     });
 
+    const savedToken = localStorage.getItem('dnd_vtt_token');
+    if (savedToken) {
+      socket.emit('auth:token_login', { token: savedToken });
+    }
+
     return () => {
+      socket.off('auth:token_invalid');
+      socket.off('auth:success');
       socket.off('character:list');
       socket.off('monsters:list');
       socket.off('content:list');
@@ -119,8 +146,11 @@ function App() {
     };
   }, []);
 
-  const handleLogin = (loggedUser: { name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string }) => {
+  const handleLogin = (loggedUser: { name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string; token?: string }) => {
     setUser(loggedUser);
+    if (loggedUser.token) {
+      localStorage.setItem('dnd_vtt_token', loggedUser.token);
+    }
     if (loggedUser.role === 'admin') {
       setActiveTab('database');
     }
@@ -166,6 +196,40 @@ function App() {
       image: mData.image || null
     });
   };
+
+  if (isCheckingToken) {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        minHeight: '100vh', background: 'radial-gradient(circle, #1e1b15 0%, #0d0c09 100%)',
+        color: 'var(--accent-gold)'
+      }}>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          @keyframes pulse {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.03); }
+          }
+        `}</style>
+        <div className="font-cinzel" style={{ fontSize: '2.5rem', marginBottom: '20px', textShadow: '0 0 20px rgba(200,135,42,0.4)', animation: 'pulse 1.8s ease-in-out infinite', fontWeight: 'bold' }}>
+          D&D PP
+        </div>
+        <div style={{
+          width: '32px', height: '32px', borderRadius: '50%',
+          border: '3px solid rgba(200,135,42,0.15)',
+          borderTopColor: 'var(--accent-gold)',
+          animation: 'spin 0.8s linear infinite',
+          boxShadow: '0 0 10px rgba(200, 135, 42, 0.2)'
+        }} />
+        <span className="font-cinzel" style={{ fontSize: '0.8rem', marginTop: '15px', color: 'var(--text-secondary)', letterSpacing: '3px', opacity: 0.7 }}>
+          INICIANDO MESA...
+        </span>
+      </div>
+    );
+  }
 
   if (!user) {
     return <LoginScreen socket={socket} onLoginSuccess={handleLogin} />;
@@ -286,7 +350,10 @@ function App() {
             </div>
           </div>
           <button 
-            onClick={() => setUser(null)}
+            onClick={() => {
+              localStorage.removeItem('dnd_vtt_token');
+              setUser(null);
+            }}
             className="torch-glow"
             style={{ background: 'transparent', border: '1px solid var(--combat-red)', color: 'var(--combat-red)', padding: 'var(--header-button-padding)', borderRadius: '4px', cursor: 'pointer', fontSize: 'var(--header-button-font-size)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 'var(--header-button-gap)' }}
           >

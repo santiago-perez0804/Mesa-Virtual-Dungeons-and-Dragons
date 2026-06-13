@@ -8,6 +8,10 @@ import { initAI, startAISession, sendChatMessageToAI, sendDiceRollToAI, endAISes
 import { initImageAI, generateItemImage } from './ia-imagen.js';
 import multer from 'multer';
 import { uploadToS3 } from './services/servicioS3.js';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dnd-vtt-secret-key-fallback-2026';
 
 // Helpers de Parseo Seguro de JSON para prevenir double-serialization o spreads corruptos
 function safeParseJSON(field: any, defaultVal: any): any {
@@ -435,19 +439,64 @@ export const startServer = async () => {
     console.log('⚡ Conexión establecida:', socket.id);
 
     // AUTENTICACIÓN
-    socket.on('auth:get_profiles', () => {
-      const profiles = db.prepare("SELECT id, username, role, profile_image FROM users").all();
-      socket.emit('auth:profiles_list', profiles);
+    socket.on('auth:login', ({ username, password }) => {
+      try {
+        const user: any = db.prepare("SELECT id, username, password, role, profile_image FROM users WHERE username = ?").get(username);
+        if (user && bcrypt.compareSync(password, user.password)) {
+          socket.data.userId = user.id;
+          socket.data.userName = user.username;
+          socket.data.role = user.role;
+
+          const token = jwt.sign(
+            { userId: user.id, username: user.username, role: user.role },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+          );
+
+          const safeUser = { id: user.id, username: user.username, role: user.role, profile_image: user.profile_image };
+          socket.emit('auth:success', { user: safeUser, token });
+          console.log(`👤 ${user.username} entró como ${user.role} (JWT generado)`);
+
+          // Enviar datos necesarios para arrancar la interfaz
+          sendCharactersToSocket(socket);
+          const monsters = db.prepare("SELECT * FROM content_items WHERE type = 'monster'").all();
+          socket.emit('monsters:list', monsters);
+          socket.emit('token:board-list', boardTokens);
+          if (currentGridBg) socket.emit('grid:bg-update', currentGridBg);
+          socket.emit('grid:solid-update', solidCells);
+          socket.emit('grid:night-update', isNightMode);
+          socket.emit('combat:state-update', combatState);
+        } else {
+          socket.emit('auth:error', 'Usuario o contraseña incorrectos.');
+        }
+      } catch (e) {
+        console.error(e);
+        socket.emit('auth:error', 'Error interno en el servidor.');
+      }
     });
 
-    socket.on('auth:login', ({ username, password }) => {
-      const user: any = db.prepare("SELECT id, username, role, profile_image FROM users WHERE username = ? AND password = ?").get(username, password);
-      if (user) {
-        socket.data.userId = user.id;
-        socket.data.userName = user.username;
-        socket.data.role = user.role;
-        socket.emit('auth:success', user);
-        console.log(`👤 ${user.username} entró como ${user.role}`);
+    socket.on('auth:register', ({ username, password, role, profile_image }) => {
+      try {
+        const hashedPassword = bcrypt.hashSync(password, 10);
+        const result = db.prepare("INSERT INTO users (username, password, role, profile_image) VALUES (?, ?, ?, ?)")
+          .run(username, hashedPassword, role || 'player', profile_image || null);
+
+        const newUserId = result.lastInsertRowid;
+        const token = jwt.sign(
+          { userId: newUserId, username, role: role || 'player' },
+          JWT_SECRET,
+          { expiresIn: '7d' }
+        );
+
+        const safeUser = { id: newUserId, username, role: role || 'player', profile_image: profile_image || null };
+
+        socket.data.userId = newUserId;
+        socket.data.userName = username;
+        socket.data.role = role || 'player';
+
+        socket.emit('auth:register_success', 'Usuario creado exitosamente.');
+        socket.emit('auth:success', { user: safeUser, token });
+        console.log(`👤 Nuevo aventurero registrado: ${username} como ${role || 'player'}`);
 
         // Enviar datos necesarios para arrancar la interfaz
         sendCharactersToSocket(socket);
@@ -458,16 +507,6 @@ export const startServer = async () => {
         socket.emit('grid:solid-update', solidCells);
         socket.emit('grid:night-update', isNightMode);
         socket.emit('combat:state-update', combatState);
-
-      } else {
-        socket.emit('auth:error', 'Usuario o contraseña incorrectos.');
-      }
-    });
-
-    socket.on('auth:register', ({ username, password, role, profile_image }) => {
-      try {
-        db.prepare("INSERT INTO users (username, password, role, profile_image) VALUES (?, ?, ?, ?)").run(username, password, role, profile_image || null);
-        socket.emit('auth:register_success', 'Usuario creado exitosamente. Por favor, inicia sesión.');
       } catch (e: any) {
         if (e.message.includes('UNIQUE constraint failed')) {
           socket.emit('auth:error', 'Ese nombre de usuario ya existe.');
@@ -477,12 +516,46 @@ export const startServer = async () => {
       }
     });
 
+    socket.on('auth:token_login', ({ token }) => {
+      try {
+        if (!token) {
+          socket.emit('auth:token_invalid');
+          return;
+        }
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        const user: any = db.prepare("SELECT id, username, role, profile_image FROM users WHERE id = ?").get(decoded.userId);
+
+        if (user) {
+          socket.data.userId = user.id;
+          socket.data.userName = user.username;
+          socket.data.role = user.role;
+
+          socket.emit('auth:success', { user, token });
+          console.log(`👤 Re-autenticación automática exitosa para: ${user.username}`);
+
+          // Enviar datos necesarios para arrancar la interfaz
+          sendCharactersToSocket(socket);
+          const monsters = db.prepare("SELECT * FROM content_items WHERE type = 'monster'").all();
+          socket.emit('monsters:list', monsters);
+          socket.emit('token:board-list', boardTokens);
+          if (currentGridBg) socket.emit('grid:bg-update', currentGridBg);
+          socket.emit('grid:solid-update', solidCells);
+          socket.emit('grid:night-update', isNightMode);
+          socket.emit('combat:state-update', combatState);
+        } else {
+          socket.emit('auth:token_invalid');
+        }
+      } catch (e) {
+        socket.emit('auth:token_invalid');
+      }
+    });
+
     socket.on('auth:update_profile', ({ profile_image }) => {
       if (socket.data.userId) {
         try {
           db.prepare("UPDATE users SET profile_image = ? WHERE id = ?").run(profile_image, socket.data.userId);
           const user: any = db.prepare("SELECT id, username, role, profile_image FROM users WHERE id = ?").get(socket.data.userId);
-          socket.emit('auth:success', user); // Actualizamos el estado local del cliente
+          socket.emit('auth:success', { user }); // Actualizamos el estado local del cliente
         } catch (e) {
           socket.emit('auth:error', 'Error al actualizar perfil.');
         }
@@ -500,7 +573,11 @@ export const startServer = async () => {
     socket.on('admin:update_user', ({ id, username, password, role }) => {
       if (socket.data.role === 'admin') {
         try {
-          db.prepare("UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?").run(username, password, role, id);
+          let finalPassword = password;
+          if (password && !password.startsWith('$2a$') && !password.startsWith('$2b$') && !password.startsWith('$2y$')) {
+            finalPassword = bcrypt.hashSync(password, 10);
+          }
+          db.prepare("UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?").run(username, finalPassword, role, id);
           const users = db.prepare("SELECT id, username, password, role FROM users").all();
           socket.emit('admin:users_list', users);
         } catch (e) {
