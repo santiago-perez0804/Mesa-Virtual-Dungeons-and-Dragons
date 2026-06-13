@@ -28,12 +28,15 @@ interface CampaignsViewProps {
   characters: any[];
   campaigns?: any[];
   currentUser?: { name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string } | null;
+  onEnterCampaign?: (campaignId: number) => void;
 }
 
-export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, characters, currentUser }) => {
+export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, characters, currentUser, onEnterCampaign }) => {
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [isCreating, setIsCreating] = useState(false);
+  const [copied, setCopied] = useState(false);
+  const [roomInput, setRoomInput] = useState('');
   
   // Create / Edit State
   const [name, setName] = useState('');
@@ -250,7 +253,7 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
                   <span style={{ background: 'rgba(34, 197, 94, 0.2)', color: '#22c55e', padding: '4px 8px', borderRadius: '4px', fontSize: '0.8rem', border: '1px solid #22c55e' }}><Star className="w-3 h-3 inline-block mr-1" /> Activa</span>
                 )}
               </div>
-              {(selectedCampaign.owner === currentUser?.name || currentUser?.role === 'admin') && (
+              {(selectedCampaign.owner === currentUser?.name || !selectedCampaign.owner || currentUser?.role === 'admin') && (
                 <div style={{ display: 'flex', gap: '10px' }}>
                   <button onClick={() => socket.emit('campaign:set_active', selectedCampaign.id)} style={{ background: selectedCampaign.is_active === 1 ? 'var(--natural-green)' : '#444', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}>
                     {selectedCampaign.is_active === 1 ? <><Check className="w-4 h-4 inline-block mr-1" /> Activa</> : 'Establecer Activa'}
@@ -280,6 +283,61 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
                 )) : <span style={{ color: '#666', fontSize: '0.9rem' }}>No hay héroes asignados</span>}
               </div>
             </div>
+
+            {onEnterCampaign && (
+              <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+                  <button 
+                    onClick={() => onEnterCampaign(selectedCampaign.id)}
+                    className="torch-glow"
+                    style={{
+                      background: 'linear-gradient(135deg, var(--natural-green), #1b8a4f)',
+                      color: 'white',
+                      border: 'none',
+                      padding: '12px 24px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '1.05rem',
+                      boxShadow: '0 4px 15px rgba(34, 197, 94, 0.35)',
+                      letterSpacing: '1px',
+                      transition: 'transform 0.15s ease'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
+                    onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                  >
+                    ⚔️ ENTRAR A LA REJILLA DE COMBATE
+                  </button>
+
+                  <button 
+                    onClick={() => {
+                      const link = `${window.location.protocol}//${window.location.host}/?room=${selectedCampaign.id}`;
+                      navigator.clipboard.writeText(link);
+                      setCopied(true);
+                      setTimeout(() => setCopied(false), 2000);
+                    }}
+                    style={{
+                      background: 'transparent',
+                      color: 'var(--accent-gold)',
+                      border: '1px solid var(--accent-gold)',
+                      padding: '10px 18px',
+                      borderRadius: '6px',
+                      cursor: 'pointer',
+                      fontWeight: 'bold',
+                      fontSize: '0.9rem',
+                      transition: 'background 0.2s'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'rgba(200, 135, 42, 0.1)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    {copied ? '¡Enlace Copiado! ✓' : '🔗 Copiar Enlace de Invitación'}
+                  </button>
+                </div>
+                <div style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                  ID de Sala: <strong style={{ color: 'var(--accent-gold)' }}>{selectedCampaign.id}</strong>
+                </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -359,6 +417,71 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
         )}
       </div>
 
+      <div style={{ 
+        background: 'rgba(0, 0, 0, 0.2)', 
+        border: '1px solid var(--border-color)', 
+        padding: '15px', 
+        borderRadius: '8px', 
+        marginBottom: '25px', 
+        display: 'flex', 
+        alignItems: 'center', 
+        justifyContent: 'space-between',
+        gap: '15px',
+        flexWrap: 'wrap'
+      }}>
+        <div style={{ display: 'flex', alignItems: 'center', gap: '10px', flex: 1, minWidth: '250px' }}>
+          <span className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.9rem', letterSpacing: '1px', fontWeight: 'bold' }}>¿TIENES UN ID DE SALA?</span>
+          <input
+            type="text"
+            placeholder="Ej: 5"
+            value={roomInput}
+            onChange={e => setRoomInput(e.target.value)}
+            style={{ 
+              background: 'rgba(255,255,255,0.05)', 
+              border: '1px solid #444', 
+              color: 'white', 
+              padding: '6px 12px', 
+              borderRadius: '4px', 
+              width: '100px',
+              textAlign: 'center',
+              fontSize: '0.9rem'
+            }}
+          />
+          <button
+            onClick={() => {
+              const id = Number(roomInput.trim());
+              if (isNaN(id) || id <= 0) {
+                alert('Por favor ingresa un ID de sala válido.');
+                return;
+              }
+              const campaignExists = campaigns.some(c => c.id === id);
+              if (campaignExists && onEnterCampaign) {
+                onEnterCampaign(id);
+              } else {
+                alert('No se encontró ninguna campaña con el ID de sala ingresado. Asegúrate de tener acceso.');
+              }
+            }}
+            className="torch-glow font-cinzel"
+            style={{ 
+              background: 'var(--accent-gold)', 
+              color: 'black', 
+              padding: '6px 16px', 
+              border: 'none', 
+              borderRadius: '4px', 
+              cursor: 'pointer', 
+              fontWeight: 'bold',
+              fontSize: '0.85rem'
+            }}
+          >
+            UNIRSE A SALA
+          </button>
+        </div>
+        
+        <span style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', fontStyle: 'italic' }}>
+          * Solicita el ID o enlace de invitación al Dungeon Master de la campaña.
+        </span>
+      </div>
+
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
         {campaigns.length === 0 ? (
           <p style={{ color: '#666' }}>No hay campañas creadas aún.</p>
@@ -395,14 +518,24 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
                 <p style={{ margin: 0, color: '#aaa', fontSize: '0.9rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: '15px' }}>
                   {campaign.description || 'Sin descripción'}
                 </p>
-                {(campaign.owner === currentUser?.name || currentUser?.role === 'admin') && (
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); socket.emit('campaign:set_active', campaign.id); }} 
-                    style={{ background: campaign.is_active === 1 ? 'var(--natural-green)' : '#444', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.8rem', width: '100%' }}
-                  >
-                    {campaign.is_active === 1 ? <><Check className="w-4 h-4 inline-block mr-1" /> Campaña Activa</> : 'Establecer Activa'}
-                  </button>
-                )}
+                <button 
+                  onClick={(e) => { e.stopPropagation(); viewCampaign(campaign); }} 
+                  className="torch-glow"
+                  style={{
+                    background: 'linear-gradient(135deg, var(--natural-green), #1b8a4f)',
+                    color: 'white',
+                    border: 'none',
+                    padding: '8px 12px',
+                    borderRadius: '4px',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    width: '100%',
+                    fontWeight: 'bold',
+                    boxShadow: '0 2px 8px rgba(34, 197, 94, 0.2)'
+                  }}
+                >
+                  🚀 Entrar a la Aventura
+                </button>
               </div>
             </div>
           ))

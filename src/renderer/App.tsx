@@ -31,19 +31,44 @@ function App() {
   const [monsters, setMonsters] = useState<any[]>([]);
   const [compendium, setCompendium] = useState<any[]>([]);
   const [boardTokens, setBoardTokens] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'combat' | 'database' | 'admin' | 'characters' | 'campaigns'>('combat');
+  const [activeTab, setActiveTab] = useState<'combat' | 'database' | 'admin' | 'characters' | 'campaigns'>('campaigns');
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [isCampaignsLoaded, setIsCampaignsLoaded] = useState(false);
 
-  const activeCampaign = campaigns.find(c => c.is_active === 1);
+  const [currentRoomCampaignId, setCurrentRoomCampaignId] = useState<number | null>(() => {
+    const saved = localStorage.getItem('dnd_vtt_campaign_room');
+    return saved ? Number(saved) : null;
+  });
+
+  const joinedCampaign = campaigns.find(c => c.id === currentRoomCampaignId);
   const currentRole = user
-    ? (user.role === 'admin' ? 'admin' : (activeCampaign && activeCampaign.owner === user.name ? 'dm' : 'player'))
+    ? (user.role === 'admin' ? 'admin' : (joinedCampaign && joinedCampaign.owner === user.name ? 'dm' : 'player'))
     : 'player';
 
   const currentRoleRef = useRef(currentRole);
   useEffect(() => {
     currentRoleRef.current = currentRole;
   }, [currentRole]);
+
+  const handleLeaveRoom = () => {
+    socket.emit('room:leave');
+    setCurrentRoomCampaignId(null);
+    localStorage.removeItem('dnd_vtt_campaign_room');
+    
+    // Limpiar parámetro 'room' de la URL sin recargar la página
+    const url = new URL(window.location.href);
+    url.searchParams.delete('room');
+    window.history.replaceState({}, document.title, url.pathname + url.search);
+
+    setActiveTab('campaigns');
+  };
+
+  useEffect(() => {
+    if (isCampaignsLoaded && currentRoomCampaignId === null && activeTab === 'combat') {
+      setActiveTab('campaigns');
+    }
+  }, [currentRoomCampaignId, activeTab, isCampaignsLoaded]);
   const [imageToast, setImageToast] = useState<{ id: number; name: string; status: 'generating' | 'ready' | 'failed' } | null>(null);
 
   const [overlayCharacterId, setOverlayCharacterId] = useState<number | null>(null);
@@ -79,6 +104,31 @@ function App() {
       socket.emit('content:request');
       socket.emit('campaign:request');
       setIsCheckingToken(false);
+
+      // Revisar si hay parámetro de sala en la URL
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomParam = urlParams.get('room');
+      if (roomParam) {
+        const roomId = Number(roomParam);
+        if (!isNaN(roomId)) {
+          setCurrentRoomCampaignId(roomId);
+          localStorage.setItem('dnd_vtt_campaign_room', String(roomId));
+          socket.emit('room:join', { campaignId: roomId });
+          if (user.role !== 'admin') {
+            setActiveTab('combat');
+          }
+          return;
+        }
+      }
+
+      // Si no hay parámetro en la URL, pero sí en localStorage, unirse a esa sala
+      const savedRoom = localStorage.getItem('dnd_vtt_campaign_room');
+      if (savedRoom) {
+        const roomId = Number(savedRoom);
+        if (!isNaN(roomId)) {
+          socket.emit('room:join', { campaignId: roomId });
+        }
+      }
     });
 
     socket.on('character:list', (list) => {
@@ -94,6 +144,7 @@ function App() {
     });
 
     socket.on('campaign:list', (list: any[]) => {
+      setIsCampaignsLoaded(true);
       setCampaigns(list);
     });
 
@@ -327,15 +378,15 @@ function App() {
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <span className="font-cinzel" style={{ fontSize: 'var(--header-title-size)', fontWeight: '900', color: 'var(--accent-gold)', textShadow: '0 0 15px rgba(200, 135, 42, 0.4)', lineHeight: '1' }}>
             {(() => {
-              const activeCampaign = campaigns.find(c => c.is_active === 1);
-              if (activeCampaign) {
-                return activeCampaign.name.length > 30 ? activeCampaign.name.substring(0, 30) + '...' : activeCampaign.name;
+              const joinedCampaign = campaigns.find(c => c.id === currentRoomCampaignId);
+              if (joinedCampaign) {
+                return joinedCampaign.name.length > 30 ? joinedCampaign.name.substring(0, 30) + '...' : joinedCampaign.name;
               }
               return 'D&D PP';
             })()}
           </span>
           <span className="font-cinzel" style={{ fontSize: 'var(--header-subtitle-size)', color: 'var(--text-parchment)', letterSpacing: '4px', opacity: 0.7 }}>
-            {campaigns.find(c => c.is_active === 1) ? 'CAMPAÑA ACTIVA' : 'PARA POBRES'}
+            {campaigns.find(c => c.id === currentRoomCampaignId) ? 'SALA ACTIVA' : 'PARA POBRES'}
           </span>
         </div>
         
@@ -377,35 +428,58 @@ function App() {
       </header>
 
       {/* TABS NAVEGACIÓN */}
-      <div style={{ display: 'flex', gap: '2px', background: 'var(--bg-base)', padding: 'var(--tabs-padding)' }}>
-        {[
-          { id: 'combat', label: 'COMBATE', color: 'var(--combat-red)', visible: currentRole !== 'admin' },
-          { id: 'characters', label: 'HÉROES', color: 'var(--natural-green)', visible: currentRole !== 'admin' },
-          { id: 'campaigns', label: 'CAMPAÑAS', color: 'var(--accent-gold)', visible: true },
-          { id: 'database', label: 'COMPENDIO', color: 'var(--accent-gold)', visible: true },
-          { id: 'admin', label: 'ADMIN', color: '#f59e0b', visible: currentRole === 'admin' }
-        ].filter(t => t.visible !== false).map(tab => (
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-base)', padding: 'var(--tabs-padding)', borderBottom: '1px solid var(--border-color)' }}>
+        <div style={{ display: 'flex', gap: '2px' }}>
+          {[
+            { id: 'combat', label: 'COMBATE', color: 'var(--combat-red)', visible: currentRole !== 'admin' && currentRoomCampaignId !== null },
+            { id: 'characters', label: 'HÉROES', color: 'var(--natural-green)', visible: currentRole !== 'admin' },
+            { id: 'campaigns', label: 'CAMPAÑAS', color: 'var(--accent-gold)', visible: true },
+            { id: 'database', label: 'COMPENDIO', color: 'var(--accent-gold)', visible: true },
+            { id: 'admin', label: 'ADMIN', color: '#f59e0b', visible: currentRole === 'admin' }
+          ].filter(t => t.visible !== false).map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className="font-cinzel"
+              style={{ 
+                padding: 'var(--tab-padding)', 
+                border: '1px solid var(--border-color)',
+                borderBottom: 'none',
+                background: activeTab === tab.id ? 'var(--bg-surface)' : 'transparent', 
+                color: activeTab === tab.id ? tab.color : 'var(--text-secondary)', 
+                fontWeight: 'bold', 
+                cursor: 'pointer', 
+                fontSize: 'var(--tab-font-size)',
+                transition: 'all 0.2s',
+                borderTop: activeTab === tab.id ? `3px solid ${tab.color}` : '1px solid var(--border-color)',
+                marginTop: activeTab === tab.id ? '0' : 'var(--tab-margin-top-inactive)'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        {currentRoomCampaignId !== null && (
           <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className="font-cinzel"
-            style={{ 
-              padding: 'var(--tab-padding)', 
-              border: '1px solid var(--border-color)',
-              borderBottom: 'none',
-              background: activeTab === tab.id ? 'var(--bg-surface)' : 'transparent', 
-              color: activeTab === tab.id ? tab.color : 'var(--text-secondary)', 
-              fontWeight: 'bold', 
-              cursor: 'pointer', 
-              fontSize: 'var(--tab-font-size)',
-              transition: 'all 0.2s',
-              borderTop: activeTab === tab.id ? `3px solid ${tab.color}` : '1px solid var(--border-color)',
-              marginTop: activeTab === tab.id ? '0' : 'var(--tab-margin-top-inactive)'
+            onClick={handleLeaveRoom}
+            className="font-cinzel torch-glow"
+            style={{
+              padding: '6px 14px',
+              border: '1px solid var(--combat-red)',
+              background: 'transparent',
+              color: 'var(--combat-red)',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}
           >
-            {tab.label}
+            🚪 SALIR DE LA SALA
           </button>
-        ))}
+        )}
       </div>
 
       <main className={`vtt-main-container ${activeTab === 'database' ? 'database-view-active' : ''}`} style={{ width: '100%', boxSizing: 'border-box', margin: '0 auto' }}>
@@ -710,12 +784,19 @@ function App() {
         )}
         {activeTab === 'campaigns' && (
           <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-            <CampaignsView 
-              socket={socket}
-              userRole={currentRole}
-              characters={characters}
-              campaigns={campaigns}
-            />
+             <CampaignsView 
+               socket={socket}
+               userRole={currentRole}
+               characters={characters}
+               campaigns={campaigns}
+               currentUser={user}
+               onEnterCampaign={(campaignId: number) => {
+                 setCurrentRoomCampaignId(campaignId);
+                 localStorage.setItem('dnd_vtt_campaign_room', String(campaignId));
+                 socket.emit('room:join', { campaignId });
+                 setActiveTab('combat');
+               }}
+             />
           </div>
         )}
       </main>
