@@ -1,6 +1,6 @@
 
 import { formatDescription } from '../../utils/formateador';
-import { Ghost, Scroll, Swords, Link } from 'lucide-react';
+import { Ghost, Scroll, Swords, Link, AlertTriangle, Dna, Languages } from 'lucide-react';
 import { typeIcons } from '../VistaCompendio';
 export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onCloseOverlay, userRole }: any) => {
   const d = selectedItem.data ? (typeof selectedItem.data === 'string' ? JSON.parse(selectedItem.data) : selectedItem.data) : {};
@@ -58,7 +58,7 @@ export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onClo
                                 </div>
                                 <div style={{ padding: '12px', borderRight: '1px solid var(--border-gold-subtle)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                                   <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Clase Armadura</div>
-                                  <div className="mono font-cinzel" style={{ fontSize: '1.8rem', color: 'var(--text-parchment)', fontWeight: 'bold', lineHeight: 1 }}>{d.armor_class || d.ac || '—'}</div>
+                                   <div className="mono font-cinzel" style={{ fontSize: '1.8rem', color: 'var(--text-parchment)', fontWeight: 'bold', lineHeight: 1 }}>{(() => { const ac = d.ac ?? (Array.isArray(d.armor_class) ? d.armor_class[0]?.value : d.armor_class); return ac ?? '—'; })()}</div>
                                 </div>
                                 <div style={{ padding: '12px', borderRight: '1px solid var(--border-gold-subtle)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                                   <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Desafío (CR)</div>
@@ -67,7 +67,16 @@ export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onClo
                                 </div>
                                 <div style={{ padding: '12px', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
                                   <div className="font-cinzel" style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '4px' }}>Velocidad</div>
-                                  <div className="mono font-cinzel" style={{ fontSize: '0.85rem', color: 'var(--text-parchment)', lineHeight: 1.4 }}>{d.speed || '—'}</div>
+                                   <div className="mono font-cinzel" style={{ fontSize: '0.85rem', color: 'var(--text-parchment)', lineHeight: 1.4 }}>{(() => {
+                                    const spd = d.speed;
+                                    if (!spd) return '—';
+                                    if (typeof spd === 'string') return spd;
+                                    if (typeof spd === 'object') {
+                                      const SPEED_LABELS: Record<string, string> = { walk: 'Caminando', swim: 'Nadando', fly: 'Volando', climb: 'Escalando', burrow: 'Excavando' };
+                                      return Object.entries(spd).map(([k, v]) => `${SPEED_LABELS[k] || k}: ${v}`).join(', ');
+                                    }
+                                    return String(spd);
+                                   })()}</div>
                                 </div>
                               </div>
                             </div>
@@ -218,7 +227,7 @@ export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onClo
                             <div>
                               <h1 className="font-cinzel" style={{ margin: 0, color: 'var(--accent-gold)', fontSize: '2.8rem', textShadow: '0 0 20px rgba(200, 135, 42, 0.2)' }}>{selectedItem.name}</h1>
                               <div style={{ display: 'flex', gap: '15px', alignItems: 'center', marginTop: '5px' }}>
-                                <span className="font-cinzel" style={{ color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '2px', fontSize: '0.9rem' }}>{selectedItem.type === 'monster' ? <><Ghost className="w-4 h-4 inline-block mr-1" /> MONSTRUO</> : selectedItem.type === 'spell' ? <><Scroll className="w-4 h-4 inline-block mr-1" /> HECHIZO</> : <><Swords className="w-4 h-4 inline-block mr-1" /> OBJETO</>}</span>
+                                <span className="font-cinzel" style={{ color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '2px', fontSize: '0.9rem' }}>{selectedItem.type === 'monster' ? <><Ghost className="w-4 h-4 inline-block mr-1" /> MONSTRUO</> : selectedItem.type === 'spell' ? <><Scroll className="w-4 h-4 inline-block mr-1" /> HECHIZO</> : selectedItem.type === 'condition' ? <><AlertTriangle className="w-4 h-4 inline-block mr-1" /> ESTADO</> : selectedItem.type === 'subrace' ? <><Dna className="w-4 h-4 inline-block mr-1" /> SUBRAZA</> : selectedItem.type === 'language' ? <><Languages className="w-4 h-4 inline-block mr-1" /> IDIOMA</> : <><Swords className="w-4 h-4 inline-block mr-1" /> OBJETO</>}</span>
                                 {isMonster && d.size && <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>• {d.size}</span>}
                                 {isMonster && cr !== '—' && <span style={{ color: 'var(--accent-gold)', fontSize: '0.9rem', fontWeight: 'bold' }}>• CR {cr}</span>}
                               </div>
@@ -246,6 +255,9 @@ export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onClo
                                     <div style={{ fontSize: '5rem', opacity: 0.2 }}>
                                       {selectedItem.type === 'monster' ? <Ghost size={80} /> : 
                                        selectedItem.type === 'spell' ? <Scroll size={80} /> : 
+                                       selectedItem.type === 'condition' ? <AlertTriangle size={80} /> :
+                                       selectedItem.type === 'subrace' ? <Dna size={80} /> :
+                                       selectedItem.type === 'language' ? <Languages size={80} /> :
                                        <Swords size={80} />}
                                     </div>
                                   )}
@@ -436,6 +448,89 @@ export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onClo
                                 <p style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: formatDescription(d.description || d.desc || 'Sin descripción.') }}>
 
                                 </p>
+                              </div>
+                            </div>
+                          )}
+
+                          {selectedItem.type === 'condition' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                              <div>
+                                <h3 className="font-cinzel" style={{ fontSize: '1rem', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', margin: '0 0 15px 0' }}>Efectos y Reglas</h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                  {Array.isArray(d.desc) ? (
+                                    d.desc.map((paragraph: string, pIdx: number) => (
+                                      <p key={pIdx} style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: formatDescription(paragraph) }} />
+                                    ))
+                                  ) : (
+                                    <p style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: formatDescription(d.description || d.desc || 'Sin descripción.') }} />
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                          {selectedItem.type === 'subrace' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                              <div>
+                                <h3 className="font-cinzel" style={{ fontSize: '1.05rem', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', margin: '0 0 10px 0' }}>Raza Padre</h3>
+                                <p style={{ fontSize: '0.95rem', margin: 0, color: 'var(--text-parchment)' }}>
+                                  {d.race?.name || 'Desconocida'}
+                                </p>
+                              </div>
+                              {d.ability_bonuses && d.ability_bonuses.length > 0 && (
+                                <div>
+                                  <h3 className="font-cinzel" style={{ fontSize: '1.05rem', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', margin: '0 0 10px 0' }}>Bonificadores de Atributos</h3>
+                                  <ul style={{ margin: 0, paddingLeft: '20px', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+                                    {d.ability_bonuses.map((b: any, bIdx: number) => (
+                                      <li key={bIdx}>
+                                        <b>{b.ability_score?.name?.toUpperCase()}:</b> +{b.bonus}
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              {d.racial_traits && d.racial_traits.length > 0 && (
+                                <div>
+                                  <h3 className="font-cinzel" style={{ fontSize: '1.05rem', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', margin: '0 0 10px 0' }}>Rasgos Raciales Especiales</h3>
+                                  <ul style={{ margin: 0, paddingLeft: '20px', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+                                    {d.racial_traits.map((t: any, tIdx: number) => (
+                                      <li key={tIdx}>
+                                        <b>{t.name}</b>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
+                              <div>
+                                <h3 className="font-cinzel" style={{ fontSize: '1.05rem', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', margin: '0 0 10px 0' }}>Descripción</h3>
+                                <p style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: formatDescription(d.description || d.desc || 'Sin descripción.') }} />
+                              </div>
+                            </div>
+                          )}
+
+                          {selectedItem.type === 'language' && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                              <div style={{ display: 'grid', gridTemplateColumns: `repeat(${1 + (d.script ? 1 : 0) + (d.typical_speakers && d.typical_speakers.length > 0 ? 1 : 0)}, 1fr)`, gap: '15px', background: 'rgba(0,0,0,0.2)', padding: '15px', border: '1px solid var(--border-color)' }}>
+                                <div style={{ textAlign: 'center' }}>
+                                  <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Tipo</div>
+                                  <div className="mono font-cinzel" style={{ fontSize: '1.1rem', color: 'var(--accent-gold)', fontWeight: 'bold' }}>{d.type || '—'}</div>
+                                </div>
+                                {d.script && (
+                                  <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Escritura</div>
+                                    <div className="mono font-cinzel" style={{ fontSize: '1.1rem', color: 'var(--accent-gold)', fontWeight: 'bold' }}>{d.script}</div>
+                                  </div>
+                                )}
+                                {d.typical_speakers && d.typical_speakers.length > 0 && (
+                                  <div style={{ textAlign: 'center' }}>
+                                    <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Hablantes Típicos</div>
+                                    <div className="mono font-cinzel" style={{ fontSize: '1.0rem', color: 'var(--text-parchment)', fontWeight: 'bold' }}>{d.typical_speakers.join(', ')}</div>
+                                  </div>
+                                )}
+                              </div>
+                              <div>
+                                <h3 className="font-cinzel" style={{ fontSize: '1.05rem', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', margin: '0 0 10px 0' }}>Descripción</h3>
+                                <p style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: formatDescription(d.description || d.desc || 'Sin descripción.') }} />
                               </div>
                             </div>
                           )}

@@ -13,10 +13,38 @@ import { parseAndRollHP } from './utils/utilidadesDados';
 
 type DiceType = 'd3' | 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20';
 
-const socket = io(window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin);
+const socket = io(
+  window.location.port === '5173'
+    ? `${window.location.protocol}//${window.location.hostname}:3000`
+    : window.location.origin
+);
 
 function App() {
   const [user, setUser] = useState<{ name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string } | null>(null);
+  const [globalAlert, setGlobalAlert] = useState<{ message: string; isFadingOut: boolean } | null>(null);
+  const alertTimeoutRef = useRef<any>(null);
+
+  // Sobrescribir window.alert globalmente para evitar bugs de foco de Electron
+  useEffect(() => {
+    window.alert = (msg: any) => {
+      setGlobalAlert({ message: String(msg), isFadingOut: false });
+      if (alertTimeoutRef.current) {
+        clearTimeout(alertTimeoutRef.current);
+      }
+      alertTimeoutRef.current = setTimeout(() => {
+        setGlobalAlert(prev => prev ? { ...prev, isFadingOut: true } : null);
+        alertTimeoutRef.current = setTimeout(() => {
+          setGlobalAlert(null);
+        }, 500);
+      }, 3500);
+    };
+    return () => {
+      if (alertTimeoutRef.current) {
+        clearTimeout(alertTimeoutRef.current);
+      }
+    };
+  }, []);
+  const [isCheckingToken, setIsCheckingToken] = useState(!!localStorage.getItem('dnd_vtt_token'));
   const userRef = useRef(user);
   useEffect(() => {
     userRef.current = user;
@@ -26,9 +54,111 @@ function App() {
   const [monsters, setMonsters] = useState<any[]>([]);
   const [compendium, setCompendium] = useState<any[]>([]);
   const [boardTokens, setBoardTokens] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'combat' | 'database' | 'admin' | 'characters' | 'campaigns'>('combat');
+  const [activeTab, setActiveTab] = useState<'combat' | 'database' | 'admin' | 'characters' | 'campaigns'>('campaigns');
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
+  const [isCampaignsLoaded, setIsCampaignsLoaded] = useState(false);
+
+  const [currentRoomCampaignId, setCurrentRoomCampaignId] = useState<number | null>(() => {
+    const saved = localStorage.getItem('dnd_vtt_campaign_room');
+    return saved ? Number(saved) : null;
+  });
+
+  const [showHeroSelectorForCampaignId, setShowHeroSelectorForCampaignId] = useState<number | null>(null);
+  const [pendingRoomJoin, setPendingRoomJoin] = useState<number | null>(null);
+
+  const joinedCampaign = campaigns.find(c => c.id === currentRoomCampaignId);
+  const currentRole = user
+    ? (user.role === 'admin' ? 'admin' : (joinedCampaign && joinedCampaign.owner === user.name ? 'dm' : 'player'))
+    : 'player';
+
+  const currentRoleRef = useRef(currentRole);
+  useEffect(() => {
+    currentRoleRef.current = currentRole;
+  }, [currentRole]);
+
+  const handleJoinCampaignRoom = (campaignId: number) => {
+    const campaign = campaigns.find(c => c.id === campaignId);
+    if (!campaign) return;
+
+    const isPlayer = user && user.role !== 'admin' && campaign.owner !== user.name;
+    if (isPlayer) {
+      // Verificar si ya tiene un héroe asignado para esta campaña
+      const savedHeroId = localStorage.getItem(`dnd_vtt_campaign_${campaignId}_hero`);
+      if (!savedHeroId) {
+        // Es la primera vez que se une: validar héroes del jugador
+        const playerCharacters = characters.filter(c => c.owner === user.name);
+        if (playerCharacters.length === 0) {
+          alert("⚔️ ¡No tienes ningún héroe creado! Te redirigiremos a la pestaña de HÉROES para que crees tu personaje antes de entrar a la aventura.");
+          setActiveTab('characters');
+          return;
+        }
+        
+        // Mostrar selector de héroes
+        setShowHeroSelectorForCampaignId(campaignId);
+        return;
+      }
+    }
+
+    // Entrar directo si es DM, admin o ya eligió personaje
+    setCurrentRoomCampaignId(campaignId);
+    localStorage.setItem('dnd_vtt_campaign_room', String(campaignId));
+    socket.emit('room:join', { campaignId });
+    setActiveTab('combat');
+  };
+
+  const handleLeaveRoom = () => {
+    socket.emit('room:leave');
+    setCurrentRoomCampaignId(null);
+    localStorage.removeItem('dnd_vtt_campaign_room');
+    
+    // Limpiar parámetro 'room' de la URL sin recargar la página
+    const url = new URL(window.location.href);
+    url.searchParams.delete('room');
+    window.history.replaceState({}, document.title, url.pathname + url.search);
+
+    setActiveTab('campaigns');
+  };
+
+  // Efecto para procesar ingresos pendientes (link o recargas)
+  useEffect(() => {
+    if (pendingRoomJoin !== null && campaigns.length > 0 && user && characters.length >= 0) {
+      const roomId = pendingRoomJoin;
+      setPendingRoomJoin(null); // Limpiar para evitar bucles
+      
+      const campaign = campaigns.find(c => c.id === roomId);
+      if (campaign) {
+        const isPlayer = user.role !== 'admin' && campaign.owner !== user.name;
+        if (isPlayer) {
+          const savedHeroId = localStorage.getItem(`dnd_vtt_campaign_${roomId}_hero`);
+          if (!savedHeroId) {
+            const playerCharacters = characters.filter(c => c.owner === user.name);
+            if (playerCharacters.length === 0) {
+              alert("⚔️ ¡No tienes ningún héroe creado! Te redirigiremos a la pestaña de HÉROES para que crees tu personaje antes de entrar a la aventura.");
+              setActiveTab('characters');
+              return;
+            }
+            setShowHeroSelectorForCampaignId(roomId);
+            return;
+          }
+        }
+        
+        // Si ya tiene personaje o es DM/admin, entra directo
+        setCurrentRoomCampaignId(roomId);
+        localStorage.setItem('dnd_vtt_campaign_room', String(roomId));
+        socket.emit('room:join', { campaignId: roomId });
+        if (user.role !== 'admin') {
+          setActiveTab('combat');
+        }
+      }
+    }
+  }, [pendingRoomJoin, campaigns, user, characters]);
+
+  useEffect(() => {
+    if (isCampaignsLoaded && currentRoomCampaignId === null && activeTab === 'combat') {
+      setActiveTab('campaigns');
+    }
+  }, [currentRoomCampaignId, activeTab, isCampaignsLoaded]);
   const [imageToast, setImageToast] = useState<{ id: number; name: string; status: 'generating' | 'ready' | 'failed' } | null>(null);
 
   const [overlayCharacterId, setOverlayCharacterId] = useState<number | null>(null);
@@ -47,6 +177,44 @@ function App() {
   const [monsterSearch, setMonsterSearch] = useState('');
 
   useEffect(() => {
+    socket.on('auth:token_invalid', () => {
+      localStorage.removeItem('dnd_vtt_token');
+      setUser(null);
+      setIsCheckingToken(false);
+    });
+
+    socket.on('auth:success', ({ user, token }: { user: any; token?: string }) => {
+      setUser({ name: user.username, role: user.role, profile_image: user.profile_image });
+      if (token) {
+        localStorage.setItem('dnd_vtt_token', token);
+      }
+      if (user.role === 'admin') {
+        setActiveTab('database');
+      }
+      socket.emit('content:request');
+      socket.emit('campaign:request');
+      setIsCheckingToken(false);
+
+      // Programar la unión de sala tras cargar campañas
+      const urlParams = new URLSearchParams(window.location.search);
+      const roomParam = urlParams.get('room');
+      if (roomParam) {
+        const roomId = Number(roomParam);
+        if (!isNaN(roomId)) {
+          setPendingRoomJoin(roomId);
+          return;
+        }
+      }
+
+      const savedRoom = localStorage.getItem('dnd_vtt_campaign_room');
+      if (savedRoom) {
+        const roomId = Number(savedRoom);
+        if (!isNaN(roomId)) {
+          setPendingRoomJoin(roomId);
+        }
+      }
+    });
+
     socket.on('character:list', (list) => {
       setCharacters(list);
     });
@@ -60,6 +228,7 @@ function App() {
     });
 
     socket.on('campaign:list', (list: any[]) => {
+      setIsCampaignsLoaded(true);
       setCampaigns(list);
     });
 
@@ -71,7 +240,7 @@ function App() {
       const currentUser = userRef.current;
       const rollTo = data.to || 'all';
       const isSender = data.user === currentUser?.name;
-      const isRecipient = rollTo === currentUser?.name || (rollTo === 'Dungeon Master' && currentUser?.role === 'dm');
+      const isRecipient = rollTo === currentUser?.name || (rollTo === 'Dungeon Master' && currentRoleRef.current === 'dm');
       const isPublic = rollTo === 'all';
 
       if (isPublic || isSender || isRecipient) {
@@ -105,7 +274,14 @@ function App() {
       setTimeout(() => setImageToast(null), 4000);
     });
 
+    const savedToken = localStorage.getItem('dnd_vtt_token');
+    if (savedToken) {
+      socket.emit('auth:token_login', { token: savedToken });
+    }
+
     return () => {
+      socket.off('auth:token_invalid');
+      socket.off('auth:success');
       socket.off('character:list');
       socket.off('monsters:list');
       socket.off('content:list');
@@ -119,8 +295,11 @@ function App() {
     };
   }, []);
 
-  const handleLogin = (loggedUser: { name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string }) => {
+  const handleLogin = (loggedUser: { name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string; token?: string }) => {
     setUser(loggedUser);
+    if (loggedUser.token) {
+      localStorage.setItem('dnd_vtt_token', loggedUser.token);
+    }
     if (loggedUser.role === 'admin') {
       setActiveTab('database');
     }
@@ -166,6 +345,40 @@ function App() {
       image: mData.image || null
     });
   };
+
+  if (isCheckingToken) {
+    return (
+      <div style={{
+        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
+        minHeight: '100vh', background: 'radial-gradient(circle, #1e1b15 0%, #0d0c09 100%)',
+        color: 'var(--accent-gold)'
+      }}>
+        <style>{`
+          @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+          }
+          @keyframes pulse {
+            0%, 100% { opacity: 0.6; transform: scale(1); }
+            50% { opacity: 1; transform: scale(1.03); }
+          }
+        `}</style>
+        <div className="font-cinzel" style={{ fontSize: '2.5rem', marginBottom: '20px', textShadow: '0 0 20px rgba(200,135,42,0.4)', animation: 'pulse 1.8s ease-in-out infinite', fontWeight: 'bold' }}>
+          D&D PP
+        </div>
+        <div style={{
+          width: '32px', height: '32px', borderRadius: '50%',
+          border: '3px solid rgba(200,135,42,0.15)',
+          borderTopColor: 'var(--accent-gold)',
+          animation: 'spin 0.8s linear infinite',
+          boxShadow: '0 0 10px rgba(200, 135, 42, 0.2)'
+        }} />
+        <span className="font-cinzel" style={{ fontSize: '0.8rem', marginTop: '15px', color: 'var(--text-secondary)', letterSpacing: '3px', opacity: 0.7 }}>
+          INICIANDO MESA...
+        </span>
+      </div>
+    );
+  }
 
   if (!user) {
     return <LoginScreen socket={socket} onLoginSuccess={handleLogin} />;
@@ -249,15 +462,15 @@ function App() {
         <div style={{ display: 'flex', flexDirection: 'column' }}>
           <span className="font-cinzel" style={{ fontSize: 'var(--header-title-size)', fontWeight: '900', color: 'var(--accent-gold)', textShadow: '0 0 15px rgba(200, 135, 42, 0.4)', lineHeight: '1' }}>
             {(() => {
-              const activeCampaign = campaigns.find(c => c.is_active === 1);
-              if (activeCampaign) {
-                return activeCampaign.name.length > 30 ? activeCampaign.name.substring(0, 30) + '...' : activeCampaign.name;
+              const joinedCampaign = campaigns.find(c => c.id === currentRoomCampaignId);
+              if (joinedCampaign) {
+                return joinedCampaign.name.length > 30 ? joinedCampaign.name.substring(0, 30) + '...' : joinedCampaign.name;
               }
               return 'D&D PP';
             })()}
           </span>
           <span className="font-cinzel" style={{ fontSize: 'var(--header-subtitle-size)', color: 'var(--text-parchment)', letterSpacing: '4px', opacity: 0.7 }}>
-            {campaigns.find(c => c.is_active === 1) ? 'CAMPAÑA ACTIVA' : 'PARA POBRES'}
+            {campaigns.find(c => c.id === currentRoomCampaignId) ? 'SALA ACTIVA' : 'PARA POBRES'}
           </span>
         </div>
         
@@ -280,13 +493,16 @@ function App() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column' }}>
               <span style={{ fontSize: 'var(--header-role-size)', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                {user.role === 'dm' ? 'Dungeon Master' : (user.role === 'admin' ? 'Administrador' : 'Aventurero')}
+                {currentRole === 'dm' ? 'Dungeon Master' : (currentRole === 'admin' ? 'Administrador' : 'Aventurero')}
               </span>
               <span className="font-cinzel" style={{ fontSize: 'var(--header-name-size)', color: 'var(--text-parchment)', fontWeight: 'bold' }}>{user.name}</span>
             </div>
           </div>
           <button 
-            onClick={() => setUser(null)}
+            onClick={() => {
+              localStorage.removeItem('dnd_vtt_token');
+              setUser(null);
+            }}
             className="torch-glow"
             style={{ background: 'transparent', border: '1px solid var(--combat-red)', color: 'var(--combat-red)', padding: 'var(--header-button-padding)', borderRadius: '4px', cursor: 'pointer', fontSize: 'var(--header-button-font-size)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 'var(--header-button-gap)' }}
           >
@@ -296,35 +512,58 @@ function App() {
       </header>
 
       {/* TABS NAVEGACIÓN */}
-      <div style={{ display: 'flex', gap: '2px', background: 'var(--bg-base)', padding: 'var(--tabs-padding)' }}>
-        {[
-          { id: 'combat', label: 'COMBATE', color: 'var(--combat-red)', visible: user.role !== 'admin' },
-          { id: 'characters', label: 'HÉROES', color: 'var(--natural-green)', visible: user.role !== 'admin' },
-          { id: 'campaigns', label: 'CAMPAÑAS', color: 'var(--accent-gold)', visible: true },
-          { id: 'database', label: 'COMPENDIO', color: 'var(--accent-gold)', visible: true },
-          { id: 'admin', label: 'ADMIN', color: '#f59e0b', visible: user.role === 'admin' }
-        ].filter(t => t.visible !== false).map(tab => (
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-base)', padding: 'var(--tabs-padding)', borderBottom: '1px solid var(--border-color)' }}>
+        <div style={{ display: 'flex', gap: '2px' }}>
+          {[
+            { id: 'combat', label: 'COMBATE', color: 'var(--combat-red)', visible: currentRole !== 'admin' && currentRoomCampaignId !== null },
+            { id: 'characters', label: 'HÉROES', color: 'var(--natural-green)', visible: currentRole !== 'admin' },
+            { id: 'campaigns', label: 'CAMPAÑAS', color: 'var(--accent-gold)', visible: true },
+            { id: 'database', label: 'COMPENDIO', color: 'var(--accent-gold)', visible: true },
+            { id: 'admin', label: 'ADMIN', color: '#f59e0b', visible: currentRole === 'admin' }
+          ].filter(t => t.visible !== false).map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id as any)}
+              className="font-cinzel"
+              style={{ 
+                padding: 'var(--tab-padding)', 
+                border: '1px solid var(--border-color)',
+                borderBottom: 'none',
+                background: activeTab === tab.id ? 'var(--bg-surface)' : 'transparent', 
+                color: activeTab === tab.id ? tab.color : 'var(--text-secondary)', 
+                fontWeight: 'bold', 
+                cursor: 'pointer', 
+                fontSize: 'var(--tab-font-size)',
+                transition: 'all 0.2s',
+                borderTop: activeTab === tab.id ? `3px solid ${tab.color}` : '1px solid var(--border-color)',
+                marginTop: activeTab === tab.id ? '0' : 'var(--tab-margin-top-inactive)'
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+        {currentRoomCampaignId !== null && (
           <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id as any)}
-            className="font-cinzel"
-            style={{ 
-              padding: 'var(--tab-padding)', 
-              border: '1px solid var(--border-color)',
-              borderBottom: 'none',
-              background: activeTab === tab.id ? 'var(--bg-surface)' : 'transparent', 
-              color: activeTab === tab.id ? tab.color : 'var(--text-secondary)', 
-              fontWeight: 'bold', 
-              cursor: 'pointer', 
-              fontSize: 'var(--tab-font-size)',
-              transition: 'all 0.2s',
-              borderTop: activeTab === tab.id ? `3px solid ${tab.color}` : '1px solid var(--border-color)',
-              marginTop: activeTab === tab.id ? '0' : 'var(--tab-margin-top-inactive)'
+            onClick={handleLeaveRoom}
+            className="font-cinzel torch-glow"
+            style={{
+              padding: '6px 14px',
+              border: '1px solid var(--combat-red)',
+              background: 'transparent',
+              color: 'var(--combat-red)',
+              fontWeight: 'bold',
+              cursor: 'pointer',
+              fontSize: '0.85rem',
+              borderRadius: '4px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: '6px'
             }}
           >
-            {tab.label}
+            🚪 SALIR DE LA SALA
           </button>
-        ))}
+        )}
       </div>
 
       <main className={`vtt-main-container ${activeTab === 'database' ? 'database-view-active' : ''}`} style={{ width: '100%', boxSizing: 'border-box', margin: '0 auto' }}>
@@ -338,7 +577,7 @@ function App() {
                   characters={characters}
                   monsters={monsters}
                   compendium={compendium}
-                  userRole={user.role}
+                  userRole={currentRole}
                   currentUser={user}
                   activeTab={activeTab}
                   onOpenCharacterSheet={setOverlayCharacterId}
@@ -348,7 +587,7 @@ function App() {
                 />
               </section>
 
-              {(user.role === 'dm' || user.role === 'admin') && (
+              {(currentRole === 'dm' || currentRole === 'admin') && (
                 <div className="dm-quick-sections" style={{
                   display: 'grid', 
                   gridTemplateColumns: '1fr 1fr', 
@@ -589,7 +828,7 @@ function App() {
                 socket={socket} 
                 characters={characters} 
                 compendium={compendium} 
-                userRole={user.role} 
+                userRole={currentRole} 
                 triggerDiceRoll={triggerDiceRoll} 
                 isOverlay={true}
                 forceOpenId={overlayCharacterId}
@@ -601,7 +840,7 @@ function App() {
               <DatabaseView 
                 compendium={compendium}
                 socket={socket}
-                userRole={user.role} 
+                userRole={currentRole} 
                 isOverlay={true}
                 forceOpenId={overlayMonsterId}
                 onCloseOverlay={() => setOverlayMonsterId(null)}
@@ -610,34 +849,236 @@ function App() {
           </div>
         )}
         {activeTab === 'database' && (
-          <DatabaseView compendium={compendium} socket={socket} userRole={user.role} />
+          <DatabaseView compendium={compendium} socket={socket} userRole={currentRole} />
         )}
-        {activeTab === 'admin' && user.role === 'admin' && (
+        {activeTab === 'admin' && currentRole === 'admin' && (
           <AdminPanel socket={socket} />
         )}
-        {activeTab === 'characters' && (user.role === 'player' || user.role === 'dm' || user.role === 'admin') && (
+        {activeTab === 'characters' && (currentRole === 'player' || currentRole === 'dm' || currentRole === 'admin') && (
           <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
             <CharacterManager
               socket={socket}
               characters={characters}
               monsters={monsters}
               compendium={compendium}
-              userRole={user.role}
+              userRole={currentRole}
               triggerDiceRoll={triggerDiceRoll}
             />
           </div>
         )}
         {activeTab === 'campaigns' && (
           <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-            <CampaignsView 
-              socket={socket}
-              userRole={user.role}
-              characters={characters}
-              campaigns={campaigns}
-            />
+             <CampaignsView 
+               socket={socket}
+               userRole={currentRole}
+               characters={characters}
+               campaigns={campaigns}
+               currentUser={user}
+               onEnterCampaign={handleJoinCampaignRoom}
+             />
           </div>
         )}
       </main>
+
+      {/* MODAL: SELECCIONAR HÉROE AL ENTRAR POR PRIMERA VEZ */}
+      {showHeroSelectorForCampaignId !== null && (() => {
+        const campaign = campaigns.find(c => c.id === showHeroSelectorForCampaignId);
+        const playerCharacters = characters.filter(c => c.owner === user?.name);
+        
+        return (
+          <div style={{
+            position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
+            zIndex: 10000, display: 'flex', alignItems: 'center', justifyContent: 'center',
+            backgroundColor: 'rgba(0,0,0,0.85)', backdropFilter: 'blur(5px)',
+            padding: '20px'
+          }}>
+            <div style={{
+              background: 'var(--bg-surface)',
+              border: '2px solid var(--accent-gold)',
+              borderRadius: '12px',
+              padding: '30px',
+              maxWidth: '600px',
+              width: '100%',
+              boxShadow: '0 10px 40px rgba(0,0,0,0.9)',
+              color: 'var(--text-parchment)',
+              display: 'flex',
+              flexDirection: 'column',
+              gap: '20px'
+            }}>
+              <div style={{ textAlign: 'center' }}>
+                <span className="font-cinzel" style={{ fontSize: '0.8rem', color: 'var(--accent-gold)', letterSpacing: '2px' }}>
+                  {campaign?.name.toUpperCase()}
+                </span>
+                <h2 className="font-cinzel" style={{ margin: '5px 0 10px 0', fontSize: '1.8rem', color: 'var(--text-parchment)' }}>
+                  ELIGE TU HÉROE
+                </h2>
+                <p style={{ color: 'var(--text-secondary)', fontSize: '0.9rem', margin: 0 }}>
+                  Selecciona el personaje con el que participarás en esta campaña. Esta elección se recordará para futuras sesiones.
+                </p>
+              </div>
+
+              <div style={{ 
+                maxHeight: '300px', 
+                overflowY: 'auto', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                gap: '12px',
+                paddingRight: '6px'
+              }} className="custom-scrollbar">
+                {playerCharacters.map(char => (
+                  <div
+                    key={char.id}
+                    onClick={() => {
+                      localStorage.setItem(`dnd_vtt_campaign_${showHeroSelectorForCampaignId}_hero`, String(char.id));
+                      
+                      setCurrentRoomCampaignId(showHeroSelectorForCampaignId);
+                      localStorage.setItem('dnd_vtt_campaign_room', String(showHeroSelectorForCampaignId));
+                      socket.emit('room:join', { campaignId: showHeroSelectorForCampaignId });
+                      setActiveTab('combat');
+                      
+                      setShowHeroSelectorForCampaignId(null);
+                    }}
+                    style={{
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '15px',
+                      background: 'rgba(255,255,255,0.03)',
+                      border: '1px solid rgba(201,168,76,0.2)',
+                      borderRadius: '8px',
+                      padding: '12px 16px',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
+                    onMouseEnter={e => {
+                      e.currentTarget.style.background = 'rgba(201,168,76,0.06)';
+                      e.currentTarget.style.borderColor = 'var(--accent-gold)';
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.background = 'rgba(255,255,255,0.03)';
+                      e.currentTarget.style.borderColor = 'rgba(201,168,76,0.2)';
+                    }}
+                  >
+                    <div style={{
+                      width: '45px', height: '45px', borderRadius: '50%',
+                      background: 'rgba(201,168,76,0.1)', border: '1px solid var(--accent-gold)',
+                      overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      flexShrink: 0
+                    }}>
+                      {char.image ? (
+                        <img src={char.image} alt={char.name} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <span className="font-cinzel" style={{ fontSize: '1.2rem', color: 'var(--accent-gold)' }}>
+                          {char.name.charAt(0).toUpperCase()}
+                        </span>
+                      )}
+                    </div>
+                    <div style={{ flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontWeight: 'bold', fontSize: '1.05rem', color: 'var(--text-parchment)' }}>
+                        {char.name}
+                      </span>
+                      <span style={{ fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
+                        Nivel {char.level || 1} • {char.race || 'Humano'} • {char.class || char.charClass || 'Guerrero'}
+                      </span>
+                    </div>
+                    <div className="font-cinzel" style={{ fontSize: '0.8rem', color: 'var(--accent-gold)' }}>
+                      SELECCIONAR →
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              <button
+                onClick={() => setShowHeroSelectorForCampaignId(null)}
+                style={{
+                  background: 'transparent',
+                  border: '1px solid #444',
+                  color: 'var(--text-secondary)',
+                  padding: '10px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '0.9rem',
+                  marginTop: '10px'
+                }}
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        );
+      })()}
+
+      <style>{`
+        @keyframes fadeInScale {
+          from { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+          to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        @keyframes fadeOutScale {
+          from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+          to { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+        }
+      `}</style>
+
+      {/* GLOBAL TOAST ALERT */}
+      {globalAlert && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 99999,
+          background: 'linear-gradient(135deg, rgba(26,26,31,0.98), rgba(17,17,20,0.98))',
+          border: '1px solid var(--accent-gold)',
+          borderRadius: '8px',
+          padding: '20px 30px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          boxShadow: '0 10px 45px rgba(200, 135, 42, 0.35)',
+          backdropFilter: 'blur(10px)',
+          animation: globalAlert.isFadingOut 
+            ? 'fadeOutScale 0.5s ease-in forwards' 
+            : 'fadeInScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+          maxWidth: '450px',
+          width: '90%'
+        }} className="clipped-frame">
+          <AlertTriangle size={26} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <div className="font-cinzel" style={{
+              color: 'var(--accent-gold)',
+              fontSize: '0.85rem',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              letterSpacing: '2px',
+              marginBottom: '4px'
+            }}>
+              Advertencia
+            </div>
+            <div style={{ color: 'var(--text-parchment)', fontSize: '0.95rem', fontWeight: '500', lineHeight: '1.4' }}>
+              {globalAlert.message}
+            </div>
+          </div>
+          <button
+            onClick={() => setGlobalAlert(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontSize: '1.2rem',
+              padding: '0 5px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'color 0.2s'
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-gold)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 }

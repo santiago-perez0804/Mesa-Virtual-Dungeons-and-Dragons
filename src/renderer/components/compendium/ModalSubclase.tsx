@@ -12,17 +12,17 @@ export const SubclassModal = ({ formState, parentClass, socket }: any) => {
   const getValidSubclassLevels = (clsName: string, activeData: any) => {
     const name = clsName?.toLowerCase() || '';
     if (name.includes('guerrero') || name.includes('fighter')) return [3, 7, 10, 15, 18];
-    if (name.includes('p�caro') || name.includes('rogue')) return [3, 9, 13, 17];
+    if (name.includes('pícaro') || name.includes('rogue')) return [3, 9, 13, 17];
     if (name.includes('mago') || name.includes('wizard')) return [2, 6, 10, 14];
-    if (name.includes('cl�rigo') || name.includes('cleric')) return [1, 2, 6, 8, 17];
-    if (name.includes('palad�n') || name.includes('paladin')) return [3, 7, 15, 20];
+    if (name.includes('clérigo') || name.includes('cleric')) return [1, 2, 6, 8, 17];
+    if (name.includes('paladín') || name.includes('paladin')) return [3, 7, 15, 20];
     if (name.includes('bardo') || name.includes('bard')) return [3, 6, 14];
     if (name.includes('druida') || name.includes('druid')) return [2, 6, 10, 14];
     if (name.includes('monje') || name.includes('monk')) return [3, 6, 11, 17];
     if (name.includes('explorador') || name.includes('ranger')) return [3, 7, 11, 15];
     if (name.includes('hechicero') || name.includes('sorcerer')) return [1, 6, 14, 18];
     if (name.includes('warlock') || name.includes('brujo')) return [1, 6, 10, 14];
-    if (name.includes('b�rbaro') || name.includes('barbarian')) return [3, 6, 10, 14];
+    if (name.includes('bárbaro') || name.includes('barbarian')) return [3, 6, 10, 14];
     const first = activeData?.subclass_level || 3;
     return [first, first + 4, first + 7, first + 12].filter((l: number) => l <= 20);
   };

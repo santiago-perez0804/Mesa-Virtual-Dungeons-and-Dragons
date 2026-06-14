@@ -22,11 +22,10 @@ release/
 .env.local
 .env.development.local
 guia_aws_admin.md
+guia_migracion_dynamodb.md
 
 # Archivos de la base de datos local SQLite (¡Importante!)
-vtt_database.bd
 vtt_database.db
-*.bd
 *.db
 *.sqlite
 *.sqlite3
