@@ -230,6 +230,25 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
       });
   }, [compendium]);
 
+  const dbItems = useMemo(() => {
+    if (!compendium) return [];
+    return compendium
+      .filter((item: any) => item.type === 'item')
+      .map((item: any) => {
+        let parsedData: any = {};
+        try {
+          parsedData = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
+        } catch (e) {
+          parsedData = {};
+        }
+        return {
+          id: item.id,
+          name: item.name,
+          data: parsedData
+        };
+      });
+  }, [compendium]);
+
   const getCharacterBaseSpeed = (charRaceStr: string) => {
     if (!charRaceStr) return 6;
     const baseRace = charRaceStr.split('(')[0].trim();
@@ -3511,10 +3530,22 @@ Modificador de CON: ${getModStr(charStats.con)}.
 
                                               {/* Resultados del Compendio */}
                                               <div style={{ maxHeight: '180px', overflowY: 'auto', border: '1px solid var(--border-color)', background: 'var(--bg-base)' }}>
-                                                {compendium
-                                                  .filter((item: any) => item.type === 'item' && item.name.toLowerCase().includes(slotSearchQuery.toLowerCase()))
-                                                  .map((item: any) => {
-                                                    const itemData = item.data ? (typeof item.data === 'string' ? JSON.parse(item.data) : item.data) : {};
+                                                {(() => {
+                                                  const query = slotSearchQuery.toLowerCase().trim();
+                                                  const filtered = dbItems
+                                                    .filter((item: any) => item.name.toLowerCase().includes(query))
+                                                    .slice(0, 40); // Limit to maximum 40 items
+
+                                                  if (filtered.length === 0) {
+                                                    return (
+                                                      <div style={{ padding: '15px', color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.85rem', textAlign: 'center' }}>
+                                                        No se encontraron objetos en la base de datos...
+                                                      </div>
+                                                    );
+                                                  }
+
+                                                  return filtered.map((item: any) => {
+                                                    const itemData = item.data || {};
                                                     return (
                                                       <div
                                                         key={item.id}
@@ -3565,12 +3596,8 @@ Modificador de CON: ${getModStr(charStats.con)}.
                                                         <span>{item.name}</span>
                                                       </div>
                                                     );
-                                                  })}
-                                                {compendium.filter((item: any) => item.type === 'item' && item.name.toLowerCase().includes(slotSearchQuery.toLowerCase())).length === 0 && (
-                                                  <div style={{ padding: '15px', color: 'var(--text-secondary)', fontStyle: 'italic', fontSize: '0.85rem', textAlign: 'center' }}>
-                                                    No se encontraron objetos en la base de datos...
-                                                  </div>
-                                                )}
+                                                  });
+                                                })()}
                                               </div>
 
                                               {/* Botones de acción */}
