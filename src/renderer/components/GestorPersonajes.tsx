@@ -21,6 +21,42 @@ import { SkillModifierModal } from './personaje/SkillModifierModal';
 
 import { skillList, statDescriptions } from '../modules/personaje/personaje.constantes';
 
+const mapEnglishStatToSpanish = (engStat: string): string => {
+  const mapping: Record<string, string> = {
+    str: 'fue',
+    dex: 'dex',
+    con: 'con',
+    int: 'int',
+    wis: 'sab',
+    cha: 'car'
+  };
+  return mapping[engStat.toLowerCase()] || engStat.toLowerCase();
+};
+
+const mapSpanishNameToKey = (name: string): string => {
+  const mapping: Record<string, string> = {
+    'fuerza': 'fue',
+    'destreza': 'dex',
+    'constitución': 'con',
+    'constitucion': 'con',
+    'inteligencia': 'int',
+    'sabiduría': 'sab',
+    'sabiduria': 'sab',
+    'carisma': 'car'
+  };
+  return mapping[name.trim().toLowerCase()] || name.trim().toLowerCase();
+};
+
+const parseHitDie = (val: any): number => {
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') {
+    const cleaned = val.toLowerCase().replace('d', '').trim();
+    const num = parseInt(cleaned, 10);
+    if (!isNaN(num)) return num;
+  }
+  return 8;
+};
+
 export const CharacterManager = ({ socket, characters, compendium, userRole, triggerDiceRoll, isOverlay, forceOpenId, onCloseOverlay }: any) => {
   const dbClasses = useMemo(() => {
     if (!compendium) return [];
@@ -33,23 +69,29 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
         } catch (e) {
           parsedData = {};
         }
+
+        const rawSaves = parsedData.prof_saving_throws;
+        const mappedSaves = rawSaves
+          ? rawSaves.split(',').map((s: string) => mapSpanishNameToKey(s))
+          : (item.name === 'Bárbaro' ? ['fue', 'con'] :
+             item.name === 'Bardo' ? ['dex', 'car'] :
+             item.name === 'Clérigo' ? ['sab', 'car'] :
+             item.name === 'Druida' ? ['int', 'sab'] :
+             item.name === 'Guerrero' ? ['fue', 'con'] :
+             item.name === 'Monje' ? ['fue', 'dex'] :
+             item.name === 'Paladín' ? ['sab', 'car'] :
+             item.name === 'Explorador' ? ['fue', 'dex'] :
+             item.name === 'Pícaro' ? ['dex', 'int'] :
+             item.name === 'Hechicero' ? ['con', 'car'] :
+             item.name === 'Brujo' ? ['sab', 'car'] :
+             item.name === 'Mago' ? ['int', 'sab'] : ['fue', 'con']);
+
         return {
           id: item.name,
           name: item.name,
           description: parsedData.description || parsedData.desc || '',
-          hitDice: parsedData.hit_die || parsedData.hit_dice || 8,
-          savingThrows: item.name === 'Bárbaro' ? ['fue', 'con'] :
-                        item.name === 'Bardo' ? ['dex', 'car'] :
-                        item.name === 'Clérigo' ? ['sab', 'car'] :
-                        item.name === 'Druida' ? ['int', 'sab'] :
-                        item.name === 'Guerrero' ? ['fue', 'con'] :
-                        item.name === 'Monje' ? ['fue', 'dex'] :
-                        item.name === 'Paladín' ? ['sab', 'car'] :
-                        item.name === 'Explorador' ? ['fue', 'dex'] :
-                        item.name === 'Pícaro' ? ['dex', 'int'] :
-                        item.name === 'Hechicero' ? ['con', 'car'] :
-                        item.name === 'Brujo' ? ['sab', 'car'] :
-                        item.name === 'Mago' ? ['int', 'sab'] : ['fue', 'con']
+          hitDice: parseHitDie(parsedData.hit_die || parsedData.hit_dice || 8),
+          savingThrows: mappedSaves
         };
       });
   }, [compendium]);
@@ -91,7 +133,9 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
               if (Array.isArray(sData.ability_bonuses)) {
                 sData.ability_bonuses.forEach((b: any) => {
                   if (b.ability_score && b.ability_score.index) {
-                    subraceBonuses[b.ability_score.index] = b.bonus;
+                    const engKey = b.ability_score.index;
+                    const espKey = mapEnglishStatToSpanish(engKey);
+                    subraceBonuses[espKey] = b.bonus;
                   }
                 });
               }
@@ -110,7 +154,9 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
         if (Array.isArray(parsedData.ability_bonuses)) {
           parsedData.ability_bonuses.forEach((b: any) => {
             if (b.ability_score && b.ability_score.index) {
-              bonuses[b.ability_score.index] = b.bonus;
+              const engKey = b.ability_score.index;
+              const espKey = mapEnglishStatToSpanish(engKey);
+              bonuses[espKey] = b.bonus;
             }
           });
         }
