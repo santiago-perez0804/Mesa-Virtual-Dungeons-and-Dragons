@@ -767,7 +767,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
       {/* MODAL DE FORJA / EDICIÓN */}
       {isCreating && (
         <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, padding: '40px' }}>
-          <div style={{ position: 'relative', width: '100%', maxWidth: '1400px', height: '90vh', maxHeight: '90vh' }} onClick={e => e.stopPropagation()}>
+          <div style={{ position: 'relative', width: '100%', maxWidth: 'min(1200px, 80vw)', height: '90vh', maxHeight: '90vh' }} onClick={e => e.stopPropagation()}>
             <div style={{ ...styles.card, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', border: '2px solid var(--accent-gold)', padding: 0, overflow: 'hidden', position: 'relative' }} className="clipped-frame">
               <button onClick={() => resetForm()} style={{ position: 'absolute', top: '15px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '2.5rem', cursor: 'pointer', zIndex: 10 }}><X className="w-6 h-6 m-auto" /></button>
 
@@ -2132,6 +2132,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
             {creationStep > 1 && (
               <button
                 type="button"
+                className="creator-nav-btn-prev"
                 onClick={() => setCreationStep(creationStep - 1)}
                 style={{
                   position: 'absolute',
@@ -2172,6 +2173,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
 
             <button
               type="button"
+              className="creator-nav-btn-next"
               disabled={creationStep === 3 && hitDieValue === ''}
               onClick={() => {
                 if (creationStep === 3) {
