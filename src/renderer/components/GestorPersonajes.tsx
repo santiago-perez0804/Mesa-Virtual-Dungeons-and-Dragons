@@ -72,13 +72,39 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
           parsedData = {};
         }
         
-        const subr = (parsedData.subraces || []).map((s: any) => ({
-          id: s.name,
-          name: s.name,
-          description: s.desc || s.description || 'Sin descripción.',
-          bonuses: s.ability_bonuses || {},
-          bonusText: ''
-        }));
+        const subr = (parsedData.subraces || []).map((s: any) => {
+          const subraceCompendiumItem = compendium.find(
+            (cItem: any) => 
+              cItem.type === 'subrace' && 
+              (cItem.name.toLowerCase() === s.name.toLowerCase() || 
+               (typeof cItem.data === 'string' && JSON.parse(cItem.data).index === s.index))
+          );
+          let subraceDesc = 'Sin descripción.';
+          let subraceBonuses = {};
+          if (subraceCompendiumItem) {
+            let sData: any = {};
+            try {
+              sData = typeof subraceCompendiumItem.data === 'string' 
+                ? JSON.parse(subraceCompendiumItem.data) 
+                : subraceCompendiumItem.data;
+              subraceDesc = sData.desc || sData.description || 'Sin descripción.';
+              if (Array.isArray(sData.ability_bonuses)) {
+                sData.ability_bonuses.forEach((b: any) => {
+                  if (b.ability_score && b.ability_score.index) {
+                    subraceBonuses[b.ability_score.index] = b.bonus;
+                  }
+                });
+              }
+            } catch (e) {}
+          }
+          return {
+            id: s.name,
+            name: s.name,
+            description: subraceDesc,
+            bonuses: subraceBonuses,
+            bonusText: ''
+          };
+        });
 
         const bonuses: any = {};
         if (Array.isArray(parsedData.ability_bonuses)) {
@@ -496,6 +522,11 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
       const bonuses = dbRaceObj?.bonuses || {};
       Object.keys(bonuses).forEach((s: string) => {
         (finalStats as any)[s] += bonuses[s];
+      });
+      const subraceObj = dbRaceObj?.subraces?.find(sr => sr.id === subrace || sr.name === subrace);
+      const subraceBonuses = subraceObj?.bonuses || {};
+      Object.keys(subraceBonuses).forEach((s: string) => {
+        (finalStats as any)[s] += subraceBonuses[s];
       });
     }
 
@@ -1075,7 +1106,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                         {/* Descripción de Raza */}
                         {draft.race && (
                           <div style={{ fontSize: '0.85rem', color: 'var(--text-parchment)', opacity: 0.9, fontStyle: 'italic', padding: '12px 18px', background: 'rgba(200, 135, 42, 0.04)', borderLeft: '3px solid var(--accent-gold)', marginTop: '8px' }}>
-                            <strong>{draft.race}:</strong> {dbRaces.find(r => r.id === draft.race || r.name === draft.race)?.description}
+                            {dbRaces.find(r => r.id === draft.race || r.name === draft.race)?.description}
                           </div>
                         )}
                       </div>
@@ -1134,7 +1165,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                             {/* Descripción de Subraza */}
                             {draft.subrace && (
                               <div style={{ fontSize: '0.85rem', color: 'var(--text-parchment)', opacity: 0.9, fontStyle: 'italic', padding: '12px 18px', background: 'rgba(200, 135, 42, 0.04)', borderLeft: '3px solid var(--accent-gold)', marginTop: '8px' }}>
-                                <strong>{draft.subrace}:</strong> {selectedRaceObj.subraces.find(sr => sr.id === draft.subrace)?.description}
+                                {selectedRaceObj.subraces.find(sr => sr.id === draft.subrace)?.description}
                               </div>
                             )}
                           </div>
@@ -1352,7 +1383,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                             borderLeft: '2px solid var(--accent-gold)', 
                             lineHeight: '1.4'
                           }}>
-                            <strong>Inclinación de la raza ({selectedRaceObj.name}):</strong> {alignDesc}
+                            <strong>Inclinación de la raza:</strong> {alignDesc}
                           </div>
                         );
                       })()}
@@ -1618,7 +1649,9 @@ Modificador de CON: ${getModStr(charStats.con)}.
                         const baseRace = (draft.race || 'Humano').split('(')[0].trim();
                         const dbRaceObj = dbRaces.find(r => r.name === baseRace || r.id === baseRace);
                         const raceBonus = dbRaceObj?.bonuses?.[key] || 0;
-                        const total = value + raceBonus;
+                        const subraceObj = dbRaceObj?.subraces?.find(sr => sr.id === draft.subrace || sr.name === draft.subrace);
+                        const subraceBonus = subraceObj?.bonuses?.[key] || 0;
+                        const total = value + raceBonus + subraceBonus;
                         const mod = calcMod(total);
                         const modStr = mod >= 0 ? "+" + mod : "" + mod;
                         const modColor = mod > 0 ? 'var(--natural-green)' : mod < 0 ? 'var(--combat-red)' : 'var(--text-parchment)';
@@ -1739,7 +1772,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                                     {modStr}
                                   </div>
                                   <div style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>
-                                    Base: {value} {raceBonus > 0 ? "| +" + raceBonus + " Raza" : ""}
+                                    Base: {value} {raceBonus > 0 ? `| +${raceBonus} Raza` : ""} {subraceBonus > 0 ? `| +${subraceBonus} Subraza` : ""}
                                   </div>
                                 </div>
 
@@ -2201,11 +2234,11 @@ Modificador de CON: ${getModStr(charStats.con)}.
                         </h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem', color: 'var(--text-parchment)', lineHeight: '1.4' }}>
                           <div>
-                            <strong>{race}:</strong> {dbRaces.find(r => r.id === race || r.name === race)?.description} <span style={{ color: 'var(--accent-gold)' }}>({dbRaces.find(r => r.id === race || r.name === race)?.bonusText})</span>
+                            <strong>Descripción:</strong> {dbRaces.find(r => r.id === race || r.name === race)?.description} <span style={{ color: 'var(--accent-gold)' }}>({dbRaces.find(r => r.id === race || r.name === race)?.bonusText})</span>
                           </div>
                           {subrace && subrace !== 'Estándar' && (
                             <div>
-                              <strong>{subrace}:</strong> {dbRaces.find(r => r.id === race || r.name === race)?.subraces.find(sr => sr.id === subrace || sr.name === subrace)?.description}
+                              <strong>Subraza:</strong> {dbRaces.find(r => r.id === race || r.name === race)?.subraces.find(sr => sr.id === subrace || sr.name === subrace)?.description}
                             </div>
                           )}
                         </div>
