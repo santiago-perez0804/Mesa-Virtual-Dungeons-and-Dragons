@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import path from 'node:path';
 import fs from 'node:fs';
 import { fileURLToPath } from 'node:url';
+import bcrypt from 'bcryptjs';
 
 // 1. Configuración de rutas para ESM
 const __filename = fileURLToPath(import.meta.url);
@@ -29,19 +30,28 @@ export const initDB = () => {
 
   try { db.exec("ALTER TABLE users ADD COLUMN profile_image TEXT"); } catch (e) { /* Columna ya existe */ }
 
-  // Insertar administrador y DM por defecto si no existen
+  // Insertar administrador por defecto si no existe, hasheando contraseñas
   try {
     const adminCheck = db.prepare("SELECT count(*) as count FROM users WHERE username = 'admin'").get() as { count: number };
     if (adminCheck.count === 0) {
-      db.prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)").run('admin', 'admin', 'admin');
+      const hashedAdmin = bcrypt.hashSync('admin', 10);
+      db.prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)").run('admin', hashedAdmin, 'admin');
     }
 
-    const dmCheck = db.prepare("SELECT count(*) as count FROM users WHERE role = 'dm'").get() as { count: number };
-    if (dmCheck.count === 0) {
-      db.prepare("INSERT INTO users (username, password, role) VALUES (?, ?, ?)").run('Dungeon Master', 'dm', 'dm');
+    // Eliminar el Dungeon Master por defecto si existe
+    db.prepare("DELETE FROM users WHERE username = 'Dungeon Master' AND role = 'dm'").run();
+
+    // Migrar cualquier contraseña existente en texto plano a hash de bcrypt
+    const allUsers = db.prepare("SELECT id, password FROM users").all() as { id: number, password: string }[];
+    for (const u of allUsers) {
+      if (!u.password.startsWith('$2a$') && !u.password.startsWith('$2b$') && !u.password.startsWith('$2y$')) {
+        const hashed = bcrypt.hashSync(u.password, 10);
+        db.prepare("UPDATE users SET password = ? WHERE id = ?").run(hashed, u.id);
+        console.log(`🔒 Contraseña del usuario ID ${u.id} migrada a bcrypt.`);
+      }
     }
   } catch (e) {
-    console.error("Error al crear cuentas por defecto:", e);
+    console.error("Error al crear o migrar cuentas de usuario:", e);
   }
 
   // Gestión de Campañas
@@ -53,6 +63,8 @@ export const initDB = () => {
       image TEXT,
       active_heroes TEXT, -- JSON array of character IDs
       is_ai_dm BOOLEAN DEFAULT 0,
+      is_active BOOLEAN DEFAULT 0,
+      owner TEXT,
       created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
   `);
@@ -62,6 +74,7 @@ export const initDB = () => {
   try { db.exec("ALTER TABLE campaigns ADD COLUMN active_heroes TEXT"); } catch (e) { /* Columna ya existe */ }
   try { db.exec("ALTER TABLE campaigns ADD COLUMN is_ai_dm BOOLEAN DEFAULT 0"); } catch (e) { /* Columna ya existe */ }
   try { db.exec("ALTER TABLE campaigns ADD COLUMN is_active BOOLEAN DEFAULT 0"); } catch (e) { /* Columna ya existe */ }
+  try { db.exec("ALTER TABLE campaigns ADD COLUMN owner TEXT"); } catch (e) { /* Columna ya existe */ }
 
   // Diario de Campañas
   db.exec(`

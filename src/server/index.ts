@@ -8,6 +8,10 @@ import { initAI, startAISession, sendChatMessageToAI, sendDiceRollToAI, endAISes
 import { initImageAI, generateItemImage } from './ia-imagen.js';
 import multer from 'multer';
 import { uploadToS3 } from './services/servicioS3.js';
+import bcrypt from 'bcryptjs';
+import jwt from 'jsonwebtoken';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'dnd-vtt-secret-key-fallback-2026';
 
 // Helpers de Parseo Seguro de JSON para prevenir double-serialization o spreads corruptos
 function safeParseJSON(field: any, defaultVal: any): any {
@@ -79,19 +83,58 @@ function safeParseStats(statsField: any): any {
   };
 }
 
-// Estado volátil del tablero: se sincroniza en tiempo real entre todos los clientes[cite: 1]
-let boardTokens: any[] = [];
-let currentGridBg: string = '';
-let solidCells: string[] = []; // Track solid grid cells
-let isNightMode: boolean = false; // Track day/night mode
+function getSocketRole(socket: any): string {
+  if (socket.data.role === 'admin') return 'admin';
+  try {
+    const campaignId = socket.data.campaignId;
+    if (campaignId) {
+      const campaign = db.prepare("SELECT owner FROM campaigns WHERE id = ?").get(campaignId) as { owner: string | null } | undefined;
+      if (campaign && campaign.owner === socket.data.userName) {
+        return 'dm';
+      }
+    } else {
+      const activeCampaign = db.prepare("SELECT owner FROM campaigns WHERE is_active = 1").get() as { owner: string | null } | undefined;
+      if (activeCampaign && activeCampaign.owner === socket.data.userName) {
+        return 'dm';
+      }
+    }
+  } catch (e) {
+    console.error("Error al obtener rol dinámico de socket:", e);
+  }
+  return 'player';
+}
 
-// Estado del combate: Iniciativas y turnos
-let combatState = {
-  turnModeActive: false,
-  initiativeOrder: [] as { tokenId: string; value: number }[],
-  currentTurnIndex: 0
-};
+// Estado volátil del tablero por salas de campaña
+interface RoomBoardState {
+  boardTokens: any[];
+  currentGridBg: string;
+  solidCells: string[];
+  isNightMode: boolean;
+  combatState: {
+    turnModeActive: boolean;
+    initiativeOrder: { tokenId: string; value: number }[];
+    currentTurnIndex: number;
+  };
+}
 
+const roomBoards: Record<number, RoomBoardState> = {};
+
+function getRoomBoardState(campaignId: number): RoomBoardState {
+  if (!roomBoards[campaignId]) {
+    roomBoards[campaignId] = {
+      boardTokens: [],
+      currentGridBg: '',
+      solidCells: [],
+      isNightMode: false,
+      combatState: {
+        turnModeActive: false,
+        initiativeOrder: [],
+        currentTurnIndex: 0
+      }
+    };
+  }
+  return roomBoards[campaignId];
+}
 
 const app = express();
 app.use(express.json());
@@ -435,39 +478,64 @@ export const startServer = async () => {
     console.log('⚡ Conexión establecida:', socket.id);
 
     // AUTENTICACIÓN
-    socket.on('auth:get_profiles', () => {
-      const profiles = db.prepare("SELECT id, username, role, profile_image FROM users").all();
-      socket.emit('auth:profiles_list', profiles);
-    });
-
     socket.on('auth:login', ({ username, password }) => {
-      const user: any = db.prepare("SELECT id, username, role, profile_image FROM users WHERE username = ? AND password = ?").get(username, password);
-      if (user) {
-        socket.data.userId = user.id;
-        socket.data.userName = user.username;
-        socket.data.role = user.role;
-        socket.emit('auth:success', user);
-        console.log(`👤 ${user.username} entró como ${user.role}`);
+      try {
+        const user: any = db.prepare("SELECT id, username, password, role, profile_image FROM users WHERE username = ?").get(username);
+        if (user && bcrypt.compareSync(password, user.password)) {
+          socket.data.userId = user.id;
+          socket.data.userName = user.username;
+          socket.data.role = user.role;
 
-        // Enviar datos necesarios para arrancar la interfaz
-        sendCharactersToSocket(socket);
-        const monsters = db.prepare("SELECT * FROM content_items WHERE type = 'monster'").all();
-        socket.emit('monsters:list', monsters);
-        socket.emit('token:board-list', boardTokens);
-        if (currentGridBg) socket.emit('grid:bg-update', currentGridBg);
-        socket.emit('grid:solid-update', solidCells);
-        socket.emit('grid:night-update', isNightMode);
-        socket.emit('combat:state-update', combatState);
+          const token = jwt.sign(
+            { userId: user.id, username: user.username, role: user.role },
+            JWT_SECRET,
+            { expiresIn: '7d' }
+          );
 
-      } else {
-        socket.emit('auth:error', 'Usuario o contraseña incorrectos.');
+          const safeUser = { id: user.id, username: user.username, role: user.role, profile_image: user.profile_image };
+          socket.emit('auth:success', { user: safeUser, token });
+          console.log(`👤 ${user.username} entró como ${user.role} (JWT generado)`);
+
+          // Enviar datos necesarios para arrancar la interfaz
+          sendCharactersToSocket(socket);
+          const monsters = db.prepare("SELECT * FROM content_items WHERE type = 'monster'").all();
+          socket.emit('monsters:list', monsters);
+        } else {
+          socket.emit('auth:error', 'Usuario o contraseña incorrectos.');
+        }
+      } catch (e) {
+        console.error(e);
+        socket.emit('auth:error', 'Error interno en el servidor.');
       }
     });
 
     socket.on('auth:register', ({ username, password, role, profile_image }) => {
       try {
-        db.prepare("INSERT INTO users (username, password, role, profile_image) VALUES (?, ?, ?, ?)").run(username, password, role, profile_image || null);
-        socket.emit('auth:register_success', 'Usuario creado exitosamente. Por favor, inicia sesión.');
+        const hashedPassword = bcrypt.hashSync(password, 10);
+        const result = db.prepare("INSERT INTO users (username, password, role, profile_image) VALUES (?, ?, ?, ?)")
+          .run(username, hashedPassword, role || 'player', profile_image || null);
+
+        const newUserId = result.lastInsertRowid;
+        const token = jwt.sign(
+          { userId: newUserId, username, role: role || 'player' },
+          JWT_SECRET,
+          { expiresIn: '7d' }
+        );
+
+        const safeUser = { id: newUserId, username, role: role || 'player', profile_image: profile_image || null };
+
+        socket.data.userId = newUserId;
+        socket.data.userName = username;
+        socket.data.role = role || 'player';
+
+        socket.emit('auth:register_success', 'Usuario creado exitosamente.');
+        socket.emit('auth:success', { user: safeUser, token });
+        console.log(`👤 Nuevo aventurero registrado: ${username} como ${role || 'player'}`);
+
+        // Enviar datos necesarios para arrancar la interfaz
+        sendCharactersToSocket(socket);
+        const monsters = db.prepare("SELECT * FROM content_items WHERE type = 'monster'").all();
+        socket.emit('monsters:list', monsters);
       } catch (e: any) {
         if (e.message.includes('UNIQUE constraint failed')) {
           socket.emit('auth:error', 'Ese nombre de usuario ya existe.');
@@ -477,15 +545,81 @@ export const startServer = async () => {
       }
     });
 
+    socket.on('auth:token_login', ({ token }) => {
+      try {
+        if (!token) {
+          socket.emit('auth:token_invalid');
+          return;
+        }
+        const decoded = jwt.verify(token, JWT_SECRET) as any;
+        const user: any = db.prepare("SELECT id, username, role, profile_image FROM users WHERE id = ?").get(decoded.userId);
+
+        if (user) {
+          socket.data.userId = user.id;
+          socket.data.userName = user.username;
+          socket.data.role = user.role;
+
+          socket.emit('auth:success', { user, token });
+          console.log(`👤 Re-autenticación automática exitosa para: ${user.username}`);
+
+          // Enviar datos necesarios para arrancar la interfaz
+          sendCharactersToSocket(socket);
+          const monsters = db.prepare("SELECT * FROM content_items WHERE type = 'monster'").all();
+          socket.emit('monsters:list', monsters);
+        } else {
+          socket.emit('auth:token_invalid');
+        }
+      } catch (e) {
+        socket.emit('auth:token_invalid');
+      }
+    });
+
     socket.on('auth:update_profile', ({ profile_image }) => {
       if (socket.data.userId) {
         try {
           db.prepare("UPDATE users SET profile_image = ? WHERE id = ?").run(profile_image, socket.data.userId);
           const user: any = db.prepare("SELECT id, username, role, profile_image FROM users WHERE id = ?").get(socket.data.userId);
-          socket.emit('auth:success', user); // Actualizamos el estado local del cliente
+          socket.emit('auth:success', { user }); // Actualizamos el estado local del cliente
         } catch (e) {
           socket.emit('auth:error', 'Error al actualizar perfil.');
         }
+      }
+    });
+
+    // GESTIÓN DE SALAS (ROOMS)
+    socket.on('room:join', ({ campaignId }) => {
+      const id = Number(campaignId);
+      if (isNaN(id)) return;
+
+      const oldRoomId = socket.data.campaignId;
+      if (oldRoomId) {
+        socket.leave(`campaign-${oldRoomId}`);
+        console.log(`🚪 Socket ${socket.id} (${socket.data.userName}) salió de la sala campaña-${oldRoomId}`);
+      }
+
+      socket.join(`campaign-${id}`);
+      socket.data.campaignId = id;
+      console.log(`🔑 Socket ${socket.id} (${socket.data.userName}) se unió a la sala campaña-${id}`);
+
+      // Enviar el estado del tablero específico de esa sala
+      const boardState = getRoomBoardState(id);
+      socket.emit('token:board-list', boardState.boardTokens);
+      socket.emit('grid:bg-update', boardState.currentGridBg);
+      socket.emit('grid:solid-update', boardState.solidCells);
+      socket.emit('grid:night-update', boardState.isNightMode);
+      socket.emit('combat:state-update', boardState.combatState);
+
+      // Sincronizar personajes según su rol dinámico en la nueva campaña activa
+      sendCharactersToSocket(socket);
+    });
+
+    socket.on('room:leave', () => {
+      const roomId = socket.data.campaignId;
+      if (roomId) {
+        socket.leave(`campaign-${roomId}`);
+        socket.data.campaignId = null;
+        console.log(`🚪 Socket ${socket.id} (${socket.data.userName}) salió de la sala campaña-${roomId}`);
+        sendCharactersToSocket(socket);
       }
     });
 
@@ -500,7 +634,11 @@ export const startServer = async () => {
     socket.on('admin:update_user', ({ id, username, password, role }) => {
       if (socket.data.role === 'admin') {
         try {
-          db.prepare("UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?").run(username, password, role, id);
+          let finalPassword = password;
+          if (password && !password.startsWith('$2a$') && !password.startsWith('$2b$') && !password.startsWith('$2y$')) {
+            finalPassword = bcrypt.hashSync(password, 10);
+          }
+          db.prepare("UPDATE users SET username = ?, password = ?, role = ? WHERE id = ?").run(username, finalPassword, role, id);
           const users = db.prepare("SELECT id, username, password, role FROM users").all();
           socket.emit('admin:users_list', users);
         } catch (e) {
@@ -529,7 +667,8 @@ export const startServer = async () => {
     });
 
     socket.on('content:create', async (payload) => {
-      if (socket.data.role === 'admin' || socket.data.role === 'dm') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'admin' || currentRole === 'dm') {
         const { name, type, data, source } = payload;
         const result = db.prepare("INSERT INTO content_items (name, type, data, source) VALUES (?, ?, ?, ?)")
           .run(name, type, JSON.stringify(data), source || 'homebrew');
@@ -569,7 +708,8 @@ export const startServer = async () => {
     });
 
     socket.on('content:update', (payload) => {
-      if (socket.data.role === 'admin' || socket.data.role === 'dm') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'admin' || currentRole === 'dm') {
         const { id, name, type, data } = payload;
         updateCompendiumItem(id, name, type, data);
 
@@ -583,7 +723,8 @@ export const startServer = async () => {
     });
 
     socket.on('content:delete', (id) => {
-      if (socket.data.role === 'admin' || socket.data.role === 'dm') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'admin' || currentRole === 'dm') {
         db.prepare("DELETE FROM content_items WHERE id = ?").run(id);
         const allContent = db.prepare("SELECT * FROM content_items").all();
         io.emit('content:list', allContent);
@@ -592,7 +733,11 @@ export const startServer = async () => {
 
     // MOTOR DE TOKENS (GRID)[cite: 1]
     socket.on('token:spawn', (data) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+      const roomId = socket.data.campaignId;
+      if (!roomId) return;
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
+        const boardState = getRoomBoardState(roomId);
         const newToken = {
           instanceId: `${data.type}-${data.id}-${Date.now()}`,
           originalId: data.id,
@@ -613,127 +758,172 @@ export const startServer = async () => {
           rotation: data.rotation || 0,
           teamColor: data.teamColor || null,
         };
-        boardTokens.push(newToken);
-        io.emit('token:board-list', boardTokens);
+        boardState.boardTokens.push(newToken);
+        io.to(`campaign-${roomId}`).emit('token:board-list', boardState.boardTokens);
       }
     });
 
     socket.on('token:update-chest', (data: { tokenId: string; chestData: any; name?: string }) => {
-      const token = boardTokens.find(t => t.instanceId === data.tokenId);
+      const roomId = socket.data.campaignId;
+      if (!roomId) return;
+      const boardState = getRoomBoardState(roomId);
+      const token = boardState.boardTokens.find(t => t.instanceId === data.tokenId);
       if (token && token.type === 'chest') {
         token.chestData = { ...token.chestData, ...data.chestData };
         if (data.name) {
           token.name = data.name;
         }
-        io.emit('token:board-list', boardTokens);
+        io.to(`campaign-${roomId}`).emit('token:board-list', boardState.boardTokens);
       }
     });
 
     socket.on('token:update-aoe', (data: { tokenId: string; aoeData: any }) => {
-      const token = boardTokens.find(t => t.instanceId === data.tokenId);
+      const roomId = socket.data.campaignId;
+      if (!roomId) return;
+      const boardState = getRoomBoardState(roomId);
+      const token = boardState.boardTokens.find(t => t.instanceId === data.tokenId);
       if (token && token.type === 'aoe') {
         token.aoeData = { ...token.aoeData, ...data.aoeData };
-        io.emit('token:board-list', boardTokens);
+        io.to(`campaign-${roomId}`).emit('token:board-list', boardState.boardTokens);
       }
     });
 
     socket.on('token:move', (moveData) => {
-      const token = boardTokens.find(t => t.instanceId === moveData.tokenId);
+      const roomId = socket.data.campaignId;
+      if (!roomId) return;
+      const boardState = getRoomBoardState(roomId);
+      const token = boardState.boardTokens.find(t => t.instanceId === moveData.tokenId);
       if (token) {
         token.x = moveData.x;
         token.y = moveData.y;
-        io.emit('token:board-list', boardTokens); // Sync de posición global[cite: 1]
+        io.to(`campaign-${roomId}`).emit('token:board-list', boardState.boardTokens); // Sync de posición en sala
       }
     });
 
     socket.on('token:update-hp', (data: { tokenId: string; amount: number }) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
-        const token = boardTokens.find(t => t.instanceId === data.tokenId);
+      const roomId = socket.data.campaignId;
+      if (!roomId) return;
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
+        const boardState = getRoomBoardState(roomId);
+        const token = boardState.boardTokens.find(t => t.instanceId === data.tokenId);
         if (token) {
           token.hp = Math.max(0, Math.min(token.hp + data.amount, token.max_hp));
-          io.emit('token:board-list', boardTokens);
+          io.to(`campaign-${roomId}`).emit('token:board-list', boardState.boardTokens);
         }
       }
     });
 
     socket.on('token:update-combat-state', (data: { tokenId: string; hp?: number; max_hp?: number; tempHp?: number; condition?: string | null }) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
-        const token = boardTokens.find(t => t.instanceId === data.tokenId);
+      const roomId = socket.data.campaignId;
+      if (!roomId) return;
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
+        const boardState = getRoomBoardState(roomId);
+        const token = boardState.boardTokens.find(t => t.instanceId === data.tokenId);
         if (token) {
           if (data.hp !== undefined) token.hp = data.hp;
           if (data.max_hp !== undefined) token.max_hp = data.max_hp;
           if (data.tempHp !== undefined) token.tempHp = data.tempHp;
           if (data.condition !== undefined) token.condition = data.condition;
-          io.emit('token:board-list', boardTokens);
+          io.to(`campaign-${roomId}`).emit('token:board-list', boardState.boardTokens);
         }
       }
     });
 
     socket.on('token:update-team', (data: { tokenId: string; color: string | null }) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
-        const token = boardTokens.find(t => t.instanceId === data.tokenId);
+      const roomId = socket.data.campaignId;
+      if (!roomId) return;
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
+        const boardState = getRoomBoardState(roomId);
+        const token = boardState.boardTokens.find(t => t.instanceId === data.tokenId);
         if (token) {
           token.teamColor = data.color;
-          io.emit('token:board-list', boardTokens);
+          io.to(`campaign-${roomId}`).emit('token:board-list', boardState.boardTokens);
         }
       }
     });
 
     socket.on('token:remove', (instanceId) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
-        boardTokens = boardTokens.filter(t => t.instanceId !== instanceId);
-        io.emit('token:board-list', boardTokens);
+      const roomId = socket.data.campaignId;
+      if (!roomId) return;
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
+        const boardState = getRoomBoardState(roomId);
+        boardState.boardTokens = boardState.boardTokens.filter(t => t.instanceId !== instanceId);
+        io.to(`campaign-${roomId}`).emit('token:board-list', boardState.boardTokens);
       }
     });
 
     socket.on('grid:set-bg', (imageUrl: string) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
-        currentGridBg = imageUrl;
-        io.emit('grid:bg-update', imageUrl); // Cambia el mapa para todos los jugadores
+      const roomId = socket.data.campaignId;
+      if (!roomId) return;
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
+        const boardState = getRoomBoardState(roomId);
+        boardState.currentGridBg = imageUrl;
+        io.to(`campaign-${roomId}`).emit('grid:bg-update', imageUrl); // Cambia el mapa para todos los jugadores en la sala
       }
     });
 
     socket.on('grid:update-solid', (cells: string[]) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
-        solidCells = cells;
-        io.emit('grid:solid-update', solidCells);
+      const roomId = socket.data.campaignId;
+      if (!roomId) return;
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
+        const boardState = getRoomBoardState(roomId);
+        boardState.solidCells = cells;
+        io.to(`campaign-${roomId}`).emit('grid:solid-update', boardState.solidCells);
       }
     });
 
     socket.on('grid:set-night', (isNight: boolean) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
-        isNightMode = isNight;
-        io.emit('grid:night-update', isNightMode);
+      const roomId = socket.data.campaignId;
+      if (!roomId) return;
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
+        const boardState = getRoomBoardState(roomId);
+        boardState.isNightMode = isNight;
+        io.to(`campaign-${roomId}`).emit('grid:night-update', boardState.isNightMode);
       }
     });
 
     socket.on('board:clear', () => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
-        boardTokens = [];
-        currentGridBg = '';
-        solidCells = [];
-        isNightMode = false;
-        io.emit('token:board-list', boardTokens);
-        io.emit('grid:bg-update', '');
-        io.emit('grid:solid-update', []);
-        io.emit('grid:night-update', false);
-        combatState = { turnModeActive: false, initiativeOrder: [], currentTurnIndex: 0 };
-        io.emit('combat:state-update', combatState);
+      const roomId = socket.data.campaignId;
+      if (!roomId) return;
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
+        const boardState = getRoomBoardState(roomId);
+        boardState.boardTokens = [];
+        boardState.currentGridBg = '';
+        boardState.solidCells = [];
+        boardState.isNightMode = false;
+        boardState.combatState = { turnModeActive: false, initiativeOrder: [], currentTurnIndex: 0 };
+        
+        io.to(`campaign-${roomId}`).emit('token:board-list', boardState.boardTokens);
+        io.to(`campaign-${roomId}`).emit('grid:bg-update', '');
+        io.to(`campaign-${roomId}`).emit('grid:solid-update', []);
+        io.to(`campaign-${roomId}`).emit('grid:night-update', false);
+        io.to(`campaign-${roomId}`).emit('combat:state-update', boardState.combatState);
       }
     });
 
     // --- EVENTOS DE COMBATE Y TURNOS ---
     socket.on('combat:roll-initiative', (data: { tokenId: string; value: number }) => {
+      const roomId = socket.data.campaignId;
+      if (!roomId) return;
+      const boardState = getRoomBoardState(roomId);
       // Remover si ya existe
-      combatState.initiativeOrder = combatState.initiativeOrder.filter(i => i.tokenId !== data.tokenId);
+      boardState.combatState.initiativeOrder = boardState.combatState.initiativeOrder.filter(i => i.tokenId !== data.tokenId);
       // Agregar y ordenar descendente
-      combatState.initiativeOrder.push(data);
-      combatState.initiativeOrder.sort((a, b) => b.value - a.value);
-      io.emit('combat:state-update', combatState);
+      boardState.combatState.initiativeOrder.push(data);
+      boardState.combatState.initiativeOrder.sort((a, b) => b.value - a.value);
+      io.to(`campaign-${roomId}`).emit('combat:state-update', boardState.combatState);
       
-      const token = boardTokens.find(t => t.instanceId === data.tokenId);
+      const token = boardState.boardTokens.find(t => t.instanceId === data.tokenId);
       if (token) {
-        io.emit('chat:send', {
+        io.to(`campaign-${roomId}`).emit('chat:message', {
           id: Date.now() + Math.random(),
           sender: 'Sistema',
           to: 'all',
@@ -745,21 +935,29 @@ export const startServer = async () => {
     });
 
     socket.on('combat:reorder-initiative', (newOrder: { tokenId: string; value: number }[]) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
-        combatState.initiativeOrder = newOrder;
-        io.emit('combat:state-update', combatState);
+      const roomId = socket.data.campaignId;
+      if (!roomId) return;
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
+        const boardState = getRoomBoardState(roomId);
+        boardState.combatState.initiativeOrder = newOrder;
+        io.to(`campaign-${roomId}`).emit('combat:state-update', boardState.combatState);
       }
     });
 
     socket.on('combat:toggle-turn-mode', (isActive: boolean) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
-        combatState.turnModeActive = isActive;
+      const roomId = socket.data.campaignId;
+      if (!roomId) return;
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
+        const boardState = getRoomBoardState(roomId);
+        boardState.combatState.turnModeActive = isActive;
         if (!isActive) {
-          combatState.currentTurnIndex = 0;
+          boardState.combatState.currentTurnIndex = 0;
         }
-        io.emit('combat:state-update', combatState);
+        io.to(`campaign-${roomId}`).emit('combat:state-update', boardState.combatState);
         
-        io.emit('chat:send', {
+        io.to(`campaign-${roomId}`).emit('chat:message', {
           id: Date.now() + Math.random(),
           sender: 'Sistema',
           to: 'all',
@@ -771,24 +969,32 @@ export const startServer = async () => {
     });
 
     socket.on('combat:next-turn', () => {
-      // The DM or the player whose turn it is can pass the turn
-      // We will trust the client validation for now, or we can check here.
-      if (combatState.turnModeActive && combatState.initiativeOrder.length > 0) {
-        combatState.currentTurnIndex = (combatState.currentTurnIndex + 1) % combatState.initiativeOrder.length;
-        io.emit('combat:state-update', combatState);
+      const roomId = socket.data.campaignId;
+      if (!roomId) return;
+      const boardState = getRoomBoardState(roomId);
+      if (boardState.combatState.turnModeActive && boardState.combatState.initiativeOrder.length > 0) {
+        boardState.combatState.currentTurnIndex = (boardState.combatState.currentTurnIndex + 1) % boardState.combatState.initiativeOrder.length;
+        io.to(`campaign-${roomId}`).emit('combat:state-update', boardState.combatState);
       }
     });
 
     socket.on('combat:reset', () => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
-        combatState = { turnModeActive: false, initiativeOrder: [], currentTurnIndex: 0 };
-        io.emit('combat:state-update', combatState);
+      const roomId = socket.data.campaignId;
+      if (!roomId) return;
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
+        const boardState = getRoomBoardState(roomId);
+        boardState.combatState = { turnModeActive: false, initiativeOrder: [], currentTurnIndex: 0 };
+        io.to(`campaign-${roomId}`).emit('combat:state-update', boardState.combatState);
       }
     });
 
     socket.on('combat:request-save', (data: { targetName: string; stat: string; statKey: string; dc: number }) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
-        io.emit('combat:save-notification', data);
+      const roomId = socket.data.campaignId;
+      if (!roomId) return;
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin') {
+        io.to(`campaign-${roomId}`).emit('combat:save-notification', data);
       }
     });
 
@@ -820,7 +1026,9 @@ export const startServer = async () => {
     });
 
     socket.on('character:delete', (id: number) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin') {
+      const currentRole = getSocketRole(socket);
+      const character = db.prepare("SELECT owner FROM characters WHERE id = ?").get(id) as { owner: string } | undefined;
+      if (character && (character.owner === socket.data.userName || currentRole === 'dm' || currentRole === 'admin')) {
         db.prepare('DELETE FROM characters WHERE id = ?').run(id);
         refreshAllCharacters();
       }
@@ -828,6 +1036,8 @@ export const startServer = async () => {
 
     // ACCIONES DE JUEGO[cite: 1]
     socket.on('dice:roll', async (data: { die: number; to?: string }) => {
+      const roomId = socket.data.campaignId;
+      if (!roomId) return;
       const roll = Math.floor(Math.random() * data.die) + 1;
       const resultObj = {
         user: socket.data.userName,
@@ -836,26 +1046,28 @@ export const startServer = async () => {
         to: data.to || 'all',
         timestamp: Date.now()
       };
-      io.emit('dice:result', resultObj);
+      io.to(`campaign-${roomId}`).emit('dice:result', resultObj);
 
-      // Notificar a la IA si hay una sesión activa
-      if (activeAiCampaignId !== null && isAISessionActive(activeAiCampaignId)) {
-        const aiResponse = await sendDiceRollToAI(activeAiCampaignId, socket.data.userName, roll, `d${data.die}`);
+      // Notificar a la IA si hay una sesión activa en esta campaña
+      if (isAISessionActive(roomId)) {
+        const aiResponse = await sendDiceRollToAI(roomId, socket.data.userName, roll, `d${data.die}`);
         if (aiResponse) {
-          io.emit('chat:message', { sender: 'DM IA', text: aiResponse, timestamp: Date.now(), isAI: true });
+          io.to(`campaign-${roomId}`).emit('chat:message', { sender: 'DM IA', text: aiResponse, timestamp: Date.now(), isAI: true });
         }
       }
     });
 
     // CHAT DEL GRUPO
     socket.on('chat:send', async (msg) => {
-      io.emit('chat:message', msg);
+      const roomId = socket.data.campaignId;
+      if (!roomId) return;
+      io.to(`campaign-${roomId}`).emit('chat:message', msg);
       
-      // Notificar a la IA si hay una sesión activa
-      if (activeAiCampaignId !== null && isAISessionActive(activeAiCampaignId) && msg.sender !== 'DM IA') {
-        const aiResponse = await sendChatMessageToAI(activeAiCampaignId, msg.sender, msg.text);
+      // Notificar a la IA si hay una sesión activa en esta campaña
+      if (isAISessionActive(roomId) && msg.sender !== 'DM IA') {
+        const aiResponse = await sendChatMessageToAI(roomId, msg.sender, msg.text);
         if (aiResponse) {
-          io.emit('chat:message', { sender: 'DM IA', text: aiResponse, timestamp: Date.now(), isAI: true });
+          io.to(`campaign-${roomId}`).emit('chat:message', { sender: 'DM IA', text: aiResponse, timestamp: Date.now(), isAI: true });
         }
       }
     });
@@ -867,44 +1079,64 @@ export const startServer = async () => {
     });
 
     socket.on('campaign:create', (data: any) => {
-      if (socket.data.role === 'dm') {
+      console.log(`[Campaign Create] Solicitando creación. Datos:`, data, `Usuario: ${socket.data.userName}`);
+      if (socket.data.userName) {
         const { name, description, image, active_heroes, is_ai_dm } = data;
-        db.prepare('INSERT INTO campaigns (name, description, image, active_heroes, is_ai_dm) VALUES (?, ?, ?, ?, ?)')
-          .run(name, description || null, image || null, JSON.stringify(active_heroes || []), is_ai_dm ? 1 : 0);
+        db.prepare('INSERT INTO campaigns (name, description, image, active_heroes, is_ai_dm, owner) VALUES (?, ?, ?, ?, ?, ?)')
+          .run(name, description || null, image || null, JSON.stringify(active_heroes || []), is_ai_dm ? 1 : 0, socket.data.userName);
+        console.log(`[Campaign Create] Campaña creada con éxito.`);
         const allCampaigns = db.prepare("SELECT * FROM campaigns").all();
         io.emit('campaign:list', allCampaigns);
+      } else {
+        console.log(`[Campaign Create] Rechazado: socket.data.userName no está definido.`);
       }
     });
 
     socket.on('campaign:update', (data: any) => {
-      if (socket.data.role === 'dm') {
-        const { id, name, description, image, active_heroes, is_ai_dm } = data;
-        db.prepare('UPDATE campaigns SET name = ?, description = ?, image = ?, active_heroes = ?, is_ai_dm = ? WHERE id = ?')
-          .run(name, description || null, image || null, JSON.stringify(active_heroes || []), is_ai_dm ? 1 : 0, id);
+      const { id, name, description, image, active_heroes, is_ai_dm } = data;
+      const campaign = db.prepare("SELECT owner FROM campaigns WHERE id = ?").get(id) as { owner: string | null } | undefined;
+      if (campaign && (campaign.owner === socket.data.userName || !campaign.owner || socket.data.role === 'admin')) {
+        const finalOwner = campaign.owner || socket.data.userName;
+        db.prepare('UPDATE campaigns SET name = ?, description = ?, image = ?, active_heroes = ?, is_ai_dm = ?, owner = ? WHERE id = ?')
+          .run(name, description || null, image || null, JSON.stringify(active_heroes || []), is_ai_dm ? 1 : 0, finalOwner, id);
         const allCampaigns = db.prepare("SELECT * FROM campaigns").all();
         io.emit('campaign:list', allCampaigns);
       }
     });
 
     socket.on('campaign:set_active', (id: number) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'admin' || socket.data.role === 'player') {
+      console.log(`[Campaign Set Active] ID solicitado: ${id}. Usuario: ${socket.data.userName}, role: ${socket.data.role}`);
+      const campaign = db.prepare("SELECT * FROM campaigns WHERE id = ?").get(id) as any;
+      console.log(`[Campaign Set Active] Campaña encontrada en DB:`, campaign);
+      if (campaign && (campaign.owner === socket.data.userName || !campaign.owner || socket.data.role === 'admin')) {
+        console.log(`[Campaign Set Active] Validación exitosa.`);
+        if (!campaign.owner) {
+          console.log(`[Campaign Set Active] Campaña heredada/adoptada por: ${socket.data.userName}`);
+          db.prepare('UPDATE campaigns SET owner = ? WHERE id = ?').run(socket.data.userName, id);
+        }
         db.prepare('UPDATE campaigns SET is_active = 0').run();
         db.prepare('UPDATE campaigns SET is_active = 1 WHERE id = ?').run(id);
         const allCampaigns = db.prepare("SELECT * FROM campaigns").all();
         io.emit('campaign:list', allCampaigns);
 
         // Auto-login AI si la campaña lo tiene
-        const campaign: any = db.prepare("SELECT * FROM campaigns WHERE id = ?").get(id);
-        if (campaign && campaign.is_ai_dm) {
+        const fullCampaign: any = db.prepare("SELECT * FROM campaigns WHERE id = ?").get(id);
+        if (fullCampaign && fullCampaign.is_ai_dm) {
           handleStartAiSession(id);
-        } else if (activeAiCampaignId !== null) {
-          handleEndAiSession(activeAiCampaignId);
+        } else {
+          handleEndAiSession(id);
         }
+
+        // Re-sincronizar personajes de todos los usuarios según su rol dinámico en la nueva campaña activa
+        refreshAllCharacters();
+      } else {
+        console.log(`[Campaign Set Active] Validación rechazada. Owner en DB: ${campaign?.owner}, Solicitante: ${socket.data.userName}`);
       }
     });
 
     socket.on('campaign:delete', (id: number) => {
-      if (socket.data.role === 'dm') {
+      const campaign = db.prepare("SELECT owner FROM campaigns WHERE id = ?").get(id) as { owner: string | null } | undefined;
+      if (campaign && (campaign.owner === socket.data.userName || !campaign.owner || socket.data.role === 'admin')) {
         db.prepare('DELETE FROM campaigns WHERE id = ?').run(id);
         db.prepare('DELETE FROM campaign_diary WHERE campaign_id = ?').run(id);
         const allCampaigns = db.prepare("SELECT * FROM campaigns").all();
@@ -930,12 +1162,11 @@ export const startServer = async () => {
     function handleStartAiSession(campaignId: number) {
       const campaign: any = db.prepare("SELECT * FROM campaigns WHERE id = ?").get(campaignId);
       if (campaign && campaign.is_ai_dm) {
-        activeAiCampaignId = campaignId;
-        
         const spawnMonsterCb = (monsterName: string, count: number) => {
           const m = db.prepare("SELECT * FROM content_items WHERE type = 'monster' AND name LIKE ? LIMIT 1").get(`%${monsterName}%`) as any;
           if (m) {
             const mData = JSON.parse(m.data);
+            const boardState = getRoomBoardState(campaignId);
             for (let i=0; i<count; i++) {
               const hpText = mData.hit_points || mData.hp || '10';
               const hp = parseInt(String(hpText).split('d')[0]) || 10;
@@ -953,32 +1184,30 @@ export const startServer = async () => {
                 x: 0,
                 y: 0
               };
-              boardTokens.push(newToken);
+              boardState.boardTokens.push(newToken);
             }
-            io.emit('token:board-list', boardTokens);
+            io.to(`campaign-${campaignId}`).emit('token:board-list', boardState.boardTokens);
           }
         };
 
         const started = startAISession(campaignId, campaign.name, campaign.description, spawnMonsterCb);
         if (started) {
-          io.emit('chat:message', { sender: 'DM IA', text: `¡Saludos aventureros! Soy el DM IA. La campaña "${campaign.name}" ha comenzado.`, timestamp: Date.now(), isAI: true });
-          io.emit('ai:session_status', { campaignId, active: true });
+          io.to(`campaign-${campaignId}`).emit('chat:message', { sender: 'DM IA', text: `¡Saludos aventureros! Soy el DM IA. La campaña "${campaign.name}" ha comenzado.`, timestamp: Date.now(), isAI: true });
+          io.to(`campaign-${campaignId}`).emit('ai:session_status', { campaignId, active: true });
         }
       }
     }
 
     function handleEndAiSession(campaignId: number) {
-      if (activeAiCampaignId === campaignId) {
-        endAISession(campaignId);
-        activeAiCampaignId = null;
-        io.emit('chat:message', { sender: 'DM IA', text: `La sesión de IA ha finalizado. Hasta la próxima aventura.`, timestamp: Date.now(), isAI: true });
-        io.emit('ai:session_status', { campaignId, active: false });
-      }
+      endAISession(campaignId);
+      io.to(`campaign-${campaignId}`).emit('chat:message', { sender: 'DM IA', text: `La sesión de IA ha finalizado. Hasta la próxima aventura.`, timestamp: Date.now(), isAI: true });
+      io.to(`campaign-${campaignId}`).emit('ai:session_status', { campaignId, active: false });
     }
 
     // IA DM SESSION
     socket.on('ai:start_session', (campaignId: number) => {
-      if (socket.data.role === 'dm' || socket.data.role === 'player') {
+      const currentRole = getSocketRole(socket);
+      if (currentRole === 'dm' || currentRole === 'admin' || currentRole === 'player') {
         handleStartAiSession(campaignId);
       }
     });
@@ -992,7 +1221,8 @@ export const startServer = async () => {
 
   // HELPERS DE SINCRONIZACIÓN[cite: 1]
   function sendCharactersToSocket(s: any) {
-    const list = (s.data.role === 'dm' || s.data.role === 'admin')
+    const currentRole = getSocketRole(s);
+    const list = (currentRole === 'dm' || currentRole === 'admin')
       ? db.prepare('SELECT * FROM characters').all()
       : db.prepare('SELECT * FROM characters WHERE owner = ?').all(s.data.userName);
     s.emit('character:list', list);
