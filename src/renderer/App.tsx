@@ -58,6 +58,7 @@ function App() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [isCampaignsLoaded, setIsCampaignsLoaded] = useState(false);
+  const [isCharactersLoaded, setIsCharactersLoaded] = useState(false);
 
   const [currentRoomCampaignId, setCurrentRoomCampaignId] = useState<number | null>(() => {
     const saved = localStorage.getItem('dnd_vtt_campaign_room');
@@ -122,7 +123,7 @@ function App() {
 
   // Efecto para procesar ingresos pendientes (link o recargas)
   useEffect(() => {
-    if (pendingRoomJoin !== null && campaigns.length > 0 && user && characters.length >= 0) {
+    if (pendingRoomJoin !== null && isCampaignsLoaded && isCharactersLoaded && user) {
       const roomId = pendingRoomJoin;
       setPendingRoomJoin(null); // Limpiar para evitar bucles
       
@@ -152,7 +153,7 @@ function App() {
         }
       }
     }
-  }, [pendingRoomJoin, campaigns, user, characters]);
+  }, [pendingRoomJoin, isCampaignsLoaded, isCharactersLoaded, user, campaigns, characters]);
 
   useEffect(() => {
     if (isCampaignsLoaded && currentRoomCampaignId === null && activeTab === 'combat') {
@@ -217,6 +218,7 @@ function App() {
 
     socket.on('character:list', (list) => {
       setCharacters(list);
+      setIsCharactersLoaded(true);
     });
 
     socket.on('monsters:list', (data: any[]) => {

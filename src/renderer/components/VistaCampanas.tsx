@@ -44,6 +44,7 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
   const [image, setImage] = useState('');
   const [activeHeroes, setActiveHeroes] = useState<number[]>([]);
   const [isAiDm, setIsAiDm] = useState(false);
+  const [imageHovered, setImageHovered] = useState(false);
 
   // Diary State
   const [diaryEntries, setDiaryEntries] = useState<DiaryEntry[]>([]);
@@ -162,63 +163,168 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
   if (isCreating) {
     // FORMULARIO DE CREACIÓN/EDICIÓN (DM SOLO)
     return (
-      <div style={{ padding: '20px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border-color)', color: 'var(--text-parchment)' }}>
-        <h2>{selectedCampaign ? 'Editar Campaña' : 'Nueva Campaña'}</h2>
+      <div style={{ padding: '25px', background: 'var(--bg-surface)', borderRadius: '12px', border: '1px solid var(--border-color)', color: 'var(--text-parchment)' }}>
+        <h2 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', marginTop: 0 }}>
+          {selectedCampaign ? 'Editar Campaña' : 'Nueva Campaña'}
+        </h2>
         
-        <div style={{ display: 'flex', gap: '20px', flexDirection: 'column' }}>
-          <input 
-            type="text" 
-            placeholder="Título de la Campaña" 
-            value={name} 
-            onChange={e => setName(e.target.value)} 
-            style={{ padding: '10px', background: 'var(--bg-base)', color: 'white', border: '1px solid #444', borderRadius: '4px' }}
-          />
-          <textarea 
-            placeholder="Descripción..." 
-            value={description} 
-            onChange={e => setDescription(e.target.value)} 
-            style={{ padding: '10px', background: 'var(--bg-base)', color: 'white', border: '1px solid #444', borderRadius: '4px', minHeight: '100px' }}
-          />
-          
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px' }}>Imagen de Portada:</label>
-            <input type="file" accept="image/*" onChange={e => handleImageUpload(e, setImage)} style={{ color: 'white' }} />
-            {image && <img src={image} alt="Preview" style={{ width: '200px', height: '100px', objectFit: 'cover', marginTop: '10px', borderRadius: '8px' }} />}
-          </div>
-
-          <div>
-            <label style={{ display: 'block', marginBottom: '5px' }}>Héroes Activos:</label>
-            <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
-              {characters.map(c => (
-                <div 
-                  key={c.id} 
-                  onClick={() => toggleHero(c.id)}
-                  style={{ 
-                    padding: '8px 12px', 
-                    borderRadius: '20px', 
-                    background: activeHeroes.includes(c.id) ? 'var(--natural-green)' : '#333', 
-                    color: 'white',
-                    cursor: 'pointer',
-                    border: activeHeroes.includes(c.id) ? '2px solid white' : '2px solid transparent'
-                  }}
-                >
-                  {c.name} ({c.owner})
-                </div>
-              ))}
+        <div style={{ display: 'grid', gridTemplateColumns: '1.2fr 1fr', gap: '30px', marginTop: '20px' }}>
+          {/* COLUMNA IZQUIERDA: DETALLES DE LA CAMPAÑA */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <label style={{ color: 'var(--accent-gold)', fontWeight: 'bold', fontSize: '0.9rem' }}>Título de la Campaña</label>
+              <input 
+                type="text" 
+                placeholder="Ej: La Maldición de Strahd" 
+                value={name} 
+                onChange={e => setName(e.target.value)} 
+                style={{ padding: '12px', background: 'var(--bg-base)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '6px', fontSize: '1rem' }}
+              />
             </div>
+            
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '5px' }}>
+              <label style={{ color: 'var(--accent-gold)', fontWeight: 'bold', fontSize: '0.9rem' }}>Descripción</label>
+              <textarea 
+                placeholder="Escribe la sinopsis o detalles para los aventureros..." 
+                value={description} 
+                onChange={e => setDescription(e.target.value)} 
+                style={{ padding: '12px', background: 'var(--bg-base)', color: 'white', border: '1px solid var(--border-color)', borderRadius: '6px', minHeight: '120px', fontSize: '0.95rem', fontFamily: 'inherit', resize: 'vertical' }}
+              />
+            </div>
+
+            <div>
+              <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
+                <input type="checkbox" checked={isAiDm} onChange={e => setIsAiDm(e.target.checked)} style={{ transform: 'scale(1.2)' }} />
+                <span style={{ color: 'var(--accent-gold)', fontWeight: 'bold', fontSize: '0.95rem' }}>
+                  <Bot className="w-4 h-4 inline-block mr-2" /> Activar DM con Inteligencia Artificial (Permite a los jugadores jugar sin DM humano)
+                </span>
+              </label>
+            </div>
+
+            {selectedCampaign && (
+              <div>
+                <label style={{ display: 'block', marginBottom: '10px', color: 'var(--accent-gold)', fontWeight: 'bold', fontSize: '0.9rem' }}>Héroes Activos:</label>
+                <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
+                  {characters.map(c => (
+                    <div 
+                      key={c.id} 
+                      onClick={() => toggleHero(c.id)}
+                      style={{ 
+                        padding: '8px 12px', 
+                        borderRadius: '20px', 
+                        background: activeHeroes.includes(c.id) ? 'var(--natural-green)' : '#333', 
+                        color: 'white',
+                        cursor: 'pointer',
+                        border: activeHeroes.includes(c.id) ? '2px solid white' : '2px solid transparent',
+                        fontSize: '0.9rem',
+                        transition: 'all 0.15s ease'
+                      }}
+                    >
+                      {c.name} ({c.owner})
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
 
-          <div style={{ marginTop: '10px' }}>
-            <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
-              <input type="checkbox" checked={isAiDm} onChange={e => setIsAiDm(e.target.checked)} style={{ transform: 'scale(1.2)' }} />
-              <span style={{ color: 'var(--accent-gold)', fontWeight: 'bold' }}><Bot className="w-4 h-4 inline-block mr-2" /> Activar DM con Inteligencia Artificial (Permite a los jugadores jugar sin DM humano)</span>
+          {/* COLUMNA DERECHA: PORTADA 1:1 */}
+          <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'flex-start', gap: '15px' }}>
+            <label style={{ color: 'var(--accent-gold)', fontWeight: 'bold', fontSize: '0.9rem', alignSelf: 'flex-start' }}>Imagen de Portada (1:1)</label>
+            
+            <input 
+              type="file" 
+              id="campaign-cover-upload" 
+              accept="image/*" 
+              onChange={e => handleImageUpload(e, setImage)} 
+              style={{ display: 'none' }} 
+            />
+            
+            <label 
+              htmlFor="campaign-cover-upload"
+              style={{ 
+                width: '100%', 
+                maxWidth: '280px', 
+                aspectRatio: '1/1', 
+                borderRadius: '8px', 
+                border: image ? '2px solid var(--accent-gold)' : '2px dashed var(--border-color)', 
+                overflow: 'hidden', 
+                display: 'flex', 
+                flexDirection: 'column', 
+                alignItems: 'center', 
+                justifyContent: 'center', 
+                cursor: 'pointer', 
+                background: 'var(--bg-base)', 
+                transition: 'all 0.2s', 
+                position: 'relative',
+                boxShadow: image ? '0 4px 15px rgba(201,168,76,0.15)' : 'none'
+              }}
+              onMouseEnter={() => setImageHovered(true)}
+              onMouseLeave={() => setImageHovered(false)}
+            >
+              {image ? (
+                <>
+                  <img src={image} alt="Portada de la campaña" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                  {imageHovered && (
+                    <div style={{
+                      position: 'absolute', top: 0, left: 0, width: '100%', height: '100%',
+                      background: 'rgba(0,0,0,0.6)', display: 'flex', flexDirection: 'column',
+                      alignItems: 'center', justifyContent: 'center', gap: '10px',
+                      color: 'var(--accent-gold)', transition: 'all 0.2s'
+                    }}>
+                      <Camera className="w-8 h-8" />
+                      <span style={{ fontSize: '0.9rem', fontWeight: 'bold' }}>Cambiar Portada</span>
+                    </div>
+                  )}
+                </>
+              ) : (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: '10px', padding: '20px', textAlign: 'center', color: 'var(--text-secondary)' }}>
+                  <Camera className="w-10 h-10" style={{ color: 'var(--accent-gold)' }} />
+                  <span style={{ fontSize: '0.9rem', fontWeight: 'bold', color: 'var(--accent-gold)' }}>Subir Portada</span>
+                  <span style={{ fontSize: '0.75rem', color: '#666' }}>Formato sugerido: 1:1 (Cuadrado)</span>
+                </div>
+              )}
             </label>
+            
+            {image && (
+              <button 
+                type="button" 
+                onClick={(e) => { e.preventDefault(); e.stopPropagation(); setImage(''); }}
+                style={{
+                  background: 'rgba(239, 68, 68, 0.15)',
+                  color: '#ef4444',
+                  border: '1px solid rgba(239, 68, 68, 0.3)',
+                  padding: '6px 12px',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontSize: '0.8rem',
+                  fontWeight: 'bold',
+                  transition: 'all 0.15s ease'
+                }}
+                onMouseEnter={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.25)'}
+                onMouseLeave={e => e.currentTarget.style.background = 'rgba(239, 68, 68, 0.15)'}
+              >
+                Quitar Imagen
+              </button>
+            )}
           </div>
+        </div>
 
-          <div style={{ display: 'flex', gap: '10px', marginTop: '20px' }}>
-            <button onClick={saveCampaign} style={{ background: 'var(--natural-green)', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Guardar</button>
-            <button onClick={() => { setIsCreating(false); setSelectedCampaign(null); }} style={{ background: '#555', color: 'white', padding: '10px 20px', border: 'none', borderRadius: '4px', cursor: 'pointer' }}>Cancelar</button>
-          </div>
+        {/* ACCIONES DEL FORMULARIO */}
+        <div style={{ display: 'flex', gap: '12px', marginTop: '30px', borderTop: '1px solid var(--border-color)', paddingTop: '20px', justifyContent: 'flex-end' }}>
+          <button 
+            onClick={() => { setIsCreating(false); setSelectedCampaign(null); }} 
+            style={{ background: 'transparent', border: '1px solid #555', color: 'var(--text-secondary)', padding: '10px 20px', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold' }}
+          >
+            Cancelar
+          </button>
+          <button 
+            onClick={saveCampaign} 
+            className="torch-glow"
+            style={{ background: 'var(--natural-green)', color: 'white', padding: '10px 24px', border: 'none', borderRadius: '4px', cursor: 'pointer', fontWeight: 'bold', boxShadow: '0 2px 8px rgba(34, 197, 94, 0.2)' }}
+          >
+            Guardar
+          </button>
         </div>
       </div>
     );
