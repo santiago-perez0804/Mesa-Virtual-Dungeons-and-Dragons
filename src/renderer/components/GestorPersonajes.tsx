@@ -57,6 +57,48 @@ const parseHitDie = (val: any): number => {
   return 8;
 };
 
+const getSkillsOptionsAndLimit = (profSkillsStr: string, name: string) => {
+  let limit = 2;
+  let allowed = skillList;
+
+  if (!profSkillsStr) {
+    return { limit, allowed };
+  }
+
+  const matchLimit = profSkillsStr.match(/(?:elige|choose|select)\s+(\d+)/i);
+  if (matchLimit && matchLimit[1]) {
+    limit = parseInt(matchLimit[1], 10);
+  } else if (name === 'Bardo' || name === 'Explorador') {
+    limit = 3;
+  } else if (name === 'Pícaro') {
+    limit = 4;
+  }
+
+  if (profSkillsStr.toLowerCase().includes("todas") || profSkillsStr.toLowerCase().includes("any")) {
+    allowed = skillList;
+  } else {
+    allowed = skillList.filter(s => {
+      const normSkill = s.toLowerCase();
+      const normStr = profSkillsStr.toLowerCase();
+      
+      if (normStr.includes(normSkill)) return true;
+      if (normSkill === 'interpretación' && (normStr.includes('interpretación') || normStr.includes('interpretacion') || normStr.includes('actuación') || normStr.includes('actuacion'))) return true;
+      if (normSkill === 'percepción' && (normStr.includes('percepción') || normStr.includes('percepcion'))) return true;
+      if (normSkill === 'intuición' && (normStr.includes('intuición') || normStr.includes('intuicion') || normStr.includes('perspicacia'))) return true;
+      if (normSkill === 'investigación' && (normStr.includes('investigación') || normStr.includes('investigacion'))) return true;
+      if (normSkill === 'religión' && (normStr.includes('religión') || normStr.includes('religion'))) return true;
+      if (normSkill === 'engaño' && (normStr.includes('engaño') || normStr.includes('engano'))) return true;
+      return false;
+    });
+
+    if (allowed.length === 0) {
+      allowed = skillList;
+    }
+  }
+
+  return { limit, allowed };
+};
+
 export const CharacterManager = ({ socket, characters, compendium, userRole, triggerDiceRoll, isOverlay, forceOpenId, onCloseOverlay }: any) => {
   const dbClasses = useMemo(() => {
     if (!compendium) return [];
@@ -239,6 +281,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [showTraits, setShowTraits] = useState(false);
 
   const [selectedSkills, setSelectedSkills] = useState<string[]>([]);
+  const [selectedClassSkills, setSelectedClassSkills] = useState<string[]>([]);
   const [selectedSavingThrows, setSelectedSavingThrows] = useState<string[]>(['fue', 'con']);
   const [backgroundItems, setBackgroundItems] = useState<string[]>(['', '']);
   const [skillQuery, setSkillQuery] = useState('');
@@ -590,7 +633,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
       inventory: JSON.stringify({
         ...inventory,
         trasfondo: backgroundItems.filter(i => i.trim() !== ''),
-        habilidades: selectedSkills,
+        habilidades: [...selectedSkills, ...selectedClassSkills],
         salvaciones: selectedSavingThrows,
         idiomas: draft.languages
       }),
@@ -631,6 +674,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     setInventory(defaultInventory);
     setStats({ fue: 8, dex: 8, con: 8, int: 8, sab: 8, car: 8 });
     setSelectedSkills([]);
+    setSelectedClassSkills([]);
     setSelectedSavingThrows(['fue', 'con']);
     setBackgroundItems(['', '']);
     setHitDieValue(10);
@@ -644,11 +688,14 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     setIsCreating(true);
     setEditingId(c.id);
     setName(c.name);
+    let currentClass = 'Guerrero';
     try {
       const parsed = JSON.parse(c.class);
-      setCharClass(Object.keys(parsed)[0]);
+      currentClass = Object.keys(parsed)[0];
+      setCharClass(currentClass);
     } catch {
-      setCharClass(c.class);
+      currentClass = c.class;
+      setCharClass(currentClass);
     }
     setRace(c.race || 'Humano');
     setDescription(c.description);
@@ -657,7 +704,37 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     setStats(safeParseStats(c.stats));
     const parsedInv = safeParseInventory(c.inventory);
     setInventory(parsedInv);
-    setSelectedSkills(parsedInv.habilidades || []);
+
+    // Split skills between background skills and class skills
+    const foundDbClass = dbClasses.find(cls => cls.name === currentClass || cls.id === currentClass);
+    let allSkills = parsedInv.habilidades || [];
+    let bgSkills: string[] = [];
+    let clsSkills: string[] = [];
+    
+    if (foundDbClass) {
+      const classItem = compendium.find((item: any) => item.type === 'class' && (item.name === currentClass));
+      let profSkillsStr = "";
+      if (classItem) {
+        try {
+          const parsedData = typeof classItem.data === 'string' ? JSON.parse(classItem.data) : classItem.data;
+          profSkillsStr = parsedData.prof_skills || "";
+        } catch {}
+      }
+      const { limit, allowed } = getSkillsOptionsAndLimit(profSkillsStr, currentClass);
+      
+      allSkills.forEach((skill: string) => {
+        if (allowed.includes(skill) && clsSkills.length < limit) {
+          clsSkills.push(skill);
+        } else {
+          bgSkills.push(skill);
+        }
+      });
+    } else {
+      bgSkills = allSkills;
+    }
+
+    setSelectedSkills(bgSkills);
+    setSelectedClassSkills(clsSkills);
     setSelectedSavingThrows(parsedInv.salvaciones || []);
     setSelectedCharacter(null);
   };
@@ -1952,6 +2029,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                                   savingThrows: cls.savingThrows
                                 }));
                                 setCharClass(cls.id || 'Guerrero');
+                                setSelectedClassSkills([]);
                                 setSelectedSavingThrows(cls.savingThrows);
                                 setClassQuery(cls.name);
                                 setClassDropdownOpen(false);
@@ -1980,6 +2058,69 @@ Modificador de CON: ${getModStr(charStats.con)}.
                       return (
                         <div style={{ fontSize: '0.85rem', color: 'var(--text-parchment)', opacity: 0.9, fontStyle: 'italic', padding: '15px 20px', background: 'rgba(200, 135, 42, 0.04)', borderLeft: '3px solid var(--accent-gold)', marginTop: '12px', lineHeight: '1.5' }}>
                           {descToShow}
+                        </div>
+                      );
+                    })()}
+
+                    {/* Selector de Habilidades de Clase */}
+                    {(() => {
+                      const selectedDbClass = dbClasses.find(c => c.name === draft.class || c.id === draft.class);
+                      if (!selectedDbClass) return null;
+
+                      let profSkillsStr = "";
+                      try {
+                        const classItem = compendium.find((item: any) => item.type === 'class' && (item.name === selectedDbClass.name));
+                        if (classItem) {
+                          const parsedData = typeof classItem.data === 'string' ? JSON.parse(classItem.data) : classItem.data;
+                          profSkillsStr = parsedData.prof_skills || "";
+                        }
+                      } catch {}
+
+                      const { limit, allowed } = getSkillsOptionsAndLimit(profSkillsStr, selectedDbClass.name);
+
+                      return (
+                        <div style={{ marginTop: '25px', width: '100%' }}>
+                          <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', display: 'block', marginBottom: '8px' }}>
+                            HABILIDADES DE CLASE (Elige {limit})
+                          </label>
+                          <div style={{ fontSize: '0.8rem', color: 'var(--text-secondary)', marginBottom: '12px', lineHeight: '1.4' }}>
+                            Opciones permitidas: {profSkillsStr || "Cualquier habilidad"}
+                          </div>
+
+                          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(180px, 1fr))', gap: '8px' }}>
+                            {allowed.map((skill: string) => {
+                              const isSelected = selectedClassSkills.includes(skill);
+                              const isBgSkill = selectedSkills.includes(skill);
+                              return (
+                                <button
+                                  key={skill}
+                                  type="button"
+                                  disabled={isBgSkill || (!isSelected && selectedClassSkills.length >= limit)}
+                                  onClick={() => {
+                                    if (isSelected) {
+                                      setSelectedClassSkills(selectedClassSkills.filter(s => s !== skill));
+                                    } else {
+                                      setSelectedClassSkills([...selectedClassSkills, skill]);
+                                    }
+                                  }}
+                                  className="mono"
+                                  style={{
+                                    padding: '8px',
+                                    background: isBgSkill ? 'rgba(255,255,255,0.03)' : (isSelected ? 'rgba(200, 135, 42, 0.15)' : 'var(--bg-base)'),
+                                    border: `1px solid ${isBgSkill ? 'rgba(255,255,255,0.08)' : (isSelected ? 'var(--accent-gold)' : 'var(--border-color)')}`,
+                                    color: isBgSkill ? 'var(--text-secondary)' : (isSelected ? 'var(--accent-gold)' : 'white'),
+                                    cursor: isBgSkill ? 'not-allowed' : 'pointer',
+                                    transition: 'all 0.1s',
+                                    fontSize: '0.75rem',
+                                    textAlign: 'center',
+                                    borderRadius: '4px'
+                                  }}
+                                >
+                                  {skill} {isBgSkill && " (Trasfondo)"}
+                                </button>
+                              );
+                            })}
+                          </div>
                         </div>
                       );
                     })()}
