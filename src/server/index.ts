@@ -587,7 +587,7 @@ export const startServer = async () => {
     });
 
     // GESTIÓN DE SALAS (ROOMS)
-    socket.on('room:join', ({ campaignId }) => {
+    socket.on('room:join', ({ campaignId, characterId }) => {
       const id = Number(campaignId);
       if (isNaN(id)) return;
 
@@ -600,6 +600,23 @@ export const startServer = async () => {
       socket.join(`campaign-${id}`);
       socket.data.campaignId = id;
       console.log(`🔑 Socket ${socket.id} (${socket.data.userName}) se unió a la sala campaña-${id}`);
+
+      // Si se pasa un characterId, registrarlo en active_heroes de la campaña
+      if (characterId) {
+        const charIdNum = Number(characterId);
+        const campaign = db.prepare("SELECT active_heroes FROM campaigns WHERE id = ?").get(id) as { active_heroes: string } | undefined;
+        if (campaign) {
+          let heroes: number[] = [];
+          try { heroes = JSON.parse(campaign.active_heroes || '[]'); } catch {}
+          if (!heroes.includes(charIdNum)) {
+            heroes.push(charIdNum);
+            db.prepare("UPDATE campaigns SET active_heroes = ? WHERE id = ?").run(JSON.stringify(heroes), id);
+            console.log(`✅ Personaje ${charIdNum} registrado en campaña ${id} para ${socket.data.userName}`);
+            // Actualizar la lista de campañas visible para todos (el jugador ahora verá esta campaña)
+            refreshAllCampaigns();
+          }
+        }
+      }
 
       // Enviar el estado del tablero específico de esa sala
       const boardState = getRoomBoardState(id);
@@ -1074,8 +1091,7 @@ export const startServer = async () => {
 
     // GESTIÓN DE CAMPAÑAS
     socket.on('campaign:request', () => {
-      const campaigns = db.prepare("SELECT * FROM campaigns").all();
-      socket.emit('campaign:list', campaigns);
+      sendCampaignsToSocket(socket);
     });
 
     socket.on('campaign:create', (data: any) => {
@@ -1085,8 +1101,7 @@ export const startServer = async () => {
         db.prepare('INSERT INTO campaigns (name, description, image, active_heroes, is_ai_dm, owner) VALUES (?, ?, ?, ?, ?, ?)')
           .run(name, description || null, image || null, JSON.stringify(active_heroes || []), is_ai_dm ? 1 : 0, socket.data.userName);
         console.log(`[Campaign Create] Campaña creada con éxito.`);
-        const allCampaigns = db.prepare("SELECT * FROM campaigns").all();
-        io.emit('campaign:list', allCampaigns);
+        refreshAllCampaigns();
       } else {
         console.log(`[Campaign Create] Rechazado: socket.data.userName no está definido.`);
       }
@@ -1099,8 +1114,7 @@ export const startServer = async () => {
         const finalOwner = campaign.owner || socket.data.userName;
         db.prepare('UPDATE campaigns SET name = ?, description = ?, image = ?, active_heroes = ?, is_ai_dm = ?, owner = ? WHERE id = ?')
           .run(name, description || null, image || null, JSON.stringify(active_heroes || []), is_ai_dm ? 1 : 0, finalOwner, id);
-        const allCampaigns = db.prepare("SELECT * FROM campaigns").all();
-        io.emit('campaign:list', allCampaigns);
+        refreshAllCampaigns();
       }
     });
 
@@ -1116,8 +1130,7 @@ export const startServer = async () => {
         }
         db.prepare('UPDATE campaigns SET is_active = 0').run();
         db.prepare('UPDATE campaigns SET is_active = 1 WHERE id = ?').run(id);
-        const allCampaigns = db.prepare("SELECT * FROM campaigns").all();
-        io.emit('campaign:list', allCampaigns);
+        refreshAllCampaigns();
 
         // Auto-login AI si la campaña lo tiene
         const fullCampaign: any = db.prepare("SELECT * FROM campaigns WHERE id = ?").get(id);
@@ -1139,8 +1152,7 @@ export const startServer = async () => {
       if (campaign && (campaign.owner === socket.data.userName || !campaign.owner || socket.data.role === 'admin')) {
         db.prepare('DELETE FROM campaigns WHERE id = ?').run(id);
         db.prepare('DELETE FROM campaign_diary WHERE campaign_id = ?').run(id);
-        const allCampaigns = db.prepare("SELECT * FROM campaigns").all();
-        io.emit('campaign:list', allCampaigns);
+        refreshAllCampaigns();
       }
     });
 
@@ -1226,6 +1238,31 @@ export const startServer = async () => {
       ? db.prepare('SELECT * FROM characters').all()
       : db.prepare('SELECT * FROM characters WHERE owner = ?').all(s.data.userName);
     s.emit('character:list', list);
+  }
+
+  function sendCampaignsToSocket(s: any) {
+    if (!s.data.userName) return;
+    const userName = s.data.userName;
+    // Una campaña es visible para el usuario si:
+    // 1. Es el owner/creador de la campaña
+    // 2. Tiene al menos un personaje listado en active_heroes de esa campaña
+    const allCampaigns = db.prepare("SELECT * FROM campaigns").all() as any[];
+    const userCharacters = db.prepare("SELECT id FROM characters WHERE owner = ?").all(userName) as { id: number }[];
+    const userCharacterIds = new Set(userCharacters.map(c => c.id));
+
+    const visible = allCampaigns.filter(c => {
+      if (c.owner === userName) return true;
+      try {
+        const heroes: number[] = JSON.parse(c.active_heroes || '[]');
+        return heroes.some(hId => userCharacterIds.has(hId));
+      } catch { return false; }
+    });
+    s.emit('campaign:list', visible);
+  }
+
+  function refreshAllCampaigns() {
+    const allSockets = Array.from(io.sockets.sockets.values());
+    allSockets.forEach(s => sendCampaignsToSocket(s));
   }
 
   function refreshAllCharacters() {

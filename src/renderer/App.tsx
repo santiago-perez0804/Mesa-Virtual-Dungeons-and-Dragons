@@ -82,29 +82,26 @@ function App() {
     const campaign = campaigns.find(c => c.id === campaignId);
     if (!campaign) return;
 
+    const savedHeroId = localStorage.getItem(`dnd_vtt_campaign_${campaignId}_hero`);
     const isPlayer = user && user.role !== 'admin' && campaign.owner !== user.name;
-    if (isPlayer) {
-      // Verificar si ya tiene un héroe asignado para esta campaña
-      const savedHeroId = localStorage.getItem(`dnd_vtt_campaign_${campaignId}_hero`);
-      if (!savedHeroId) {
-        // Es la primera vez que se une: validar héroes del jugador
-        const playerCharacters = characters.filter(c => c.owner === user.name);
-        if (playerCharacters.length === 0) {
-          alert("⚔️ ¡No tienes ningún héroe creado! Te redirigiremos a la pestaña de HÉROES para que crees tu personaje antes de entrar a la aventura.");
-          setActiveTab('characters');
-          return;
-        }
-        
-        // Mostrar selector de héroes
-        setShowHeroSelectorForCampaignId(campaignId);
+
+    if (isPlayer && !savedHeroId) {
+      // Primera vez que se une: validar héroes del jugador
+      const playerCharacters = characters.filter(c => c.owner === user.name);
+      if (playerCharacters.length === 0) {
+        alert("⚔️ ¡No tienes ningún héroe creado! Te redirigiremos a la pestaña de HÉROES para que crees tu personaje antes de entrar a la aventura.");
+        setActiveTab('characters');
         return;
       }
+      // Mostrar selector de héroes
+      setShowHeroSelectorForCampaignId(campaignId);
+      return;
     }
 
-    // Entrar directo si es DM, admin o ya eligió personaje
+    // Entrar directo (DM, admin, o jugador que ya eligió héroe)
     setCurrentRoomCampaignId(campaignId);
     localStorage.setItem('dnd_vtt_campaign_room', String(campaignId));
-    socket.emit('room:join', { campaignId });
+    socket.emit('room:join', { campaignId, characterId: savedHeroId ? Number(savedHeroId) : undefined });
     setActiveTab('combat');
   };
 
@@ -145,12 +142,11 @@ function App() {
         }
         
         // Si ya tiene personaje o es DM/admin, entra directo
+        const savedHeroId2 = localStorage.getItem(`dnd_vtt_campaign_${roomId}_hero`);
         setCurrentRoomCampaignId(roomId);
         localStorage.setItem('dnd_vtt_campaign_room', String(roomId));
-        socket.emit('room:join', { campaignId: roomId });
-        if (user.role !== 'admin') {
-          setActiveTab('combat');
-        }
+        socket.emit('room:join', { campaignId: roomId, characterId: savedHeroId2 ? Number(savedHeroId2) : undefined });
+        setActiveTab('combat');
       }
     }
   }, [pendingRoomJoin, isCampaignsLoaded, isCharactersLoaded, user, campaigns, characters]);
@@ -517,7 +513,7 @@ function App() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-base)', padding: 'var(--tabs-padding)', borderBottom: '1px solid var(--border-color)' }}>
         <div style={{ display: 'flex', gap: '2px' }}>
           {[
-            { id: 'combat', label: 'COMBATE', color: 'var(--combat-red)', visible: currentRole !== 'admin' && currentRoomCampaignId !== null },
+            { id: 'combat', label: 'COMBATE', color: 'var(--combat-red)', visible: currentRoomCampaignId !== null },
             { id: 'characters', label: 'HÉROES', color: 'var(--natural-green)', visible: currentRole !== 'admin' },
             { id: 'campaigns', label: 'CAMPAÑAS', color: 'var(--accent-gold)', visible: true },
             { id: 'database', label: 'COMPENDIO', color: 'var(--accent-gold)', visible: true },
@@ -935,7 +931,7 @@ function App() {
                       
                       setCurrentRoomCampaignId(showHeroSelectorForCampaignId);
                       localStorage.setItem('dnd_vtt_campaign_room', String(showHeroSelectorForCampaignId));
-                      socket.emit('room:join', { campaignId: showHeroSelectorForCampaignId });
+                      socket.emit('room:join', { campaignId: showHeroSelectorForCampaignId, characterId: char.id });
                       setActiveTab('combat');
                       
                       setShowHeroSelectorForCampaignId(null);

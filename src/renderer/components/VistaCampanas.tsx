@@ -31,8 +31,8 @@ interface CampaignsViewProps {
   onEnterCampaign?: (campaignId: number) => void;
 }
 
-export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, characters, currentUser, onEnterCampaign }) => {
-  const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, characters, currentUser, onEnterCampaign, campaigns: propsCampaigns = [] }) => {
+  const campaigns = propsCampaigns as Campaign[];
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [isCreating, setIsCreating] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -57,15 +57,6 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
   useEffect(() => {
     socket.emit('campaign:request');
 
-    socket.on('campaign:list', (list: Campaign[]) => {
-      setCampaigns(list);
-      if (selectedCampaign) {
-        const updated = list.find(c => c.id === selectedCampaign.id);
-        if (updated) setSelectedCampaign(updated);
-        else setSelectedCampaign(null);
-      }
-    });
-
     socket.on('campaign:diary:list', (data: { campaign_id: number; diary: DiaryEntry[] }) => {
       if (selectedCampaign && selectedCampaign.id === data.campaign_id) {
         setDiaryEntries(data.diary);
@@ -79,11 +70,21 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
     });
 
     return () => {
-      socket.off('campaign:list');
       socket.off('campaign:diary:list');
       socket.off('ai:session_status');
     };
   }, [socket, selectedCampaign]);
+
+  // Sincronizar selectedCampaign cuando la lista de campaigns cambia desde props
+  const prevCampaignsRef = React.useRef(campaigns);
+  useEffect(() => {
+    if (selectedCampaign) {
+      const updated = campaigns.find(c => c.id === selectedCampaign.id);
+      if (updated) setSelectedCampaign(updated);
+      else setSelectedCampaign(null);
+    }
+    prevCampaignsRef.current = campaigns;
+  }, [campaigns]);
 
   const handleImageUpload = async (e: React.ChangeEvent<HTMLInputElement>, setter: (val: string) => void) => {
     const file = e.target.files?.[0];
@@ -639,32 +640,14 @@ export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, 
                 )}
               </div>
               <div style={{ padding: '15px' }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '10px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '8px' }}>
                   <h3 className="font-cinzel" style={{ margin: 0, color: 'var(--accent-gold)' }}>{campaign.name}</h3>
-                  {campaign.is_ai_dm === 1 && <span title="DM IA" style={{ fontSize: '1.2rem' }}><Bot className="w-5 h-5 m-auto" /></span>}
-                  {campaign.is_active === 1 && <span title="Activa" style={{ fontSize: '1.2rem' }}><Star className="w-5 h-5 m-auto" /></span>}
+                  {campaign.is_ai_dm === 1 && <span title="DM IA"><Bot className="w-5 h-5" /></span>}
+                  {campaign.is_active === 1 && <span title="Activa"><Star className="w-5 h-5" /></span>}
                 </div>
-                <p style={{ margin: 0, color: '#aaa', fontSize: '0.9rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: '15px' }}>
+                <p style={{ margin: 0, color: '#aaa', fontSize: '0.9rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden' }}>
                   {campaign.description || 'Sin descripción'}
                 </p>
-                <button 
-                  onClick={(e) => { e.stopPropagation(); viewCampaign(campaign); }} 
-                  className="torch-glow"
-                  style={{
-                    background: 'linear-gradient(135deg, var(--natural-green), #1b8a4f)',
-                    color: 'white',
-                    border: 'none',
-                    padding: '8px 12px',
-                    borderRadius: '4px',
-                    cursor: 'pointer',
-                    fontSize: '0.85rem',
-                    width: '100%',
-                    fontWeight: 'bold',
-                    boxShadow: '0 2px 8px rgba(34, 197, 94, 0.2)'
-                  }}
-                >
-                  🚀 Entrar a la Aventura
-                </button>
               </div>
             </div>
           ))
