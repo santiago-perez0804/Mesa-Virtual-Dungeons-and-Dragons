@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { User, Shield, Backpack, X, Link, Scale, Lock, RefreshCw, ChevronLeft, ChevronRight, Check, Dices, ChevronUp, Pencil, Heart, Zap, Footprints, Award, Search } from 'lucide-react';
+import { User, Shield, Backpack, X, Link, Scale, Lock, RefreshCw, ChevronLeft, ChevronRight, Check, Dices, ChevronUp, Pencil, Heart, Zap, Footprints, Award, Search, Filter } from 'lucide-react';
 import { classes, backgrounds } from '../../data/dnd-datos';
 import type { CharacterDraft, AlignmentType, AttributeKey } from '../../data/dnd-datos';
 import { calcMod, calculateHP, calculateAC, getRandomItem } from '../../utils/dnd-calculos';
@@ -286,6 +286,16 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
 
   // --- ESTADOS DE BÚSQUEDA ---
   const [searchTerm, setSearchTerm] = useState('');
+  const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
+  const [sortBy, setSortBy] = useState<'none' | 'level-asc' | 'level-desc' | 'class' | 'hp'>('none');
+
+  useEffect(() => {
+    if (!sortDropdownOpen) return;
+    const handleOutsideClick = () => setSortDropdownOpen(false);
+    window.addEventListener('click', handleOutsideClick);
+    return () => window.removeEventListener('click', handleOutsideClick);
+  }, [sortDropdownOpen]);
+
   const [activeSlotIndex, setActiveSlotIndex] = useState<number | null>(null);
   const [slotSearchQuery, setSlotSearchQuery] = useState('');
   const [slotQuantity, setSlotQuantity] = useState(1);
@@ -703,55 +713,170 @@ Modificador de CON: ${getModStr(charStats.con)}.
     c.owner?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  const sortedCharacters = useMemo(() => {
+    let result = [...filteredCharacters];
+    if (sortBy === 'level-asc') {
+      result.sort((a, b) => (a.level || 1) - (b.level || 1));
+    } else if (sortBy === 'level-desc') {
+      result.sort((a, b) => (b.level || 1) - (a.level || 1));
+    } else if (sortBy === 'class') {
+      result.sort((a, b) => {
+        const classA = Object.keys(parseClasses(a.class))[0] || '';
+        const classB = Object.keys(parseClasses(b.class))[0] || '';
+        return classA.localeCompare(classB);
+      });
+    } else if (sortBy === 'hp') {
+      result.sort((a, b) => (b.max_hp || 0) - (a.max_hp || 0));
+    }
+    return result;
+  }, [filteredCharacters, sortBy]);
+
   return (
     <div style={styles.container}>
       <section style={{ display: isOverlay ? 'none' : 'block' }}>
-        <div style={{ display: 'flex', gap: '12px', alignItems: 'center', marginBottom: 'var(--search-container-margin)', background: 'var(--bg-surface)', padding: 'var(--search-container-padding)', border: '1px solid var(--border-color)' }} className="clipped-frame">
-          <div style={{ flex: 1, position: 'relative' }}>
-            <input
-              className="mono"
-              style={{ ...styles.input, paddingLeft: 'var(--search-input-padding-left)' }}
-              placeholder="Buscar héroe en la reserva..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-            />
-            <Search size={18} style={{ position: 'absolute', left: 'var(--search-icon-left)', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} />
-          </div>
+        <div style={{ position: 'relative', marginBottom: 'var(--search-container-margin)' }}>
+          {/* Fondo recortado que tiene clip-path */}
+          <div className="clipped-frame" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', zIndex: 0 }} />
 
-          <button
-            onClick={() => { resetForm(); setIsCreating(true); }}
-            className="font-cinzel torch-glow"
-            style={{
-              background: 'transparent',
-              color: 'var(--accent-gold)',
-              border: '1px solid var(--accent-gold)',
-              padding: 'var(--search-input-padding)',
-              borderRadius: '4px',
-              cursor: 'pointer',
-              fontWeight: 'bold',
-              fontSize: '0.85rem',
-              letterSpacing: '1px',
-              transition: 'all 0.2s ease',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '8px'
-            }}
-            onMouseEnter={e => {
-              e.currentTarget.style.background = 'var(--accent-gold)';
-              e.currentTarget.style.color = '#111';
-            }}
-            onMouseLeave={e => {
-              e.currentTarget.style.background = 'transparent';
-              e.currentTarget.style.color = 'var(--accent-gold)';
-            }}
-          >
-            <span style={{ fontSize: '1.1rem', lineHeight: '1' }}>+</span> Nuevo Héroe
-          </button>
+          {/* Contenedor flex frontal que NO se recorta, permitiendo que el dropdown sobresalga */}
+          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: 'var(--search-container-padding)', position: 'relative', zIndex: 1 }}>
+            <div style={{ flex: 1, position: 'relative' }}>
+              <input
+                className="mono"
+                style={{ ...styles.input, paddingLeft: 'var(--search-input-padding-left)' }}
+                placeholder="Buscar héroe en la reserva..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+              />
+              <Search size={18} style={{ position: 'absolute', left: 'var(--search-icon-left)', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} />
+            </div>
+
+            {/* Botón de Filtro */}
+            <div style={{ position: 'relative' }}>
+              <button
+                onClick={(e) => { e.stopPropagation(); setSortDropdownOpen(!sortDropdownOpen); }}
+                className="font-cinzel torch-glow"
+                style={{
+                  background: 'transparent',
+                  color: 'var(--accent-gold)',
+                  border: '1px solid var(--accent-gold)',
+                  padding: 'var(--search-input-padding)',
+                  borderRadius: '4px',
+                  cursor: 'pointer',
+                  fontWeight: 'bold',
+                  fontSize: '0.85rem',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '8px'
+                }}
+                onMouseEnter={e => {
+                  e.currentTarget.style.background = 'rgba(200, 135, 42, 0.1)';
+                }}
+                onMouseLeave={e => {
+                  e.currentTarget.style.background = 'transparent';
+                }}
+              >
+                <Filter size={16} />
+                <span className="mono" style={{ fontSize: '0.8rem', opacity: 0.8 }}>
+                  {sortBy === 'none' ? 'Filtrar' : 
+                   sortBy === 'level-asc' ? 'Nivel (Asc)' :
+                   sortBy === 'level-desc' ? 'Nivel (Desc)' :
+                   sortBy === 'class' ? 'Clase' : 'PG'}
+                </span>
+              </button>
+
+              {sortDropdownOpen && (
+                <div
+                  className="clipped-frame"
+                  style={{
+                    position: 'absolute',
+                    top: '110%',
+                    right: 0,
+                    background: 'var(--bg-surface)',
+                    border: '1px solid var(--accent-gold)',
+                    borderRadius: '4px',
+                    boxShadow: '0 8px 16px rgba(0,0,0,0.8)',
+                    zIndex: 100,
+                    minWidth: '160px',
+                    display: 'flex',
+                    flexDirection: 'column',
+                    padding: '5px 0'
+                  }}
+                >
+                  {[
+                    { key: 'none', label: 'Sin ordenar' },
+                    { key: 'level-asc', label: 'Nivel (asc)' },
+                    { key: 'level-desc', label: 'Nivel (desc)' },
+                    { key: 'class', label: 'Por clase' },
+                    { key: 'hp', label: 'Por PG' }
+                  ].map((opt) => (
+                    <button
+                      key={opt.key}
+                      onClick={() => {
+                        setSortBy(opt.key as any);
+                        setSortDropdownOpen(false);
+                      }}
+                      style={{
+                        background: sortBy === opt.key ? 'rgba(200, 135, 42, 0.15)' : 'transparent',
+                        border: 'none',
+                        color: sortBy === opt.key ? 'var(--accent-gold)' : 'var(--text-parchment)',
+                        padding: '10px 15px',
+                        textAlign: 'left',
+                        cursor: 'pointer',
+                        fontSize: '0.85rem',
+                        fontFamily: 'var(--font-body)',
+                        width: '100%',
+                        transition: 'background 0.2s'
+                      }}
+                      onMouseEnter={e => {
+                        e.currentTarget.style.background = 'rgba(200, 135, 42, 0.25)';
+                      }}
+                      onMouseLeave={e => {
+                        e.currentTarget.style.background = sortBy === opt.key ? 'rgba(200, 135, 42, 0.15)' : 'transparent';
+                      }}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <button
+              onClick={() => { resetForm(); setIsCreating(true); }}
+              className="font-cinzel torch-glow"
+              style={{
+                background: 'transparent',
+                color: 'var(--accent-gold)',
+                border: '1px solid var(--accent-gold)',
+                padding: 'var(--search-input-padding)',
+                borderRadius: '4px',
+                cursor: 'pointer',
+                fontWeight: 'bold',
+                fontSize: '0.85rem',
+                letterSpacing: '1px',
+                transition: 'all 0.2s ease',
+                display: 'flex',
+                alignItems: 'center',
+                gap: '8px'
+              }}
+              onMouseEnter={e => {
+                e.currentTarget.style.background = 'var(--accent-gold)';
+                e.currentTarget.style.color = '#111';
+              }}
+              onMouseLeave={e => {
+                e.currentTarget.style.background = 'transparent';
+                e.currentTarget.style.color = 'var(--accent-gold)';
+              }}
+            >
+              <span style={{ fontSize: '1.1rem', lineHeight: '1' }}>+</span> Nuevo Héroe
+            </button>
+          </div>
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(var(--char-grid-minmax), 1fr))', gap: 'var(--char-grid-gap)' }}>
 
-          {filteredCharacters.map((c: any) => {
+          {sortedCharacters.map((c: any) => {
             const parsedCls = parseClasses(c.class);
             const className = Object.keys(parsedCls)[0] || 'Clase';
             return (
@@ -762,7 +887,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
               />
             );
           })}
-          {filteredCharacters.length === 0 && <div style={{ color: 'var(--text-secondary)', fontStyle: 'italic', gridColumn: '1/-1', textAlign: 'center', padding: '40px' }}>No se encontraron aventureros...</div>}
+          {sortedCharacters.length === 0 && <div style={{ color: 'var(--text-secondary)', fontStyle: 'italic', gridColumn: '1/-1', textAlign: 'center', padding: '40px' }}>No se encontraron aventureros...</div>}
         </div>
       </section>
 
