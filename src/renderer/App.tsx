@@ -21,6 +21,29 @@ const socket = io(
 
 function App() {
   const [user, setUser] = useState<{ name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string } | null>(null);
+  const [globalAlert, setGlobalAlert] = useState<{ message: string; isFadingOut: boolean } | null>(null);
+  const alertTimeoutRef = useRef<any>(null);
+
+  // Sobrescribir window.alert globalmente para evitar bugs de foco de Electron
+  useEffect(() => {
+    window.alert = (msg: any) => {
+      setGlobalAlert({ message: String(msg), isFadingOut: false });
+      if (alertTimeoutRef.current) {
+        clearTimeout(alertTimeoutRef.current);
+      }
+      alertTimeoutRef.current = setTimeout(() => {
+        setGlobalAlert(prev => prev ? { ...prev, isFadingOut: true } : null);
+        alertTimeoutRef.current = setTimeout(() => {
+          setGlobalAlert(null);
+        }, 500);
+      }, 3500);
+    };
+    return () => {
+      if (alertTimeoutRef.current) {
+        clearTimeout(alertTimeoutRef.current);
+      }
+    };
+  }, []);
   const [isCheckingToken, setIsCheckingToken] = useState(!!localStorage.getItem('dnd_vtt_token'));
   const userRef = useRef(user);
   useEffect(() => {
@@ -984,6 +1007,78 @@ function App() {
           </div>
         );
       })()}
+
+      <style>{`
+        @keyframes fadeInScale {
+          from { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+          to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        @keyframes fadeOutScale {
+          from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+          to { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+        }
+      `}</style>
+
+      {/* GLOBAL TOAST ALERT */}
+      {globalAlert && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 99999,
+          background: 'linear-gradient(135deg, rgba(26,26,31,0.98), rgba(17,17,20,0.98))',
+          border: '1px solid var(--accent-gold)',
+          borderRadius: '8px',
+          padding: '20px 30px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          boxShadow: '0 10px 45px rgba(200, 135, 42, 0.35)',
+          backdropFilter: 'blur(10px)',
+          animation: globalAlert.isFadingOut 
+            ? 'fadeOutScale 0.5s ease-in forwards' 
+            : 'fadeInScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+          maxWidth: '450px',
+          width: '90%'
+        }} className="clipped-frame">
+          <AlertTriangle size={26} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <div className="font-cinzel" style={{
+              color: 'var(--accent-gold)',
+              fontSize: '0.85rem',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              letterSpacing: '2px',
+              marginBottom: '4px'
+            }}>
+              Advertencia
+            </div>
+            <div style={{ color: 'var(--text-parchment)', fontSize: '0.95rem', fontWeight: '500', lineHeight: '1.4' }}>
+              {globalAlert.message}
+            </div>
+          </div>
+          <button
+            onClick={() => setGlobalAlert(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontSize: '1.2rem',
+              padding: '0 5px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'color 0.2s'
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-gold)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 }
