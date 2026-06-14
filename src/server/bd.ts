@@ -108,7 +108,7 @@ export const initDB = () => {
     CREATE TABLE IF NOT EXISTS content_items (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
       name TEXT NOT NULL,
-      type TEXT NOT NULL, -- 'monster', 'spell', 'item'[cite: 1]
+      type TEXT NOT NULL, -- 'monster', 'spell', 'item', 'condition', 'subrace', 'language'
       data TEXT NOT NULL, -- JSON con el detalle completo de la API
       source TEXT DEFAULT 'srd'
     )
@@ -187,98 +187,9 @@ export const initDB = () => {
         }
       }
 
-      // Si no se pudo importar desde el JSON, usamos el fallback hardcodeado original
+      // Si no se pudo importar desde el JSON, se loguea una advertencia
       if (!imported) {
-        console.log("⚠️ No se pudo cargar desde la semilla. Iniciando seeders hardcodeados de emergencia...");
-        
-        // Bárbaro
-        const insertBarbaro = db.prepare("INSERT INTO class_features (class_name, feature_name, level_acquired, description) VALUES (?, ?, ?, ?)");
-        const transBarbaro = db.transaction((features) => {
-          for (const f of features) {
-            insertBarbaro.run(f.class_name, f.feature_name, f.level_acquired, f.description);
-          }
-        });
-        transBarbaro([
-          { class_name: 'Bárbaro', feature_name: 'Furia', level_acquired: 1, description: 'En combate, luchas con una ferocidad primigenia. En tu turno, puedes entrar en furia como acción adicional. Mientras estés en furia (y no lleves armadura pesada), tienes ventaja en las pruebas y salvaciones de Fuerza, obtienes un bonificador al daño con armas cuerpo a cuerpo basadas en Fuerza, y posees resistencia a los daños contundente, perforante y cortante. No puedes lanzar ni concentrarte en conjuros durante la furia. Dura 1 minuto.' },
-          { class_name: 'Bárbaro', feature_name: 'Defensa sin Armadura', level_acquired: 1, description: 'Mientras no lleves armadura, tu Clase de Armadura es igual a 10 + tu modificador por Destreza + tu modificador por Constitución. Puedes usar un escudo y seguir obteniendo este beneficio.' },
-          { class_name: 'Bárbaro', feature_name: 'Ataque Temerario', level_acquired: 2, description: 'A partir del nivel 2, puedes desechar toda preocupación por la defensa para atacar con feroz desesperación. Cuando realizas tu primer ataque en tu turno, puedes decidir atacar de forma temeraria. Hacerlo te da ventaja en las tiradas de ataque con armas cuerpo a cuerpo que usen Fuerza durante este turno, pero las tiradas de ataque contra ti tienen ventaja hasta tu siguiente turno.' },
-          { class_name: 'Bárbaro', feature_name: 'Sentido del Peligro', level_acquired: 2, description: 'En el nivel 2, obtienes un sentido misterioso de cuándo las cosas no son como deberían, lo que te da ventaja en las tiradas de salvación de Destreza contra efectos que puedas ver, como trampas y conjuros. No debes estar cegado, ensordecido ni incapacitado.' },
-          { class_name: 'Bárbaro', feature_name: 'Senda Primal', level_acquired: 3, description: 'En el nivel 3, eliges una senda que define la naturaleza de tu furia, como la Senda del Berserker. Tu elección te otorga rasgos en los niveles 3, 6, 10 y 14.' },
-          { class_name: 'Bárbaro', feature_name: 'Mejora de Característica', level_acquired: 4, description: 'Cuando alcanzas el nivel 4, y nuevamente en los niveles 8, 12, 16 y 19, puedes aumentar una puntuación de característica de tu elección en 2, o dos puntuaciones de característica de tu elección en 1. Como es habitual, no puedes aumentar una puntuación de característica por encima de 20 con este rasgo.' },
-          { class_name: 'Bárbaro', feature_name: 'Ataque Extra', level_acquired: 5, description: 'A partir del nivel 5, puedes atacar dos veces, en lugar de una, siempre que realices la acción de Atacar en tu turno.' },
-          { class_name: 'Bárbaro', feature_name: 'Movimiento Rápido', level_acquired: 5, description: 'A partir del nivel 5, tu velocidad aumenta en 10 pies mientras no lleves armadura pesada.' },
-          { class_name: 'Bárbaro', feature_name: 'Instinto Salvaje', level_acquired: 7, description: 'En el nivel 7, tus instintos están tan agudizados que tienes ventaja en las tiradas de iniciativa. Además, si te sorprenden en combate y no estás incapacitado, puedes actuar normalmente en tu primer turno si entras en furia antes de hacer cualquier otra cosa.' },
-          { class_name: 'Bárbaro', feature_name: 'Mejora de Característica', level_acquired: 8, description: 'Cuando alcanzas el nivel 8, y de nuevo en los niveles 12, 16 y 19, puedes aumentar una puntuación de característica de tu elección en 2, o dos puntuaciones de característica en 1.' },
-          { class_name: 'Bárbaro', feature_name: 'Crítico Brutal (1 dado)', level_acquired: 9, description: 'A partir del nivel 9, puedes tirar un dado de daño de arma adicional al determinar el daño extra de un golpe crítico con un ataque cuerpo a cuerpo.' },
-          { class_name: 'Bárbaro', feature_name: 'Furia Implacable', level_acquired: 11, description: 'A partir del nivel 11, tu furia te mantiene luchando a pesar de heridas gravísimas. Si tus puntos de golpe caen a 0 mientras estás en furia y no mueres en el acto, puedes realizar una salvación de Constitución CD 10 para quedar a 1 punto de golpe. Cada uso posterior aumenta la CD en 5 hasta que termines un descanso corto o largo.' },
-          { class_name: 'Bárbaro', feature_name: 'Mejora de Característica', level_acquired: 12, description: 'Cuando alcanzas el nivel 12, y de nuevo en los niveles 16 y 19, puedes aumentar una puntuación de característica de tu elección en 2, o dos puntuaciones de característica en 1.' },
-          { class_name: 'Bárbaro', feature_name: 'Crítico Brutal (2 dados)', level_acquired: 13, description: 'A partir del nivel 13, puedes tirar dos dados de daño de arma adicionales al determinar el daño extra de un golpe crítico con un ataque cuerpo a cuerpo.' },
-          { class_name: 'Bárbaro', feature_name: 'Furia Persistente', level_acquired: 15, description: 'A partir del nivel 15, tu furia es tan intensa que solo termina antes de tiempo si cae inconsciente o si decides finalizarla.' },
-          { class_name: 'Bárbaro', feature_name: 'Mejora de Característica', level_acquired: 16, description: 'Cuando alcanzas el nivel 16, y de nuevo en el nivel 19, puedes aumentar una puntuación de característica de tu elección en 2, o dos puntuaciones de característica en 1.' },
-          { class_name: 'Bárbaro', feature_name: 'Crítico Brutal (3 dados)', level_acquired: 17, description: 'A partir del nivel 17, puedes tirar tres dados de daño de arma adicionales al determinar el daño extra de un golpe crítico con un ataque cuerpo a cuerpo.' },
-          { class_name: 'Bárbaro', feature_name: 'Poder Indómito', level_acquired: 18, description: 'A partir del nivel 18, si el total de tu prueba de Fuerza es menor que tu puntuación de Fuerza, puedes usar tu puntuación en lugar del resultado de la tirada.' },
-          { class_name: 'Bárbaro', feature_name: 'Mejora de Característica', level_acquired: 19, description: 'Cuando alcanzas el nivel 19, puedes aumentar una puntuación de característica de tu elección en 2, o dos puntuaciones de característica en 1.' },
-          { class_name: 'Bárbaro', feature_name: 'Campeón Primal', level_acquired: 20, description: 'En el nivel 20, encarnas el poder de la naturaleza salvaje. Tus puntuaciones de Fuerza y Constitución aumentan en 4, y tu máximo para estas puntuaciones pasa a ser 24.' }
-        ]);
-        console.log("⚔️ Seeder de rasgos del bárbaro insertado (fallback).");
-
-        // Guerrero
-        const insertGuerrero = db.prepare("INSERT INTO class_features (class_name, feature_name, level_acquired, description) VALUES (?, ?, ?, ?)");
-        const transGuerrero = db.transaction((features) => {
-          for (const f of features) {
-            insertGuerrero.run(f.class_name, f.feature_name, f.level_acquired, f.description);
-          }
-        });
-        transGuerrero([
-          { class_name: 'Guerrero', feature_name: 'Estilo de Combate', level_acquired: 1, description: 'Adoptas un estilo de combate particular como tu especialidad. Elige una opción como Arquería (+2 a tiradas de ataque con armas a distancia), Defensa (+1 a la CA con armadura), Duelista (+2 al daño con un arma a una mano), Combate con Armas Grandes, Protección o Combate con Dos Armas.' },
-          { class_name: 'Guerrero', feature_name: 'Segunda Oportunidad', level_acquired: 1, description: 'Tienes una reserva limitada de resistencia de la que puedes tirar para protegerte del daño. En tu turno, puedes usar una acción adicional para recuperar puntos de golpe equivalentes a 1d10 + tu nivel de guerrero. Debes terminar un descanso corto o largo para volver a usarlo.' },
-          { class_name: 'Guerrero', feature_name: 'Acción en Oleada', level_acquired: 2, description: 'A partir del nivel 2, puedes superar tus límites por un instante. En tu turno, puedes realizar una acción adicional además de tu acción normal y posible acción adicional. Debes terminar un descanso corto o largo para volver a usarlo.' },
-          { class_name: 'Guerrero', feature_name: 'Arquetipo Marcial', level_acquired: 3, description: 'En el nivel 3, eliges un arquetipo que emula el entrenamiento marcial de tu elección, como Campeón o Maestro de Batalla. Tu elección te otorga rasgos en los niveles 3, 7, 10, 15 y 18.' },
-          { class_name: 'Guerrero', feature_name: 'Mejora de Característica', level_acquired: 4, description: 'Al llegar al nivel 4, y de nuevo en los niveles 6, 8, 12, 14, 16 y 19, puedes aumentar una puntuación de característica en 2, o dos en 1. No puedes superar el valor de 20 por este medio.' },
-          { class_name: 'Guerrero', feature_name: 'Ataque Extra', level_acquired: 5, description: 'A partir del nivel 5, puedes atacar dos veces en lugar de una al realizar la acción de Atacar en tu turno. Esto aumenta a tres ataques a nivel 11 y a cuatro ataques a nivel 20.' },
-          { class_name: 'Guerrero', feature_name: 'Mejora de Característica', level_acquired: 6, description: 'Al llegar al nivel 6, y de nuevo en los niveles 8, 12, 14, 16 y 19, puedes aumentar una puntuación de característica en 2, o dos en 1.' },
-          { class_name: 'Guerrero', feature_name: 'Mejora de Característica', level_acquired: 8, description: 'Al llegar al nivel 8, y de nuevo en los niveles 12, 14, 16 y 19, puedes aumentar una puntuación de característica en 2, o dos en 1.' },
-          { class_name: 'Guerrero', feature_name: 'Indomable', level_acquired: 9, description: 'A partir del nivel 9, puedes volver a tirar una salvación fallida. Si lo haces, debes usar el nuevo resultado. No puedes volver a usar este rasgo hasta terminar un descanso largo.' },
-          { class_name: 'Guerrero', feature_name: 'Ataque Extra (2)', level_acquired: 11, description: 'Puedes atacar tres veces en lugar de dos siempre que realices la acción de Atacar en tu turno.' },
-          { class_name: 'Guerrero', feature_name: 'Mejora de Característica', level_acquired: 12, description: 'Al llegar al nivel 12, y de nuevo en los niveles 14, 16 y 19, puedes aumentar una puntuación de característica en 2, o dos en 1.' },
-          { class_name: 'Guerrero', feature_name: 'Indomable (2)', level_acquired: 13, description: 'A partir del nivel 13, puedes usar Indomable dos veces antes de requerir un descanso largo.' },
-          { class_name: 'Guerrero', feature_name: 'Mejora de Característica', level_acquired: 14, description: 'Al llegar al nivel 14, y de nuevo en los niveles 16 y 19, puedes aumentar una puntuación de característica en 2, o dos en 1.' },
-          { class_name: 'Guerrero', feature_name: 'Mejora de Característica', level_acquired: 16, description: 'Al llegar al nivel 16, y de nuevo en el nivel 19, puedes aumentar una puntuación de característica en 2, o dos en 1.' },
-          { class_name: 'Guerrero', feature_name: 'Acción en Oleada (2)', level_acquired: 17, description: 'A partir del nivel 17, puedes realizar una Acción en Oleada dos veces antes de un descanso corto o largo.' },
-          { class_name: 'Guerrero', feature_name: 'Indomable (3)', level_acquired: 17, description: 'A partir del nivel 17, puedes usar Indomable tres veces antes de requerir un descanso largo.' },
-          { class_name: 'Guerrero', feature_name: 'Mejora de Característica', level_acquired: 19, description: 'Al llegar al nivel 19, puedes aumentar una puntuación de característica en 2, o dos en 1.' },
-          { class_name: 'Guerrero', feature_name: 'Ataque Extra (3)', level_acquired: 20, description: 'Puedes atacar cuatro veces en lugar de tres siempre que realices la acción de Atacar en tu turno.' }
-        ]);
-        console.log("⚔️ Seeder de rasgos del guerrero insertado (fallback).");
-
-        // Pícaro
-        const insertPicaro = db.prepare("INSERT INTO class_features (class_name, feature_name, level_acquired, description) VALUES (?, ?, ?, ?)");
-        const transPicaro = db.transaction((features) => {
-          for (const f of features) {
-            insertPicaro.run(f.class_name, f.feature_name, f.level_acquired, f.description);
-          }
-        });
-        transPicaro([
-          { class_name: 'Pícaro', feature_name: 'Pericia', level_acquired: 1, description: 'Elige dos de tus competencias en habilidades, o una competencia en habilidad y tu competencia con herramientas de ladrón. Tu bonificador de competencia se duplica para cualquier prueba de característica que use cualquiera de las competencias elegidas. A nivel 6 eliges dos más.' },
-          { class_name: 'Pícaro', feature_name: 'Ataque Furtivo', level_acquired: 1, description: 'Sabes cómo golpear con precisión aprovechando la distracción de un enemigo. Una vez por turno, puedes infligir 1d6 de daño adicional a una criatura que golpees si tienes ventaja en la tirada de ataque. El ataque debe usar un arma sutil o a distancia. No necesitas ventaja si otro enemigo del objetivo está a 5 pies de él, este no está incapacitado y tú no tienes desventaja.' },
-          { class_name: 'Pícaro', feature_name: 'Jerga de Ladrones', level_acquired: 1, description: 'Durante tu entrenamiento aprendiste la jerga de ladrones, una mezcla secreta de dialecto, jerga y claves que te permite ocultar mensajes en conversaciones normales. Solo otra criatura que conozca la jerga lo entenderá.' },
-          { class_name: 'Pícaro', feature_name: 'Acción Astuta', level_acquired: 2, description: 'A partir del nivel 2, tu agilidad e ingenio te permiten moverte y actuar rápido. Puedes realizar una acción adicional en cada uno de tus turnos en combate. Esta acción solo se puede usar para Correr, Destrabarse o Esconderse.' },
-          { class_name: 'Pícaro', feature_name: 'Arquetipo de Pícaro', level_acquired: 3, description: 'En el nivel 3, eliges un arquetipo que emula tus capacidades, como Ladrón o Asesino. Tu elección te otorga rasgos en los niveles 3, 9, 13 y 17.' },
-          { class_name: 'Pícaro', feature_name: 'Mejora de Característica', level_acquired: 4, description: 'Al llegar al nivel 4, y de nuevo en los niveles 8, 10, 12, 16 y 19, puedes aumentar una puntuación de característica en 2, o dos en 1. No puedes superar el valor de 20 por este medio.' },
-          { class_name: 'Pícaro', feature_name: 'Esquiva Asombrosa', level_acquired: 5, description: 'A partir del nivel 5, cuando un atacante que puedes ver te golpea con un ataque, puedes usar tu reacción para reducir a la mitad el daño que sufres.' },
-          { class_name: 'Pícaro', feature_name: 'Pericia', level_acquired: 6, description: 'Puedes elegir otras dos de tus competencias en habilidades (o tu competencia con herramientas de ladrón) para duplicar tu bonificador de competencia.' },
-          { class_name: 'Pícaro', feature_name: 'Evasión', level_acquired: 7, description: 'A partir del nivel 7, puedes esquivar ágilmente ciertos efectos de área. Cuando estés sujeto a un efecto que te permita hacer una salvación de Destreza para sufrir solo la mitad del daño, no sufres daño si tienes éxito, y solo la mitad si fallas.' },
-          { class_name: 'Pícaro', feature_name: 'Mejora de Característica', level_acquired: 8, description: 'Al llegar al nivel 8, y de nuevo en los niveles 10, 12, 16 y 19, puedes aumentar una puntuación de característica en 2, o dos en 1.' },
-          { class_name: 'Pícaro', feature_name: 'Mejora de Característica', level_acquired: 10, description: 'Al llegar al nivel 10, y de nuevo en los niveles 12, 16 y 19, puedes aumentar una puntuación de característica en 2, o dos en 1.' },
-          { class_name: 'Pícaro', feature_name: 'Talento Seguro', level_acquired: 11, description: 'En el nivel 11, has perfeccionado tus habilidades elegidas hasta la casi perfección. Siempre que realices una prueba de característica que te permita añadir tu bonificador de competencia, puedes tratar cualquier tirada en el d20 de 9 o menos como si fuera un 10.' },
-          { class_name: 'Pícaro', feature_name: 'Mejora de Característica', level_acquired: 12, description: 'Al llegar al nivel 12, y de nuevo en los niveles 16 y 19, puedes aumentar una puntuación de característica en 2, o dos en 1.' },
-          { class_name: 'Pícaro', feature_name: 'Sentido Ciego', level_acquired: 14, description: 'A partir del nivel 14, si eres capaz de oír, eres consciente de la ubicación de cualquier criatura invisible o escondida a 10 pies de ti.' },
-          { class_name: 'Pícaro', feature_name: 'Mente Escurridiza', level_acquired: 15, description: 'En el nivel 15, adquieres una mayor fuerza mental. Obtienes competencia en las tiradas de salvación de Sabiduría.' },
-          { class_name: 'Pícaro', feature_name: 'Mejora de Característica', level_acquired: 16, description: 'Al llegar al nivel 16, y de nuevo en el nivel 19, puedes aumentar una puntuación de característica en 2, o dos en 1.' },
-          { class_name: 'Pícaro', feature_name: 'Elusivo', level_acquired: 18, description: 'A partir del nivel 18, eres tan elusivo que los atacantes rara vez ganan ventaja contra ti. Ninguna tirada de ataque tiene ventaja contra ti mientras no estés incapacitado.' },
-          { class_name: 'Pícaro', feature_name: 'Mejora de Característica', level_acquired: 19, description: 'Al llegar al nivel 19, puedes aumentar una puntuación de característica en 2, o dos en 1.' },
-          { class_name: 'Pícaro', feature_name: 'Golpe de Suerte', level_acquired: 20, description: 'En el nivel 20, tienes un don increíble para tener éxito cuando lo necesitas. Si fallas un ataque contra un objetivo a tu alcance, puedes convertir el fallo en un impacto. O si fallas una prueba de característica, puedes tratar la tirada del d20 como un 20. Se recupera tras descanso corto o largo.' }
-        ]);
+        console.warn("⚠️ No se pudo cargar desde la semilla JSON.");
       }
     }
   } catch (e) {

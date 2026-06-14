@@ -24,9 +24,7 @@ release/
 guia_aws_admin.md
 
 # Archivos de la base de datos local SQLite (¡Importante!)
-vtt_database.bd
 vtt_database.db
-*.bd
 *.db
 *.sqlite
 *.sqlite3

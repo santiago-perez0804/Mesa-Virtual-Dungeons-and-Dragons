@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Ghost, Scroll, Swords, Shield, Sparkles, Footprints, Dna, AlertTriangle, Zap, BarChart, BookOpen } from 'lucide-react';
+import { Ghost, Scroll, Swords, Shield, Sparkles, Footprints, Dna, AlertTriangle, Zap, BarChart, BookOpen, Languages } from 'lucide-react';
 import { FeatureTooltip } from './TooltipRasgos';
 import { CompendiumCard } from './ui/CartaCompendio';
 import { DatabaseDetail } from './compendium/DetalleBaseDatos';
@@ -23,6 +23,7 @@ export const typeIcons: Record<string, React.ReactNode> = {
   race: <><Footprints className="w-4 h-4 flex-shrink-0" /> Razas</>,
   subrace: <><Dna className="w-4 h-4 flex-shrink-0" /> Subrazas</>,
   condition: <><AlertTriangle className="w-4 h-4 flex-shrink-0" /> Estados</>,
+  language: <><Languages className="w-4 h-4 flex-shrink-0" /> Idiomas</>,
   features: <><Zap className="w-4 h-4 flex-shrink-0" /> Rasgos</>
 };
 /*
@@ -75,7 +76,7 @@ const cleanNameForMatching = (name: string): string => {
 const safeStr = (val: any) => val != null ? String(val) : '';
 export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpenId, onCloseOverlay }: any) => {
   const [searchTerm, setSearchTerm] = useState('');
-  const [category, setCategory] = useState<'all' | 'monster' | 'spell' | 'item' | 'class' | 'subclass' | 'race' | 'subrace' | 'condition' | 'features'>('all');
+  const [category, setCategory] = useState<'all' | 'monster' | 'spell' | 'item' | 'class' | 'subclass' | 'race' | 'subrace' | 'condition' | 'language' | 'features'>('all');
   const [selectedItem, setSelectedItem] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const PAGE_SIZE = 24;
@@ -457,7 +458,7 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
     setSelectedItem(null);
     setIsCreating(true);
     setEditingId(item.id);
-    const validTypes = ['monster', 'item', 'class', 'subclass', 'race', 'subrace', 'condition', 'spell'];
+    const validTypes = ['monster', 'item', 'class', 'subclass', 'race', 'subrace', 'condition', 'language', 'spell'];
     setCreateType(validTypes.includes(item.type) ? (item.type as any) : 'item');
     setCreateName(item.name ?? '');
 
@@ -628,7 +629,7 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
         const dbCls = dbClasses.find((c: any) => c.name.toLowerCase() === srdCls.name.toLowerCase());
         merged.push({
           ...dbCls,
-          displaySource: 'modified',
+          displaySource: dbCls.source === 'manual' || dbCls.source === 'srd' ? 'srd' : 'modified',
         });
       } else {
         merged.push(srdCls);
@@ -640,7 +641,7 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
       if (!isOverriding) {
         merged.push({
           ...dbCls,
-          displaySource: 'custom',
+          displaySource: dbCls.source === 'manual' || dbCls.source === 'srd' ? 'srd' : 'custom',
         });
       }
     });
@@ -946,7 +947,7 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
         </div>
         
         <div style={{ flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--sidebar-btn-gap)', overflowY: 'auto' }} className="custom-scrollbar">
-          {['all', 'monster', 'spell', 'item', 'class', 'subclass', 'race', 'subrace', 'condition', 'features'].map(cat => (
+          {['all', 'monster', 'spell', 'item', 'class', 'subclass', 'race', 'subrace', 'condition', 'language', 'features'].map(cat => (
             <button
               key={cat}
               onClick={() => handleCategory(cat as any)}
@@ -1037,12 +1038,15 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
           } else if (category === 'condition') {
             btnText = '+ NUEVO ESTADO';
             btnAction = () => alert('La creación de estados y condiciones personalizados estará disponible próximamente.');
+          } else if (category === 'language') {
+            btnText = '+ NUEVO IDIOMA';
+            btnAction = () => alert('La creación de idiomas personalizados estará disponible próximamente.');
           } else if (category === 'all') {
             btnText = '+ NUEVO REGISTRO';
             btnAction = () => alert('Por favor, selecciona una categoría específica (ej. Monstruos, Clases, Rasgos) en el menú lateral para crear un nuevo registro.');
           }
 
-          const isPlaceholder = ['subclass', 'race', 'subrace', 'condition', 'all'].includes(category);
+          const isPlaceholder = ['subclass', 'race', 'subrace', 'condition', 'language', 'all'].includes(category);
 
           return (
             <div style={{ padding: '0 20px', marginTop: 'var(--sidebar-create-margin)' }}>
@@ -1725,8 +1729,30 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
                               key={item.id}
                               title={item.name}
                               subtitle={(() => {
-                                const desc = data.description || data.desc || "";
-                                return Array.isArray(desc) ? desc.join('\n') : String(desc);
+                                if (item.type === 'monster') {
+                                  const cr = data.cr ?? data.challenge_rating ?? '?';
+                                  const size = data.size || '';
+                                  const type = data.type || '';
+                                  return [size, type, `CR ${cr}`].filter(Boolean).join(' · ');
+                                }
+                                if (item.type === 'spell') {
+                                  const level = data.level !== undefined ? (data.level === 0 ? 'Truco' : `Nivel ${data.level}`) : '';
+                                  const school = typeof data.school === 'object' ? data.school?.name : data.school;
+                                  return [level, school].filter(Boolean).join(' · ');
+                                }
+                                if (item.type === 'item') {
+                                  const cat = data.equipment_category?.name || data.category || '';
+                                  const rarity = data.rarity || '';
+                                  return [cat, rarity].filter(Boolean).join(' · ');
+                                }
+                                if (item.type === 'language') {
+                                  const type = data.type || '';
+                                  const script = data.script || '';
+                                  return [type, script ? `Escritura: ${script}` : ''].filter(Boolean).join(' · ');
+                                }
+                                const desc = data.description || data.desc || '';
+                                const descStr = Array.isArray(desc) ? desc.join(' ') : String(desc);
+                                return descStr.slice(0, 80) + (descStr.length > 80 ? '...' : '');
                               })()}
                               image={data.image}
                               chips={[{ label: item.type, variant: 'primary' }]}
