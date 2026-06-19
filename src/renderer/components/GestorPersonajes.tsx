@@ -40,6 +40,7 @@ import { CharacterSpellsTab } from './personaje/PestanaHechizosPersonaje';
 import { CharacterStatsPanel } from './personaje/PanelEstadisticasPersonaje';
 import { CharacterListPanel } from './personaje/CharacterListPanel';
 import { CharacterImageCropModal } from './personaje/CharacterImageCropModal';
+import { CharacterCreationStepper } from './personaje/CharacterCreationStepper';
 import { ACModifierModal } from './personaje/ACModifierModal';
 import { InitiativeModifierModal } from './personaje/InitiativeModifierModal';
 import { SpeedModifierModal } from './personaje/SpeedModifierModal';
@@ -441,57 +442,10 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
             <div style={{ ...styles.card, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', border: '2px solid var(--accent-gold)', padding: 0, overflow: 'hidden', position: 'relative' }} className="clipped-frame">
               <button onClick={() => resetForm()} style={{ position: 'absolute', top: '15px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '2.5rem', cursor: 'pointer', zIndex: 10 }}><X className="w-6 h-6 m-auto" /></button>
 
-            {/* INDICADOR DE PASOS (Stepper top fijo) */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '50px', padding: '25px 40px 20px 40px', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
-              {[1, 2, 3].map(s => {
-                const isActive = creationStep === s;
-                const isCompleted = creationStep > s;
-
-                let circleStyle: React.CSSProperties = {
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 'bold',
-                  fontSize: '0.9rem',
-                  transition: 'all 0.3s ease',
-                };
-
-                if (isActive) {
-                  circleStyle = {
-                    ...circleStyle,
-                    background: 'var(--accent-gold)',
-                    color: 'var(--bg-base)',
-                    border: '2px solid var(--accent-gold)',
-                    boxShadow: '0 0 10px rgba(200, 135, 42, 0.5)',
-                  };
-                } else if (isCompleted) {
-                  circleStyle = {
-                    ...circleStyle,
-                    background: 'transparent',
-                    color: 'var(--accent-gold)',
-                    border: '2px solid var(--accent-gold)',
-                  };
-                } else {
-                  circleStyle = {
-                    ...circleStyle,
-                    background: 'transparent',
-                    color: 'var(--text-secondary)',
-                    border: '2px solid var(--border-color)',
-                  };
-                }
-
-                return (
-                  <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: isCompleted ? 'pointer' : 'default' }} onClick={() => isCompleted && setCreationStep(s)}>
-                    <div className="mono" style={circleStyle} title={s === 1 ? 'ESENCIA' : s === 2 ? 'COMPETENCIAS' : 'VITALIDAD'}>
-                      {isCompleted ? '✓' : s}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <CharacterCreationStepper
+              creationStep={creationStep}
+              setCreationStep={setCreationStep}
+            />
 
             {/* CONTENIDO SCROLLABLE */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '30px 40px', display: 'flex', flexDirection: 'column', gap: '30px' }}>
