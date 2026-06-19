@@ -6,7 +6,6 @@ import { calcMod } from '../../utils/dnd-calculos';
 import { formatDescription } from '../utils/formateador';
 import {
   getPointCost,
-  getModStr,
   getProficiencyBonus,
   safeParseInventory,
   safeParseStats,
@@ -33,6 +32,7 @@ import {
 } from '../modules/personaje/personaje.listado';
 import { characterManagerStyles as styles } from '../modules/personaje/personaje.styles';
 import { useCharacterImageCropper } from '../modules/personaje/hooks/useCharacterImageCropper';
+import { levelUpCharacter } from '../modules/personaje/personaje.nivel';
 
 import { CharacterInventoryTab } from './personaje/PestanaInventarioPersonaje';
 import { CharacterTraitsTab } from './personaje/PestanaRasgosPersonaje';
@@ -406,57 +406,15 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     }
   };
 
-  const handleLevelUp = () => {
-    if (!levelUpClass) return alert("Elige una clase para tomar tu nuevo nivel.");
-
-    const hitDie = getHitDieForClass(levelUpClass);
-    const roll = Math.floor(Math.random() * hitDie) + 1;
-    const charStats = safeParseStats(selectedCharacter.stats);
-    const conMod = calcMod(charStats.con);
-    const hpGain = Math.max(1, roll + conMod);
-    const newLevel = (selectedCharacter.level || 1) + 1;
-
-    const parsedClasses = parseCharacterClasses(selectedCharacter.class);
-    parsedClasses[levelUpClass] = (parsedClasses[levelUpClass] || 0) + 1;
-
-    const applyUpdate = () => {
-      const newMaxHp = (selectedCharacter.max_hp || 10) + hpGain;
-      const newCurrentHp = (selectedCharacter.current_hp || 10) + hpGain;
-
-      const updated = {
-        ...selectedCharacter,
-        class: JSON.stringify(parsedClasses),
-        level: newLevel,
-        max_hp: newMaxHp,
-        current_hp: newCurrentHp
-      };
-
-      socket.emit('character:update', updated);
-      setSelectedCharacter(updated);
-      setLevelUpClass("");
-
-      // Enviar un mensaje de chat de sistema de alta calidad heráldico
-      const chatMsg = {
-        id: Date.now() + Math.random(),
-        sender: 'Sistema',
-        to: 'all',
-        text: `🎲 **${selectedCharacter.name}** subió a nivel **${newLevel}** (${levelUpClass}) y tiró **d${hitDie}** para su vida sacando **${roll}** (Mod CON: ${getModStr(charStats.con)}). ¡Su vida máxima aumentó en **+${hpGain}**!`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isSystem: true
-      };
-      socket.emit('chat:send', chatMsg);
-    };
-
-    if (triggerDiceRoll) {
-      triggerDiceRoll(`d${hitDie}` as any, roll, applyUpdate);
-    } else {
-      alert(`🗡️ Tomaste un nivel en ${levelUpClass}.
-Tiraste un d${hitDie} y sacaste ${roll}.
-Modificador de CON: ${getModStr(charStats.con)}.
-¡Tu Vida Máxima aumenta en ${hpGain} puntos!`);
-      applyUpdate();
-    }
-  };
+  const handleLevelUp = () => levelUpCharacter({
+    selectedCharacter,
+    levelUpClass,
+    getHitDieForClass,
+    socket,
+    triggerDiceRoll,
+    setSelectedCharacter,
+    setLevelUpClass
+  });
 
   const filteredCharacters = useMemo(() => filterCharacters(characters, searchTerm), [characters, searchTerm]);
   const sortedCharacters = useMemo(() => sortCharacters(filteredCharacters, sortBy), [filteredCharacters, sortBy]);
