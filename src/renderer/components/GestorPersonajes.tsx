@@ -11,11 +11,22 @@ import {
   getProficiencyBonus,
   safeParseInventory,
   safeParseStats,
-  mapEnglishStatToSpanish,
-  mapSpanishNameToKey,
-  parseHitDie,
   getSkillsOptionsAndLimit
 } from '../modules/personaje/personaje.utilidades';
+import {
+  buildDbAlignments,
+  buildDbClasses,
+  buildDbItems,
+  buildDbRaces,
+  findBaseSpeedForRace,
+  findHitDieForClass
+} from '../modules/personaje/personaje.compendio';
+import {
+  createDefaultAttributes,
+  createDefaultDraft,
+  createDefaultInventory
+} from '../modules/personaje/personaje.defaults';
+import { characterManagerStyles as styles } from '../modules/personaje/personaje.styles';
 
 import { CharacterInventoryTab } from './personaje/PestanaInventarioPersonaje';
 import { CharacterTraitsTab } from './personaje/PestanaRasgosPersonaje';
@@ -32,186 +43,12 @@ import { SkillModifierModal } from './personaje/SkillModifierModal';
 import { skillList, statDescriptions } from '../modules/personaje/personaje.constantes';
 
 export const CharacterManager = ({ socket, characters, compendium, userRole, triggerDiceRoll, isOverlay, forceOpenId, onCloseOverlay }: any) => {
-  const dbClasses = useMemo(() => {
-    if (!compendium) return [];
-    return compendium
-      .filter((item: any) => item.type === 'class')
-      .map((item: any) => {
-        let parsedData: any = {};
-        try {
-          parsedData = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
-        } catch (e) {
-          parsedData = {};
-        }
-
-        const rawSaves = parsedData.prof_saving_throws;
-        const mappedSaves = rawSaves
-          ? rawSaves.split(',').map((s: string) => mapSpanishNameToKey(s))
-          : (item.name === 'Bárbaro' ? ['fue', 'con'] :
-             item.name === 'Bardo' ? ['dex', 'car'] :
-             item.name === 'Clérigo' ? ['sab', 'car'] :
-             item.name === 'Druida' ? ['int', 'sab'] :
-             item.name === 'Guerrero' ? ['fue', 'con'] :
-             item.name === 'Monje' ? ['fue', 'dex'] :
-             item.name === 'Paladín' ? ['sab', 'car'] :
-             item.name === 'Explorador' ? ['fue', 'dex'] :
-             item.name === 'Pícaro' ? ['dex', 'int'] :
-             item.name === 'Hechicero' ? ['con', 'car'] :
-             item.name === 'Brujo' ? ['sab', 'car'] :
-             item.name === 'Mago' ? ['int', 'sab'] : ['fue', 'con']);
-
-        return {
-          id: item.name,
-          name: item.name,
-          description: parsedData.description || parsedData.desc || '',
-          hitDice: parseHitDie(parsedData.hit_die || parsedData.hit_dice || 8),
-          savingThrows: mappedSaves
-        };
-      });
-  }, [compendium]);
-
-  const getHitDieForClass = (className: string) => {
-    const found = dbClasses.find((c: any) => c.name === className || c.id === className);
-    if (found) return found.hitDice;
-    return 10;
-  };
-
-  const dbRaces = useMemo(() => {
-    if (!compendium) return [];
-    return compendium
-      .filter((item: any) => item.type === 'race')
-      .map((item: any) => {
-        let parsedData: any = {};
-        try {
-          parsedData = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
-        } catch (e) {
-          parsedData = {};
-        }
-        
-        const subr = (parsedData.subraces || []).map((s: any) => {
-          const subraceCompendiumItem = compendium.find(
-            (cItem: any) => 
-              cItem.type === 'subrace' && 
-              (cItem.name.toLowerCase() === s.name.toLowerCase() || 
-               (typeof cItem.data === 'string' && JSON.parse(cItem.data).index === s.index))
-          );
-          let subraceDesc = 'Sin descripción.';
-          let subraceBonuses: Record<string, number> = {};
-          if (subraceCompendiumItem) {
-            let sData: any = {};
-            try {
-              sData = typeof subraceCompendiumItem.data === 'string' 
-                ? JSON.parse(subraceCompendiumItem.data) 
-                : subraceCompendiumItem.data;
-              subraceDesc = sData.desc || sData.description || 'Sin descripción.';
-              if (Array.isArray(sData.ability_bonuses)) {
-                sData.ability_bonuses.forEach((b: any) => {
-                  if (b.ability_score && b.ability_score.index) {
-                    const engKey = b.ability_score.index;
-                    const espKey = mapEnglishStatToSpanish(engKey);
-                    subraceBonuses[espKey] = b.bonus;
-                  }
-                });
-              }
-            } catch (e) {}
-          }
-          return {
-            id: s.name,
-            name: s.name,
-            description: subraceDesc,
-            bonuses: subraceBonuses,
-            bonusText: ''
-          };
-        });
-
-        const bonuses: any = {};
-        if (Array.isArray(parsedData.ability_bonuses)) {
-          parsedData.ability_bonuses.forEach((b: any) => {
-            if (b.ability_score && b.ability_score.index) {
-              const engKey = b.ability_score.index;
-              const espKey = mapEnglishStatToSpanish(engKey);
-              bonuses[espKey] = b.bonus;
-            }
-          });
-        }
-
-        const bonusTexts = [];
-        for (const [attr, val] of Object.entries(bonuses)) {
-          bonusTexts.push(`+${val} ${attr.toUpperCase()}`);
-        }
-
-        const languagesKnown = (parsedData.languages_known || []).map((l: string) => 
-          l.charAt(0).toUpperCase() + l.slice(1)
-        );
-
-        return {
-          id: item.name,
-          name: item.name,
-          description: parsedData.size_description || parsedData.age || 'Sin descripción.',
-          age: parsedData.age || '',
-          size: parsedData.size || 'Medio',
-          speed: parsedData.speed || 30,
-          bonuses: bonuses,
-          bonusText: bonusTexts.length > 0 ? bonusTexts.join(', ') : '+1 a todo',
-          subraces: subr,
-          languages: languagesKnown.length > 0 ? languagesKnown : ['Común'],
-          alignment: parsedData.alignment || '',
-          alignmentDesc: parsedData.alignment_desc || '',
-          image: parsedData.image || ''
-        };
-      });
-  }, [compendium]);
-
-  const dbItems = useMemo(() => {
-    if (!compendium) return [];
-    return compendium
-      .filter((item: any) => item.type === 'item')
-      .map((item: any) => {
-        let parsedData: any = {};
-        try {
-          parsedData = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
-        } catch (e) {
-          parsedData = {};
-        }
-        return {
-          id: item.id,
-          name: item.name,
-          data: parsedData
-        };
-      });
-  }, [compendium]);
-
-  const getCharacterBaseSpeed = (charRaceStr: string) => {
-    if (!charRaceStr) return 6;
-    const baseRace = charRaceStr.split('(')[0].trim();
-    const found = dbRaces.find((r: any) => r.name === baseRace || r.id === baseRace);
-    if (found) {
-      return Math.floor(found.speed / 5);
-    }
-    if (baseRace === 'Enano' || baseRace === 'Mediano' || baseRace === 'Gnomo') return 5;
-    return 6;
-  };
-
-  const dbAlignments = useMemo(() => {
-    if (!compendium) return [];
-    return compendium
-      .filter((item: any) => item.type === 'alignment')
-      .map((item: any) => {
-        let parsedData: any = {};
-        try {
-          parsedData = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
-        } catch (e) {
-          parsedData = {};
-        }
-        let id = parsedData.index || item.name;
-        if (id === 'neutral') id = 'true-neutral';
-        return {
-          id: id,
-          label: item.name,
-          desc: parsedData.desc || ''
-        };
-      });
-  }, [compendium]);
+  const dbClasses = useMemo(() => buildDbClasses(compendium), [compendium]);
+  const getHitDieForClass = (className: string) => findHitDieForClass(dbClasses, className);
+  const dbRaces = useMemo(() => buildDbRaces(compendium), [compendium]);
+  const dbItems = useMemo(() => buildDbItems(compendium), [compendium]);
+  const getCharacterBaseSpeed = (charRaceStr: string) => findBaseSpeedForRace(dbRaces, charRaceStr);
+  const dbAlignments = useMemo(() => buildDbAlignments(compendium), [compendium]);
 
 
 
@@ -224,10 +61,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [image, setImage] = useState('');
   const [fullBodyImage, setFullBodyImage] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [stats, setStats] = useState({
-    fue: 8, dex: 8, con: 8,
-    int: 8, sab: 8, car: 8
-  });
+  const [stats, setStats] = useState(createDefaultAttributes);
   const [hitDieValue, setHitDieValue] = useState<number | ''>(10);
   const [showTraits, setShowTraits] = useState(false);
 
@@ -237,35 +71,8 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [backgroundItems, setBackgroundItems] = useState<string[]>(['', '']);
 
 
-  const defaultInventory = { armas: [], armaduras: [], consumibles: [], artefactos: [], coins: { pc: 0, pl: 0, el: 0, po: 0, pt: 0 }, slots: {} };
-  const [inventory, setInventory] = useState<any>(defaultInventory);
-
-
-  const defaultDraft: CharacterDraft = {
-    name: '',
-    avatarUrl: '',
-    age: null,
-    height: '',
-    weight: '',
-    gender: '',
-    alignment: null,
-    languages: ['Común'],
-    backstoryText: '',
-    race: 'Humano',
-    subrace: 'Estándar',
-    class: 'Guerrero',
-    attributes: { fue: 8, dex: 8, con: 8, int: 8, sab: 8, car: 8 },
-    savingThrows: ['fue', 'con'],
-    background: null,
-    skillProficiencies: [],
-    equipment: [],
-    personalityTrait: '',
-    ideal: '',
-    bond: '',
-    flaw: ''
-  };
-
-  const [draft, setDraft] = useState<CharacterDraft>(defaultDraft);
+  const [inventory, setInventory] = useState<any>(createDefaultInventory);
+  const [draft, setDraft] = useState<CharacterDraft>(createDefaultDraft);
 
   // --- ESTADOS PARA RECORTE DE AVATAR (CROP) ---
   const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
@@ -610,8 +417,9 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     setCharClass('Guerrero');
     setRace('Humano');
     setSubrace('Estándar');
-    setInventory(defaultInventory);
-    setStats({ fue: 8, dex: 8, con: 8, int: 8, sab: 8, car: 8 });
+    setInventory(createDefaultInventory());
+    setStats(createDefaultAttributes());
+    setDraft(createDefaultDraft());
     setSelectedSkills([]);
     setSelectedClassSkills([]);
     setSelectedSavingThrows(['fue', 'con']);
@@ -741,47 +549,6 @@ Tiraste un d${hitDie} y sacaste ${roll}.
 Modificador de CON: ${getModStr(charStats.con)}.
 ¡Tu Vida Máxima aumenta en ${hpGain} puntos!`);
       applyUpdate();
-    }
-  };
-
-  // --- LÓGICA DE MONSTRUOS (BESTIARIO) ---
-
-
-
-  // --- ESTILOS ---
-  const styles = {
-    container: {
-      display: 'flex',
-      flexDirection: 'column' as const,
-      gap: '40px',
-      color: 'var(--text-parchment)',
-      width: '100%',
-      paddingBottom: '100px'
-    },
-    card: {
-      background: 'var(--bg-surface)',
-      padding: '40px',
-      border: '1px solid var(--border-color)',
-      boxShadow: '0 20px 60px rgba(0,0,0,0.6)'
-    },
-    input: {
-      padding: 'var(--search-input-padding)',
-      background: 'var(--bg-base)',
-      border: '1px solid var(--border-color)',
-      borderRadius: '2px',
-      color: 'white',
-      width: '100%',
-      boxSizing: 'border-box' as const,
-      outline: 'none',
-      transition: 'border-color 0.2s'
-    },
-    statLabel: {
-      fontSize: '0.9rem',
-      color: 'var(--accent-gold)',
-      fontWeight: 'bold' as const,
-      marginBottom: '6px',
-      display: 'block',
-      letterSpacing: '1px'
     }
   };
 
