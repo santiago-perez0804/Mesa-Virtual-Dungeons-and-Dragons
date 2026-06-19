@@ -3,6 +3,7 @@ import { Ghost, User, Backpack, Dices, StickyNote, Box, Lock, Coins, Swords, Arr
 import { ChatPanel } from './PanelChat';
 import { NoteTokenIcon, ImageTokenIcon, ClosedChestIcon, OpenChestIcon, ItemDropIcon, LineAoeIcon, ConeAoeIcon, CircleAoeIcon, SquareAoeIcon, getAoeIcon } from '../shared/components/iconos';
 import { CELL_PX, GRID_SIZE, BOARD_PX } from '../modules/combate/grilla.constantes';
+import { getGridItemCategory, safeParseGridInventory } from '../modules/combate/grilla.inventario';
 import { getLineCells } from '../modules/combate/lineaVision';
 import { renderConditionIcon } from './combate/ConditionIcon';
 
@@ -276,39 +277,8 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
     setCompendiumSlotIndex(null);
   };
 
-  const safeParseInventory = (inventoryField: any): any => {
-    const defaultInventory = { armas: [], armaduras: [], consumibles: [], artefactos: [], coins: { pc: 0, pl: 0, el: 0, po: 0, pt: 0 }, slots: {} };
-    if (!inventoryField) return defaultInventory;
-    let parsed = inventoryField;
-    try {
-      while (typeof parsed === 'string') {
-        parsed = JSON.parse(parsed);
-      }
-    } catch (e) {}
-    if (!parsed || typeof parsed !== 'object') return defaultInventory;
-    return {
-      armas: Array.isArray(parsed.armas) ? parsed.armas : [],
-      armaduras: Array.isArray(parsed.armaduras) ? parsed.armaduras : [],
-      consumibles: Array.isArray(parsed.consumibles) ? parsed.consumibles : [],
-      artefactos: Array.isArray(parsed.artefactos) ? parsed.artefactos : [],
-      coins: parsed.coins && typeof parsed.coins === 'object' ? parsed.coins : defaultInventory.coins,
-      slots: parsed.slots && typeof parsed.slots === 'object' ? parsed.slots : {}
-    };
-  };
-
-  const getItemCategory = (itData: any) => {
-    const tags = Array.isArray(itData.tags) ? itData.tags.map((t: string) => t.toLowerCase()) : [];
-    if (itData.isDamage || tags.includes('arma') || tags.includes('weapon') || tags.includes('armas')) {
-      return 'armas';
-    }
-    if (itData.isProtect || tags.includes('armadura') || tags.includes('armor') || tags.includes('armaduras')) {
-      return 'armaduras';
-    }
-    if (tags.includes('pocion') || tags.includes('pergamino') || tags.includes('consumible') || tags.includes('potion') || tags.includes('scroll') || tags.includes('consumibles')) {
-      return 'consumibles';
-    }
-    return 'artefactos';
-  };
+  const safeParseInventory = safeParseGridInventory;
+  const getItemCategory = getGridItemCategory;
 
   const handleLootItemClick = (index: number) => {
     const activeChest = boardTokens.find((t: any) => t.instanceId === selectedChestToken?.instanceId);
