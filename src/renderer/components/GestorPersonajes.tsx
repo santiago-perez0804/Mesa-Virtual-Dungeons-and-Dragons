@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { User, Shield, Backpack, X, Link, Scale, ChevronLeft, ChevronRight, Check, Dices, ChevronUp, Pencil, Heart, Zap, Footprints, Award, Search, Filter } from 'lucide-react';
 import { classes } from '../../data/dnd-datos';
 import type { CharacterDraft } from '../../data/dnd-datos';
@@ -26,7 +26,14 @@ import {
   createDefaultDraft,
   createDefaultInventory
 } from '../modules/personaje/personaje.defaults';
+import {
+  filterCharacters,
+  parseCharacterClasses,
+  sortCharacters,
+  type CharacterSortKey
+} from '../modules/personaje/personaje.listado';
 import { characterManagerStyles as styles } from '../modules/personaje/personaje.styles';
+import { useCharacterImageCropper } from '../modules/personaje/hooks/useCharacterImageCropper';
 
 import { CharacterInventoryTab } from './personaje/PestanaInventarioPersonaje';
 import { CharacterTraitsTab } from './personaje/PestanaRasgosPersonaje';
@@ -74,44 +81,36 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [inventory, setInventory] = useState<any>(createDefaultInventory);
   const [draft, setDraft] = useState<CharacterDraft>(createDefaultDraft);
 
-  // --- ESTADOS PARA RECORTE DE AVATAR (CROP) ---
-  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
-  const [showCropModal, setShowCropModal] = useState(false);
-  const [cropScale, setCropScale] = useState(1);
-  const [cropOffsetX, setCropOffsetX] = useState(0);
-  const [cropOffsetY, setCropOffsetY] = useState(0);
-  const [isCropDragging, setIsCropDragging] = useState(false);
-  const [cropDragStart, setCropDragStart] = useState({ x: 0, y: 0 });
-  const [cropImgDims, setCropImgDims] = useState({ width: 0, height: 0 });
-  const [cropMode, setCropMode] = useState<'avatar' | 'portrait'>('avatar');
-  const cropImgRef = useRef<HTMLImageElement>(null);
-  const portraitInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!cropImgDims.width || !cropImgDims.height) return;
-    
-    const viewportW = 260;
-    const viewportH = cropMode === 'avatar' ? 260 : 390;
-    
-    const imgAspect = cropImgDims.width / cropImgDims.height;
-    const viewportAspect = viewportW / viewportH;
-    const fitsHeight = imgAspect > viewportAspect;
-    
-    const baseWidth = fitsHeight ? viewportH * imgAspect : viewportW;
-    const baseHeight = fitsHeight ? viewportH : viewportW / imgAspect;
-    
-    const W = baseWidth * cropScale;
-    const H = baseHeight * cropScale;
-    
-    const maxOffsetX = Math.max(0, (W - viewportW) / 2);
-    const maxOffsetY = Math.max(0, (H - viewportH) / 2);
-    
-    setCropOffsetX(prev => Math.min(maxOffsetX, Math.max(-maxOffsetX, prev)));
-    setCropOffsetY(prev => Math.min(maxOffsetY, Math.max(-maxOffsetY, prev)));
-  }, [cropScale, cropImgDims, cropMode]);
-
-
-
+  const {
+    cropImageSrc,
+    setCropImageSrc,
+    showCropModal,
+    setShowCropModal,
+    cropScale,
+    setCropScale,
+    cropOffsetX,
+    setCropOffsetX,
+    cropOffsetY,
+    setCropOffsetY,
+    isCropDragging,
+    setIsCropDragging,
+    cropDragStart,
+    setCropDragStart,
+    cropImgDims,
+    setCropImgDims,
+    cropMode,
+    setCropMode,
+    cropImgRef,
+    portraitInputRef,
+    handleImageUpload,
+    handleCropSave
+  } = useCharacterImageCropper({
+    onAvatarUploaded: (url: string) => {
+      setImage(url);
+      setDraft(prev => ({ ...prev, avatarUrl: url }));
+    },
+    onPortraitUploaded: setFullBodyImage
+  });
 
 
   const [raceQuery, setRaceQuery] = useState(draft.race || '');
@@ -154,7 +153,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   // --- ESTADOS DE BÚSQUEDA ---
   const [searchTerm, setSearchTerm] = useState('');
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
-  const [sortBy, setSortBy] = useState<'none' | 'level-asc' | 'level-desc' | 'class' | 'hp'>('none');
+  const [sortBy, setSortBy] = useState<CharacterSortKey>('none');
 
   useEffect(() => {
     if (!sortDropdownOpen) return;
@@ -249,92 +248,6 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   }, [activeSlotIndex]);
 
   // --- LÓGICA DE PERSONAJES ---
-
-  const handleImageUpload = (e: any) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setCropImageSrc(reader.result as string);
-        setCropScale(1);
-        setCropOffsetX(0);
-        setCropOffsetY(0);
-        setShowCropModal(true);
-      };
-      reader.readAsDataURL(file);
-      e.target.value = '';
-    }
-  };
-
-  const handleCropSave = async () => {
-    const canvas = document.createElement('canvas');
-    const canvasW = cropMode === 'avatar' ? 300 : 520;
-    const canvasH = cropMode === 'avatar' ? 300 : 780;
-    canvas.width = canvasW;
-    canvas.height = canvasH;
-    const ctx = canvas.getContext('2d');
-    if (ctx && cropImgRef.current) {
-      // Fondo transparente/negro
-      ctx.fillStyle = '#0f0c08';
-      ctx.fillRect(0, 0, canvasW, canvasH);
-
-      const img = cropImgRef.current;
-      const iw = img.naturalWidth;
-      const ih = img.naturalHeight;
-
-      const viewportW = 260;
-      const viewportH = cropMode === 'avatar' ? 260 : 390;
-
-      const imgAspect = iw / ih;
-      const viewportAspect = viewportW / viewportH;
-      const fitsHeight = imgAspect > viewportAspect;
-
-      const baseScale = fitsHeight ? (canvasH / ih) : (canvasW / iw);
-      const finalScale = baseScale * cropScale;
-
-      const dw = iw * finalScale;
-      const dh = ih * finalScale;
-
-      const scaleX = canvasW / viewportW;
-      const scaleY = canvasH / viewportH;
-
-      // Dibujar con los desplazamientos de arrastre
-      const dx = (canvasW / 2) - dw / 2 + (cropOffsetX * scaleX);
-      const dy = (canvasH / 2) - dh / 2 + (cropOffsetY * scaleY);
-
-      ctx.drawImage(img, dx, dy, dw, dh);
-
-      const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-
-      try {
-        const blob = await (await fetch(croppedDataUrl)).blob();
-        const file = new File([blob], 'image.jpg', { type: 'image/jpeg' });
-
-        const formData = new FormData();
-        formData.append('file', file);
-        const backendUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
-        const uploadUrl = `${backendUrl}/api/upload?folder=avatars`;
-
-        const res = await fetch(uploadUrl, { method: 'POST', body: formData });
-        const data = await res.json();
-        if (data.success) {
-          if (cropMode === 'avatar') {
-            setImage(data.url);
-            setDraft(prev => ({ ...prev, avatarUrl: data.url }));
-          } else {
-            setFullBodyImage(data.url);
-          }
-          setShowCropModal(false);
-          setCropImageSrc(null);
-        } else {
-          alert('Error al subir imagen recortada: ' + data.error);
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Error de conexión al subir la imagen');
-      }
-    }
-  };
 
   const handleSave = () => {
     if (!name) return alert("¡Tu héroe necesita un nombre!");
@@ -492,14 +405,6 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     }
   };
 
-  const parseClasses = (clsStr: string) => {
-    try {
-      const parsed = JSON.parse(clsStr);
-      if (typeof parsed === 'object' && parsed !== null) return parsed;
-    } catch { }
-    return { [clsStr || "Guerrero"]: 1 };
-  };
-
   const handleLevelUp = () => {
     if (!levelUpClass) return alert("Elige una clase para tomar tu nuevo nivel.");
 
@@ -510,7 +415,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     const hpGain = Math.max(1, roll + conMod);
     const newLevel = (selectedCharacter.level || 1) + 1;
 
-    const parsedClasses = parseClasses(selectedCharacter.class);
+    const parsedClasses = parseCharacterClasses(selectedCharacter.class);
     parsedClasses[levelUpClass] = (parsedClasses[levelUpClass] || 0) + 1;
 
     const applyUpdate = () => {
@@ -552,28 +457,8 @@ Modificador de CON: ${getModStr(charStats.con)}.
     }
   };
 
-  const filteredCharacters = characters.filter((c: any) =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.owner?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const sortedCharacters = useMemo(() => {
-    let result = [...filteredCharacters];
-    if (sortBy === 'level-asc') {
-      result.sort((a, b) => (a.level || 1) - (b.level || 1));
-    } else if (sortBy === 'level-desc') {
-      result.sort((a, b) => (b.level || 1) - (a.level || 1));
-    } else if (sortBy === 'class') {
-      result.sort((a, b) => {
-        const classA = Object.keys(parseClasses(a.class))[0] || '';
-        const classB = Object.keys(parseClasses(b.class))[0] || '';
-        return classA.localeCompare(classB);
-      });
-    } else if (sortBy === 'hp') {
-      result.sort((a, b) => (b.max_hp || 0) - (a.max_hp || 0));
-    }
-    return result;
-  }, [filteredCharacters, sortBy]);
+  const filteredCharacters = useMemo(() => filterCharacters(characters, searchTerm), [characters, searchTerm]);
+  const sortedCharacters = useMemo(() => sortCharacters(filteredCharacters, sortBy), [filteredCharacters, sortBy]);
 
   return (
     <div style={styles.container}>
@@ -647,17 +532,17 @@ Modificador de CON: ${getModStr(charStats.con)}.
                     padding: '5px 0'
                   }}
                 >
-                  {[
+                  {([
                     { key: 'none', label: 'Sin ordenar' },
                     { key: 'level-asc', label: 'Nivel (asc)' },
                     { key: 'level-desc', label: 'Nivel (desc)' },
                     { key: 'class', label: 'Por clase' },
                     { key: 'hp', label: 'Por PG' }
-                  ].map((opt) => (
+                  ] as Array<{ key: CharacterSortKey; label: string }>).map((opt) => (
                     <button
                       key={opt.key}
                       onClick={() => {
-                        setSortBy(opt.key as any);
+                        setSortBy(opt.key);
                         setSortDropdownOpen(false);
                       }}
                       style={{
@@ -721,7 +606,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(var(--char-grid-minmax), 1fr))', gap: 'var(--char-grid-gap)' }}>
 
           {sortedCharacters.map((c: any) => {
-            const parsedCls = parseClasses(c.class);
+            const parsedCls = parseCharacterClasses(c.class);
             const className = Object.keys(parsedCls)[0] || 'Clase';
             return (
               <HeroCard
@@ -2461,7 +2346,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
       {selectedCharacter && (() => {
         const charStats = safeParseStats(selectedCharacter.stats);
         const charInv = safeParseInventory(selectedCharacter.inventory);
-        const parsedClasses = parseClasses(selectedCharacter.class);
+        const parsedClasses = parseCharacterClasses(selectedCharacter.class);
         const classesDisplay = Object.entries(parsedClasses).map(([cls, lvl]) => `${cls} ${lvl}`).join(' / ');
         const isSpellcaster = Object.keys(parsedClasses).some(cls => {
           const clsLower = cls.toLowerCase().trim();
