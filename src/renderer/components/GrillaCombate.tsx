@@ -1,48 +1,10 @@
 import React, { useEffect, useState, useRef } from 'react';
-import { Ghost, HeartCrack, Flame, Snowflake, Moon, Shield, Zap, Biohazard, Activity, X, User, Backpack, Dices, StickyNote, Box, Lock, Coins, Swords, ArrowRight } from 'lucide-react';
+import { Ghost, User, Backpack, Dices, StickyNote, Box, Lock, Coins, Swords, ArrowRight } from 'lucide-react';
 import { ChatPanel } from './PanelChat';
-import { NoteTokenIcon, ImageTokenIcon, ClosedChestIcon, OpenChestIcon, ItemDropIcon, CompassIcon, LineAoeIcon, ConeAoeIcon, CircleAoeIcon, SquareAoeIcon, getAoeIcon } from '../shared/components/iconos';
-
-const CELL_PX = 50;
-const GRID_SIZE = 30;
-const BOARD_PX = GRID_SIZE * CELL_PX;
-
-const getLineCells = (x0: number, y0: number, x1: number, y1: number) => {
-  const cells: [number, number][] = [];
-  let dx = Math.abs(x1 - x0);
-  let dy = Math.abs(y1 - y0);
-  let sx = (x0 < x1) ? 1 : -1;
-  let sy = (y0 < y1) ? 1 : -1;
-  let err = dx - dy;
-
-  while (true) {
-    cells.push([x0, y0]);
-    if (x0 === x1 && y0 === y1) break;
-    let e2 = 2 * err;
-    if (e2 > -dy) { err -= dy; x0 += sx; }
-    if (e2 < dx) { err += dx; y0 += sy; }
-  }
-  return cells;
-};
-
-
-const renderConditionIcon = (emo) => {
-  switch (emo) {
-    case '😵': return <Ghost className="w-4 h-4 m-auto" />;
-    case '😨': return <HeartCrack className="w-4 h-4 m-auto" />;
-    case '🔥': return <Flame className="w-4 h-4 m-auto" />;
-    case '❄️': return <Snowflake className="w-4 h-4 m-auto" />;
-    case '💤': return <Moon className="w-4 h-4 m-auto" />;
-    case '🛡️': return <Shield className="w-4 h-4 m-auto" />;
-    case '⚡': return <Zap className="w-4 h-4 m-auto" />;
-    case '🤢': return <Biohazard className="w-4 h-4 m-auto" />;
-    case '😡': return <Activity className="w-4 h-4 m-auto" />;
-    case '🤸': return <Activity className="w-4 h-4 m-auto" />;
-    case '❌': return <X className="w-3 h-3 m-auto" />;
-    case '': return <X className="w-4 h-4 m-auto" />;
-    default: return emo;
-  }
-};
+import { NoteTokenIcon, ImageTokenIcon, ClosedChestIcon, OpenChestIcon, ItemDropIcon, LineAoeIcon, ConeAoeIcon, CircleAoeIcon, SquareAoeIcon, getAoeIcon } from '../shared/components/iconos';
+import { CELL_PX, GRID_SIZE, BOARD_PX } from '../modules/combate/grilla.constantes';
+import { getLineCells } from '../modules/combate/lineaVision';
+import { renderConditionIcon } from './combate/ConditionIcon';
 
 export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, characters, monsters, chatMessages, compendium = [], onOpenCharacterSheet, onOpenMonsterSheet }: any) => {
   const [bgImage, setBgImage] = useState<string | null>(null);
