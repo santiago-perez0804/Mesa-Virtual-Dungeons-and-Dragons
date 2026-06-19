@@ -6,82 +6,15 @@ import { db, initDB, updateCompendiumItem } from './bd.js';
 import { runFullImport } from './sembrador.js';
 import { initAI, startAISession, sendChatMessageToAI, sendDiceRollToAI, endAISession, isAISessionActive } from './ia-dm.js';
 import { initImageAI, generateItemImage } from './ia-imagen.js';
-import multer from 'multer';
-import { uploadToS3 } from './services/servicioS3.js';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import { getRoomBoardState } from './estado.js';
+import { safeParseInventory, safeParseStats } from './utils/parse.js';
+import { syncClassTraitsToFeaturesTable } from './utils/classTraits.js';
+import { registerClassFeaturesRoutes } from './routes/classFeatures.routes.js';
+import { registerUploadRoutes } from './routes/upload.routes.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dnd-vtt-secret-key-fallback-2026';
-
-// Helpers de Parseo Seguro de JSON para prevenir double-serialization o spreads corruptos
-function safeParseJSON(field: any, defaultVal: any): any {
-  if (!field) return defaultVal;
-  let parsed = field;
-  try {
-    while (typeof parsed === 'string') {
-      const nextParsed = JSON.parse(parsed);
-      if (nextParsed === parsed) break;
-      parsed = nextParsed;
-    }
-  } catch (e) {}
-  
-  if (parsed && typeof parsed === 'object') {
-    if (parsed["0"] !== undefined && parsed["1"] !== undefined) {
-      try {
-        let reconstructedStr = "";
-        let idx = 0;
-        while (parsed[idx] !== undefined) {
-          reconstructedStr += parsed[idx];
-          idx++;
-        }
-        let recovered = JSON.parse(reconstructedStr);
-        while (typeof recovered === 'string') {
-          recovered = JSON.parse(recovered);
-        }
-        if (recovered && typeof recovered === 'object') {
-          parsed = recovered;
-        }
-      } catch (e) {
-        console.error("Error recovering corrupted spread JSON:", e);
-      }
-    }
-  }
-
-  if (!parsed || typeof parsed !== 'object') {
-    return defaultVal;
-  }
-  return parsed;
-}
-
-function safeParseInventory(inventoryField: any): any {
-  const defaultInventory = { armas: [], armaduras: [], consumibles: [], artefactos: [], coins: { pc: 0, pl: 0, el: 0, po: 0, pt: 0 }, slots: {}, habilidades: [], salvaciones: [], trasfondo: [] };
-  const parsed = safeParseJSON(inventoryField, defaultInventory);
-  return {
-    armas: Array.isArray(parsed.armas) ? parsed.armas : [],
-    armaduras: Array.isArray(parsed.armaduras) ? parsed.armaduras : [],
-    consumibles: Array.isArray(parsed.consumibles) ? parsed.consumibles : [],
-    artefactos: Array.isArray(parsed.artefactos) ? parsed.artefactos : [],
-    coins: parsed.coins && typeof parsed.coins === 'object' ? parsed.coins : defaultInventory.coins,
-    slots: parsed.slots && typeof parsed.slots === 'object' ? parsed.slots : {},
-    habilidades: Array.isArray(parsed.habilidades) ? parsed.habilidades : [],
-    salvaciones: Array.isArray(parsed.salvaciones) ? parsed.salvaciones : [],
-    trasfondo: Array.isArray(parsed.trasfondo) ? parsed.trasfondo : []
-  };
-}
-
-function safeParseStats(statsField: any): any {
-  const defaultStats = { fue: 10, dex: 10, con: 10, int: 10, sab: 10, car: 10 };
-  const parsed = safeParseJSON(statsField, defaultStats);
-  return {
-    ...parsed,
-    fue: typeof parsed.fue === 'number' ? parsed.fue : 10,
-    dex: typeof parsed.dex === 'number' ? parsed.dex : 10,
-    con: typeof parsed.con === 'number' ? parsed.con : 10,
-    int: typeof parsed.int === 'number' ? parsed.int : 10,
-    sab: typeof parsed.sab === 'number' ? parsed.sab : 10,
-    car: typeof parsed.car === 'number' ? parsed.car : 10
-  };
-}
 
 function getSocketRole(socket: any): string {
   if (socket.data.role === 'admin') return 'admin';
@@ -104,41 +37,8 @@ function getSocketRole(socket: any): string {
   return 'player';
 }
 
-// Estado volátil del tablero por salas de campaña
-interface RoomBoardState {
-  boardTokens: any[];
-  currentGridBg: string;
-  solidCells: string[];
-  isNightMode: boolean;
-  combatState: {
-    turnModeActive: boolean;
-    initiativeOrder: { tokenId: string; value: number }[];
-    currentTurnIndex: number;
-  };
-}
-
-const roomBoards: Record<number, RoomBoardState> = {};
-
-function getRoomBoardState(campaignId: number): RoomBoardState {
-  if (!roomBoards[campaignId]) {
-    roomBoards[campaignId] = {
-      boardTokens: [],
-      currentGridBg: '',
-      solidCells: [],
-      isNightMode: false,
-      combatState: {
-        turnModeActive: false,
-        initiativeOrder: [],
-        currentTurnIndex: 0
-      }
-    };
-  }
-  return roomBoards[campaignId];
-}
-
 const app = express();
 app.use(express.json());
-const upload = multer({ storage: multer.memoryStorage() });
 
 // Middleware de CORS para que el frontend (Vite en puerto 5173) pueda consumir la API
 app.use((req, res, next) => {
@@ -152,324 +52,21 @@ app.use((req, res, next) => {
   next();
 });
 
-// Helper Functions for Two-Way Sync between Class Traits and class_features Table
-function syncClassTraitsToFeaturesTable(className: string, data: any) {
-  try {
-    const traits = data?.traits || [];
-    
-    // 1. Fetch current features for this class in DB
-    const dbFeatures = db.prepare("SELECT id, feature_name, level_acquired FROM class_features WHERE LOWER(class_name) = LOWER(?)")
-      .all(className) as { id: number, feature_name: string, level_acquired: number }[];
-
-    // 2. Delete any DB features that are NOT in the new traits list
-    for (const dbFeat of dbFeatures) {
-      const existsInTraits = traits.some((t: any) => t.name.toLowerCase() === dbFeat.feature_name.toLowerCase() && parseInt(t.level) === dbFeat.level_acquired);
-      if (!existsInTraits) {
-        db.prepare("DELETE FROM class_features WHERE id = ?").run(dbFeat.id);
-      }
-    }
-
-    // 3. Insert or update traits in the DB
-    for (const trait of traits) {
-      const existing = db.prepare("SELECT id FROM class_features WHERE LOWER(class_name) = LOWER(?) AND LOWER(feature_name) = LOWER(?) AND level_acquired = ?")
-        .get(className, trait.name, parseInt(trait.level)) as { id: number } | undefined;
-
-      if (existing) {
-        db.prepare("UPDATE class_features SET description = ?, short_description = ? WHERE id = ?")
-          .run(trait.desc || trait.description, trait.short_description || '', existing.id);
-      } else {
-        db.prepare("INSERT INTO class_features (class_name, feature_name, level_acquired, description, short_description) VALUES (?, ?, ?, ?, ?)")
-          .run(className, trait.name, parseInt(trait.level), trait.desc || trait.description, trait.short_description || '');
-      }
-    }
-  } catch (err: any) {
-    console.error("Error syncing class traits to features table:", err.message);
-  }
-}
-
-function syncFeatureToClassContentItem(
-  className: string,
-  featureName: string,
-  level: number,
-  description: string,
-  shortDescription: string,
-  oldClassName?: string,
-  oldFeatureName?: string,
-  oldLevel?: number
-) {
-  try {
-    if (oldClassName && oldClassName.toLowerCase() !== className.toLowerCase()) {
-      deleteFeatureFromClassContentItem(oldClassName, oldFeatureName || featureName, oldLevel);
-    }
-
-    const classRow = db.prepare("SELECT id, data FROM content_items WHERE type = 'class' AND LOWER(name) = LOWER(?)")
-      .get(className) as { id: number, data: string } | undefined;
-
-    if (!classRow) return;
-
-    let data: any = {};
-    try {
-      data = JSON.parse(classRow.data);
-    } catch {
-      data = {};
-    }
-
-    if (!data.traits) data.traits = [];
-
-    const targetName = oldFeatureName || featureName;
-    const targetLevel = oldLevel !== undefined ? oldLevel : level;
-    const existingIndex = data.traits.findIndex((t: any) => t.name.toLowerCase() === targetName.toLowerCase() && parseInt(t.level) === targetLevel);
-
-    const newTrait = {
-      level,
-      name: featureName,
-      type: (existingIndex >= 0 ? data.traits[existingIndex]?.type : null) || 'Pasivo',
-      desc: description,
-      short_description: shortDescription
-    };
-
-    if (existingIndex >= 0) {
-      data.traits[existingIndex] = newTrait;
-    } else {
-      data.traits.push(newTrait);
-    }
-
-    data.traits.sort((a: any, b: any) => a.level - b.level);
-
-    if (oldFeatureName && oldFeatureName !== featureName && data.table) {
-      data.table = data.table.replace(new RegExp(escapeRegExp(oldFeatureName), 'g'), featureName);
-    }
-
-    db.prepare("UPDATE content_items SET data = ? WHERE id = ?")
-      .run(JSON.stringify(data), classRow.id);
-
-    if (io) {
-      io.emit('content:list', db.prepare("SELECT * FROM content_items").all());
-    }
-  } catch (err: any) {
-    console.error("Error in syncFeatureToClassContentItem:", err.message);
-  }
-}
-
-function deleteFeatureFromClassContentItem(className: string, featureName: string, level?: number) {
-  try {
-    const classRow = db.prepare("SELECT id, data FROM content_items WHERE type = 'class' AND LOWER(name) = LOWER(?)")
-      .get(className) as { id: number, data: string } | undefined;
-
-    if (!classRow) return;
-
-    let data: any = {};
-    try {
-      data = JSON.parse(classRow.data);
-    } catch {
-      data = {};
-    }
-
-    if (!data.traits) return;
-
-    if (level !== undefined) {
-      data.traits = data.traits.filter((t: any) => !(t.name.toLowerCase() === featureName.toLowerCase() && parseInt(t.level) === level));
-    } else {
-      data.traits = data.traits.filter((t: any) => t.name.toLowerCase() !== featureName.toLowerCase());
-    }
-
-    if (data.table) {
-      let table = data.table;
-      table = table.replace(new RegExp(`,\\s*${escapeRegExp(featureName)}`, 'gi'), '');
-      table = table.replace(new RegExp(`${escapeRegExp(featureName)}\\s*,?`, 'gi'), '');
-      data.table = table;
-    }
-
-    db.prepare("UPDATE content_items SET data = ? WHERE id = ?")
-      .run(JSON.stringify(data), classRow.id);
-
-    if (io) {
-      io.emit('content:list', db.prepare("SELECT * FROM content_items").all());
-    }
-  } catch (err: any) {
-    console.error("Error in deleteFeatureFromClassContentItem:", err.message);
-  }
-}
-
-function escapeRegExp(str: string) {
-  return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-// Endpoint REST para TODOS los rasgos de clases
-app.get('/api/class-features', (_req, res) => {
-  try {
-    const features = db.prepare("SELECT id, class_name, feature_name, level_acquired, description, short_description FROM class_features ORDER BY class_name ASC, level_acquired ASC").all();
-    const mapped = features.map((f: any) => ({
-      id: String(f.id),
-      name: f.feature_name,
-      class: f.class_name,
-      level: f.level_acquired,
-      description: f.description,
-      short_description: f.short_description || ''
-    }));
-    res.json(mapped);
-  } catch (err: any) {
-    console.error("Error en API /api/class-features (all):", err.message);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
-// Crear un nuevo rasgo
-app.post('/api/class-features', (req, res) => {
-  try {
-    const { class_name, feature_name, level_acquired, description, short_description } = req.body;
-    if (!class_name || !feature_name || !level_acquired || !description) {
-      res.status(400).json({ error: "Faltan campos requeridos" });
-      return;
-    }
-    const result = db.prepare("INSERT INTO class_features (class_name, feature_name, level_acquired, description, short_description) VALUES (?, ?, ?, ?, ?)")
-      .run(class_name, feature_name, parseInt(level_acquired), description, short_description || '');
-    
-    const newId = String(result.lastInsertRowid);
-    syncFeatureToClassContentItem(class_name, feature_name, parseInt(level_acquired), description, short_description || '');
-
-    res.json({ id: newId, class_name, feature_name, level_acquired, description, short_description });
-  } catch (err: any) {
-    console.error("Error en POST /api/class-features:", err.message);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
-// Editar un rasgo existente
-app.put('/api/class-features/:id', (req, res) => {
-  try {
-    const id = req.params.id;
-    const { class_name, feature_name, level_acquired, description, short_description } = req.body;
-    if (!class_name || !feature_name || !level_acquired || !description) {
-      res.status(400).json({ error: "Faltan campos requeridos" });
-      return;
-    }
-
-    const oldFeature = db.prepare("SELECT class_name, feature_name, level_acquired FROM class_features WHERE id = ?").get(id) as { class_name: string, feature_name: string, level_acquired: number } | undefined;
-
-    db.prepare("UPDATE class_features SET class_name = ?, feature_name = ?, level_acquired = ?, description = ?, short_description = ? WHERE id = ?")
-      .run(class_name, feature_name, parseInt(level_acquired), description, short_description || '', id);
-    
-    if (oldFeature) {
-      syncFeatureToClassContentItem(
-        class_name,
-        feature_name,
-        parseInt(level_acquired),
-        description,
-        short_description || '',
-        oldFeature.class_name,
-        oldFeature.feature_name,
-        oldFeature.level_acquired
-      );
-    }
-
-    res.json({ id, class_name, feature_name, level_acquired, description, short_description });
-  } catch (err: any) {
-    console.error("Error en PUT /api/class-features:", err.message);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
-// Eliminar un rasgo
-app.delete('/api/class-features/:id', (req, res) => {
-  try {
-    const id = req.params.id;
-    const oldFeature = db.prepare("SELECT class_name, feature_name, level_acquired FROM class_features WHERE id = ?").get(id) as { class_name: string, feature_name: string, level_acquired: number } | undefined;
-
-    db.prepare("DELETE FROM class_features WHERE id = ?").run(id);
-
-    if (oldFeature) {
-      deleteFeatureFromClassContentItem(oldFeature.class_name, oldFeature.feature_name, oldFeature.level_acquired);
-    }
-
-    res.json({ success: true, id });
-  } catch (err: any) {
-    console.error("Error en DELETE /api/class-features:", err.message);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
-// Endpoint REST para rasgos de una clase específica (bilingüe y tolerante)
-app.get('/api/class-features/:className', (req, res) => {
-  try {
-    const rawClassName = req.params.className;
-    
-    const nameMap: Record<string, string> = {
-      'bárbaro': 'barbarian',
-      'barbarian': 'bárbaro',
-      'guerrero': 'fighter',
-      'fighter': 'guerrero',
-      'pícaro': 'rogue',
-      'rogue': 'pícaro',
-      'mago': 'wizard',
-      'wizard': 'mago',
-      'clérigo': 'cleric',
-      'cleric': 'clérigo',
-      'paladín': 'paladin',
-      'paladin': 'paladín',
-      'bardo': 'bard',
-      'bard': 'bardo',
-      'druida': 'druid',
-      'druid': 'druida',
-      'monje': 'monk',
-      'monk': 'monje',
-      'explorador': 'ranger',
-      'ranger': 'explorador',
-      'hechicero': 'sorcerer',
-      'sorcerer': 'hechicero',
-      'brujo': 'warlock',
-      'warlock': 'brujo'
-    };
-
-    const cleanName = rawClassName.toLowerCase();
-    const mappedName = (nameMap[cleanName] || cleanName).toLowerCase();
-    
-    const features = db.prepare("SELECT feature_name, level_acquired, description FROM class_features WHERE LOWER(class_name) = ? OR LOWER(class_name) = ? ORDER BY level_acquired ASC").all(cleanName, mappedName);
-    
-    res.json(features);
-  } catch (err: any) {
-    console.error("Error en API /api/class-features spec:", err.message);
-    res.status(500).json({ error: "Error interno del servidor" });
-  }
-});
-
 const httpServer = createServer(app);
 const io = new Server(httpServer, {
-  cors: { origin: "*" } // Clave para permitir conexiones remotas vía ngrok[cite: 1]
+  cors: { origin: "*" } // Clave para permitir conexiones remotas vía ngrok
 });
 
+// Rutas REST
+registerClassFeaturesRoutes(app, io);
+registerUploadRoutes(app);
+
 export const startServer = async () => {
-  // 1. Inicialización de persistencia y datos del SRD[cite: 1]
+  // 1. Inicialización de persistencia y datos del SRD
   initDB();
   await runFullImport();
   initAI();
   initImageAI();
-
-  app.post('/api/upload', upload.single('file'), async (req: any, res: any) => {
-    try {
-      const archivo = req.file;
-      const folder = req.query.folder || 'misc'; // Se lee la ruta/carpeta por query param
-
-      if (!archivo) {
-        res.status(400).json({ error: 'No se subió ninguna imagen' });
-        return;
-      }
-
-      // 1. Subir a AWS S3
-      const uniqueName = `${Date.now()}_${Math.round(Math.random() * 1E9)}_${archivo.originalname.replace(/\s+/g, '_')}`;
-      const urlS3 = await uploadToS3(uniqueName, archivo.buffer, archivo.mimetype, folder);
-
-      res.json({ 
-        success: true, 
-        message: 'Archivo subido correctamente', 
-        url: urlS3 
-      });
-
-    } catch (error: any) {
-      console.error("Error al subir archivo a S3:", error);
-      res.status(500).json({ error: 'Error al procesar el archivo', details: error.message });
-    }
-  });
 
   let activeAiCampaignId: number | null = null;
 
