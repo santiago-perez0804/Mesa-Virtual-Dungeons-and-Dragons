@@ -1,8 +1,7 @@
 import { useState, useEffect, useRef } from 'react';
-import { io } from 'socket.io-client';
 import { Palette, AlertTriangle, LogOut, Search } from 'lucide-react';
 import LoginScreen from './components/PantallaLogin';
-import DiceVisualizer from './components/VisualizadorDados';
+import DiceVisualizer, { type DiceType } from './components/VisualizadorDados';
 import { CharacterManager } from './components/GestorPersonajes.tsx';
 import { CombatGrid } from './components/GrillaCombate.tsx';
 import { DatabaseView } from './components/VistaCompendio.tsx';
@@ -10,14 +9,7 @@ import { AdminPanel } from './components/PanelAdmin.tsx';
 // import { ChatPanel } from './components/PanelChat.tsx';
 import { CampaignsView } from './components/VistaCampanas.tsx';
 import { parseAndRollHP } from './utils/utilidadesDados';
-
-type DiceType = 'd3' | 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20';
-
-const socket = io(
-  window.location.port === '5173'
-    ? `${window.location.protocol}//${window.location.hostname}:3000`
-    : window.location.origin
-);
+import { socket } from './app/socket';
 
 function App() {
   const [user, setUser] = useState<{ name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string } | null>(null);
