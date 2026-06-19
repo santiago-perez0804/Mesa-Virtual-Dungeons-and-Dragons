@@ -71,7 +71,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   }, [compendium]);
 
   const getHitDieForClass = (className: string) => {
-    const found = dbClasses.find(c => c.name === className || c.id === className);
+    const found = dbClasses.find((c: any) => c.name === className || c.id === className);
     if (found) return found.hitDice;
     return 10;
   };
@@ -96,7 +96,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
                (typeof cItem.data === 'string' && JSON.parse(cItem.data).index === s.index))
           );
           let subraceDesc = 'Sin descripción.';
-          let subraceBonuses = {};
+          let subraceBonuses: Record<string, number> = {};
           if (subraceCompendiumItem) {
             let sData: any = {};
             try {
@@ -184,7 +184,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const getCharacterBaseSpeed = (charRaceStr: string) => {
     if (!charRaceStr) return 6;
     const baseRace = charRaceStr.split('(')[0].trim();
-    const found = dbRaces.find(r => r.name === baseRace || r.id === baseRace);
+    const found = dbRaces.find((r: any) => r.name === baseRace || r.id === baseRace);
     if (found) {
       return Math.floor(found.speed / 5);
     }
@@ -235,12 +235,6 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [selectedClassSkills, setSelectedClassSkills] = useState<string[]>([]);
   const [selectedSavingThrows, setSelectedSavingThrows] = useState<string[]>(['fue', 'con']);
   const [backgroundItems, setBackgroundItems] = useState<string[]>(['', '']);
-  const [skillQuery, setSkillQuery] = useState('');
-  const [skillDropdownOpen, setSkillDropdownOpen] = useState(false);
-  const [itemQuery0, setItemQuery0] = useState('');
-  const [itemDropdownOpen0, setItemDropdownOpen0] = useState(false);
-  const [itemQuery1, setItemQuery1] = useState('');
-  const [itemDropdownOpen1, setItemDropdownOpen1] = useState(false);
 
 
   const defaultInventory = { armas: [], armaduras: [], consumibles: [], artefactos: [], coins: { pc: 0, pl: 0, el: 0, po: 0, pt: 0 }, slots: {} };
@@ -447,12 +441,6 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     }
   }, [activeSlotIndex]);
 
-
-
-  // --- CÁLCULO POINT BUY ---
-  const spentPoints = Object.values(stats).reduce((acc, val) => acc + getPointCost(val), 0);
-  const remainingPoints = 27 - spentPoints;
-
   // --- LÓGICA DE PERSONAJES ---
 
   const handleImageUpload = (e: any) => {
@@ -558,12 +546,12 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     const finalStats = { ...stats };
     if (!editingId) {
       const baseRace = race.split('(')[0].trim();
-      const dbRaceObj = dbRaces.find(r => r.name === baseRace || r.id === baseRace);
+      const dbRaceObj = dbRaces.find((r: any) => r.name === baseRace || r.id === baseRace);
       const bonuses = dbRaceObj?.bonuses || {};
       Object.keys(bonuses).forEach((s: string) => {
         (finalStats as any)[s] += bonuses[s];
       });
-      const subraceObj = dbRaceObj?.subraces?.find(sr => sr.id === subrace || sr.name === subrace);
+      const subraceObj = dbRaceObj?.subraces?.find((sr: any) => sr.id === subrace || sr.name === subrace);
       const subraceBonuses = subraceObj?.bonuses || {};
       Object.keys(subraceBonuses).forEach((s: string) => {
         (finalStats as any)[s] += subraceBonuses[s];
@@ -657,7 +645,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     setInventory(parsedInv);
 
     // Split skills between background skills and class skills
-    const foundDbClass = dbClasses.find(cls => cls.name === currentClass || cls.id === currentClass);
+    const foundDbClass = dbClasses.find((cls: any) => cls.name === currentClass || cls.id === currentClass);
     let allSkills = parsedInv.habilidades || [];
     let bgSkills: string[] = [];
     let clsSkills: string[] = [];
@@ -693,22 +681,6 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const handleDelete = (id: number) => {
     if (window.confirm("¿Estás seguro de eliminar este aventurero?")) {
       socket.emit('character:delete', id);
-    }
-  };
-
-  const updateStat = (stat: string, val: number) => {
-    if (editingId) {
-      // En modo edición (Level Up manual de stats), permitimos ir hasta 20
-      const clampedVal = Math.max(1, Math.min(20, val));
-      setStats({ ...stats, [stat]: clampedVal });
-    } else {
-      // Modo Creación (Point Buy)
-      const clampedVal = Math.max(8, Math.min(15, val));
-      const currentCost = getPointCost(stats[stat as keyof typeof stats]);
-      const newCost = getPointCost(clampedVal);
-      if (spentPoints - currentCost + newCost <= 27) {
-        setStats({ ...stats, [stat]: clampedVal });
-      }
     }
   };
 
@@ -1148,7 +1120,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                             zIndex: 100, maxHeight: '200px', overflowY: 'auto', marginTop: '5px',
                             boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
                           }}>
-                            {dbRaces.filter(r => r.name.toLowerCase().includes(raceQuery.toLowerCase())).map(r => (
+                            {dbRaces.filter((r: any) => r.name.toLowerCase().includes(raceQuery.toLowerCase())).map((r: any) => (
                               <div
                                 key={r.id}
                                 onClick={() => {
@@ -1180,14 +1152,14 @@ Modificador de CON: ${getModStr(charStats.con)}.
                         {/* Descripción de Raza */}
                         {draft.race && (
                           <div style={{ fontSize: '0.85rem', color: 'var(--text-parchment)', opacity: 0.9, fontStyle: 'italic', padding: '12px 18px', background: 'rgba(200, 135, 42, 0.04)', borderLeft: '3px solid var(--accent-gold)', marginTop: '8px' }}>
-                            {dbRaces.find(r => r.id === draft.race || r.name === draft.race)?.description}
+                            {dbRaces.find((r: any) => r.id === draft.race || r.name === draft.race)?.description}
                           </div>
                         )}
                       </div>
 
                       {/* Buscador de Subraza (si la raza elegida tiene subrazas) */}
                       {(() => {
-                        const selectedRaceObj = dbRaces.find(r => r.id === draft.race || r.name === draft.race);
+                        const selectedRaceObj = dbRaces.find((r: any) => r.id === draft.race || r.name === draft.race);
                         if (!selectedRaceObj || !selectedRaceObj.subraces || selectedRaceObj.subraces.length === 0) return null;
 
                         return (
@@ -1214,7 +1186,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                                 zIndex: 100, maxHeight: '150px', overflowY: 'auto', marginTop: '5px',
                                 boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
                               }}>
-                                {selectedRaceObj.subraces.filter(sr => sr.name.toLowerCase().includes(subraceQuery.toLowerCase())).map(sr => (
+                                {selectedRaceObj.subraces.filter((sr: any) => sr.name.toLowerCase().includes(subraceQuery.toLowerCase())).map((sr: any) => (
                                   <div
                                     key={sr.id}
                                     onClick={() => {
@@ -1239,7 +1211,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                             {/* Descripción de Subraza */}
                             {draft.subrace && (
                               <div style={{ fontSize: '0.85rem', color: 'var(--text-parchment)', opacity: 0.9, fontStyle: 'italic', padding: '12px 18px', background: 'rgba(200, 135, 42, 0.04)', borderLeft: '3px solid var(--accent-gold)', marginTop: '8px' }}>
-                                {selectedRaceObj.subraces.find(sr => sr.id === draft.subrace)?.description}
+                                {selectedRaceObj.subraces.find((sr: any) => sr.id === draft.subrace)?.description}
                               </div>
                             )}
                           </div>
@@ -1305,9 +1277,9 @@ Modificador de CON: ${getModStr(charStats.con)}.
                             />
                           </div>
                         )}
-                        {draft.race && (fullBodyImage || dbRaces.find(r => r.id === draft.race || r.name === draft.race)?.image) ? (
+                        {draft.race && (fullBodyImage || dbRaces.find((r: any) => r.id === draft.race || r.name === draft.race)?.image) ? (
                           <img
-                            src={fullBodyImage || dbRaces.find(r => r.id === draft.race || r.name === draft.race)?.image}
+                            src={fullBodyImage || dbRaces.find((r: any) => r.id === draft.race || r.name === draft.race)?.image}
                             alt={draft.race}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           />
@@ -1385,7 +1357,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                   <div>
                     <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '12px', display: 'block' }}>ALINEAMIENTO</label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '12px' }}>
-                      {dbAlignments.map(align => {
+                      {dbAlignments.map((align: any) => {
                         const isSelected = draft.alignment === align.id;
                         return (
                           <div
@@ -1421,7 +1393,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {/* Información Completa del Alineamiento Elegido */}
                       {(() => {
-                        const selectedAlignObj = dbAlignments.find(a => a.id === draft.alignment);
+                        const selectedAlignObj = dbAlignments.find((a: any) => a.id === draft.alignment);
                         if (!selectedAlignObj) return null;
                         return (
                           <div style={{ 
@@ -1443,7 +1415,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
 
                       {/* Guía de Alineamiento según la Raza */}
                       {(() => {
-                        const selectedRaceObj = dbRaces.find(r => r.id === draft.race || r.name === draft.race);
+                        const selectedRaceObj = dbRaces.find((r: any) => r.id === draft.race || r.name === draft.race);
                         const alignDesc = selectedRaceObj?.alignmentDesc;
                         if (!alignDesc) return null;
                         return (
@@ -1721,9 +1693,9 @@ Modificador de CON: ${getModStr(charStats.con)}.
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
                       {Object.entries(draft.attributes).map(([key, value]) => {
                         const baseRace = (draft.race || 'Humano').split('(')[0].trim();
-                        const dbRaceObj = dbRaces.find(r => r.name === baseRace || r.id === baseRace);
+                        const dbRaceObj = dbRaces.find((r: any) => r.name === baseRace || r.id === baseRace);
                         const raceBonus = dbRaceObj?.bonuses?.[key] || 0;
-                        const subraceObj = dbRaceObj?.subraces?.find(sr => sr.id === draft.subrace || sr.name === draft.subrace);
+                        const subraceObj = dbRaceObj?.subraces?.find((sr: any) => sr.id === draft.subrace || sr.name === draft.subrace);
                         const subraceBonus = subraceObj?.bonuses?.[key] || 0;
                         const total = value + raceBonus + subraceBonus;
                         const mod = calcMod(total);
@@ -1763,7 +1735,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                           const spentPoints = Object.values(draft.attributes).reduce((acc, v) => acc + getPointCost(v), 0);
                           const remainingPoints = 27 - spentPoints;
                           
-                          const currentCost = getPointCost(draft.attributes[key as any]);
+                          const currentCost = getPointCost(draft.attributes[key as keyof typeof draft.attributes]);
                           const newCost = getPointCost(val);
                           const costDiff = newCost - currentCost;
                           
@@ -1970,7 +1942,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                           zIndex: 100, maxHeight: '200px', overflowY: 'auto', marginBottom: '0px',
                           boxShadow: '0 -10px 30px rgba(0,0,0,0.8)'
                         }}>
-                          {(dbClasses.length > 0 ? dbClasses : classes).filter(c => c.name.toLowerCase().includes(classQuery.toLowerCase())).map(cls => (
+                          {(dbClasses.length > 0 ? dbClasses : classes).filter((c: any) => c.name.toLowerCase().includes(classQuery.toLowerCase())).map((cls: any) => (
                             <div
                               key={cls.id}
                               onClick={() => {
@@ -2003,7 +1975,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
 
                     {/* Descripción Detallada de la Clase Elegida */}
                     {(() => {
-                      const selectedDbClass = dbClasses.find(c => c.name === draft.class || c.id === draft.class);
+                      const selectedDbClass = dbClasses.find((c: any) => c.name === draft.class || c.id === draft.class);
                       const descToShow = selectedDbClass?.description || '';
                       if (!descToShow) return null;
                       return (
@@ -2015,7 +1987,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
 
                     {/* Selector de Habilidades de Clase */}
                     {(() => {
-                      const selectedDbClass = dbClasses.find(c => c.name === draft.class || c.id === draft.class);
+                      const selectedDbClass = dbClasses.find((c: any) => c.name === draft.class || c.id === draft.class);
                       if (!selectedDbClass) return null;
 
                       let profSkillsStr = "";
@@ -2372,11 +2344,11 @@ Modificador de CON: ${getModStr(charStats.con)}.
                         </h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem', color: 'var(--text-parchment)', lineHeight: '1.4' }}>
                           <div>
-                            <strong>Descripción:</strong> {dbRaces.find(r => r.id === race || r.name === race)?.description} <span style={{ color: 'var(--accent-gold)' }}>({dbRaces.find(r => r.id === race || r.name === race)?.bonusText})</span>
+                            <strong>Descripción:</strong> {dbRaces.find((r: any) => r.id === race || r.name === race)?.description} <span style={{ color: 'var(--accent-gold)' }}>({dbRaces.find((r: any) => r.id === race || r.name === race)?.bonusText})</span>
                           </div>
                           {subrace && subrace !== 'Estándar' && (
                             <div>
-                              <strong>Subraza:</strong> {dbRaces.find(r => r.id === race || r.name === race)?.subraces.find(sr => sr.id === subrace || sr.name === subrace)?.description}
+                              <strong>Subraza:</strong> {dbRaces.find((r: any) => r.id === race || r.name === race)?.subraces.find((sr: any) => sr.id === subrace || sr.name === subrace)?.description}
                             </div>
                           )}
                         </div>
@@ -2999,7 +2971,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                              <div style={{ width: 'var(--char-sheet-portrait-w)', height: 'var(--char-sheet-portrait-h)', borderRadius: '4px', border: '1px solid var(--border-color)', overflow: 'hidden', flexShrink: 0, background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
                                {(() => {
                                  const baseRace = (selectedCharacter.race || 'Humano').split(' ')[0].trim();
-                                 const dbRaceMatch = dbRaces.find(r => r.name === baseRace || r.id === baseRace);
+                                  const dbRaceMatch = dbRaces.find((r: any) => r.name === baseRace || r.id === baseRace);
                                  const defaultPortrait = dbRaceMatch?.image || '';
                                  const displayImage = selectedCharacter.full_body_image || defaultPortrait;
                                  return (
@@ -3127,8 +3099,6 @@ Modificador de CON: ${getModStr(charStats.con)}.
                                           const coinIdx = activeSlotIndex - 20;
                                           const coinKey = coinKeys[coinIdx];
                                           const coinLabel = coinLabels[coinIdx];
-                                          const currentQty = charInv.coins?.[coinKey] || 0;
-
                                           return (
                                             <div style={{
                                               position: 'fixed',
@@ -4201,8 +4171,8 @@ Modificador de CON: ${getModStr(charStats.con)}.
                                               >
                                                 <option value="">-- ELIGE CLASE --</option>
                                                 {(() => {
-                                                  const classNamesList = dbClasses.map(c => c.name);
-                                                  return classNamesList.map(c => <option key={c} value={c}>{c}</option>);
+                                                  const classNamesList = dbClasses.map((c: any) => c.name);
+                                                  return classNamesList.map((c: string) => <option key={c} value={c}>{c}</option>);
                                                 })()}
                                               </select>
                                             </div>
