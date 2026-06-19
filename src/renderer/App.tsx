@@ -1,7 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { AlertTriangle, LogOut, Search } from 'lucide-react';
 import LoginScreen from './components/PantallaLogin';
-import DiceVisualizer, { type DiceType } from './components/VisualizadorDados';
 import { CharacterManager } from './components/GestorPersonajes.tsx';
 import { CombatGrid } from './components/GrillaCombate.tsx';
 import { DatabaseView } from './components/VistaCompendio.tsx';
@@ -12,6 +11,7 @@ import { parseAndRollHP } from './utils/utilidadesDados';
 import { socket } from './app/socket';
 import { LoadingScreen } from './components/app/LoadingScreen';
 import { ImageGenerationToast, type ImageToastState } from './components/app/ImageGenerationToast';
+import { DiceRollOverlay, type CurrentRoll, type DiceType } from './components/app/DiceRollOverlay';
 
 function App() {
   const [user, setUser] = useState<{ name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string } | null>(null);
@@ -43,7 +43,7 @@ function App() {
   useEffect(() => {
     userRef.current = user;
   }, [user]);
-  const [currentRoll, setCurrentRoll] = useState<{ value: number; die: DiceType } | null>(null);
+  const [currentRoll, setCurrentRoll] = useState<CurrentRoll | null>(null);
   const [characters, setCharacters] = useState<any[]>([]);
   const [monsters, setMonsters] = useState<any[]>([]);
   const [compendium, setCompendium] = useState<any[]>([]);
@@ -349,28 +349,17 @@ function App() {
   return (
     <div className="vtt-main" style={{ position: 'relative', minHeight: '100vh', backgroundColor: 'var(--bg-base)', color: 'var(--text-parchment)', fontFamily: 'var(--font-body)' }}>
 
-      {/* CAPA DEL LANZADOR DE DADOS 3D (Overlay Interactivo Bloqueante) */}
       {currentRoll && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-          zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          pointerEvents: 'all', backgroundColor: 'rgba(0,0,0,0.55)',
-          backdropFilter: 'blur(3px)'
-        }}>
-          <DiceVisualizer
-            resultado={currentRoll.value}
-            tipoDeDado={currentRoll.die}
-            width={window.innerWidth}
-            height={window.innerHeight}
-            onAnimationComplete={() => {
-              setCurrentRoll(null);
-              if (onRollCompleteRef.current) {
-                onRollCompleteRef.current();
-                onRollCompleteRef.current = null;
-              }
-            }}
-          />
-        </div>
+        <DiceRollOverlay
+          roll={currentRoll}
+          onComplete={() => {
+            setCurrentRoll(null);
+            if (onRollCompleteRef.current) {
+              onRollCompleteRef.current();
+              onRollCompleteRef.current = null;
+            }
+          }}
+        />
       )}
 
       {imageToast && <ImageGenerationToast toast={imageToast} />}
