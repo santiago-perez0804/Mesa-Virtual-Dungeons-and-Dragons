@@ -1,3 +1,94 @@
+import { skillList } from './personaje.constantes';
+
+const normalizeText = (value: string) => value
+  .toLowerCase()
+  .replace(/\u00c3\u00a1/g, 'a')
+  .replace(/\u00c3\u00a9/g, 'e')
+  .replace(/\u00c3\u00ad/g, 'i')
+  .replace(/\u00c3\u00b3/g, 'o')
+  .replace(/\u00c3\u00ba/g, 'u')
+  .replace(/\u00c3\u00b1/g, 'n')
+  .normalize('NFD')
+  .replace(/[\u0300-\u036f]/g, '');
+
+export const mapEnglishStatToSpanish = (engStat: string): string => {
+  const mapping: Record<string, string> = {
+    str: 'fue',
+    dex: 'dex',
+    con: 'con',
+    int: 'int',
+    wis: 'sab',
+    cha: 'car'
+  };
+  return mapping[engStat.toLowerCase()] || engStat.toLowerCase();
+};
+
+export const mapSpanishNameToKey = (name: string): string => {
+  const normalizedName = normalizeText(name.trim());
+  const mapping: Record<string, string> = {
+    'fuerza': 'fue',
+    'destreza': 'dex',
+    'constitucion': 'con',
+    'inteligencia': 'int',
+    'sabiduria': 'sab',
+    'carisma': 'car'
+  };
+  return mapping[normalizedName] || normalizedName;
+};
+
+export const parseHitDie = (val: any): number => {
+  if (typeof val === 'number') return val;
+  if (typeof val === 'string') {
+    const cleaned = val.toLowerCase().replace('d', '').trim();
+    const num = parseInt(cleaned, 10);
+    if (!isNaN(num)) return num;
+  }
+  return 8;
+};
+
+export const getSkillsOptionsAndLimit = (profSkillsStr: string, name: string) => {
+  let limit = 2;
+  let allowed = skillList;
+
+  if (!profSkillsStr) {
+    return { limit, allowed };
+  }
+
+  const matchLimit = profSkillsStr.match(/(?:elige|choose|select)\s+(\d+)/i);
+  if (matchLimit && matchLimit[1]) {
+    limit = parseInt(matchLimit[1], 10);
+  } else if (name === 'Bardo' || name === 'Explorador') {
+    limit = 3;
+  } else if (normalizeText(name) === 'picaro') {
+    limit = 4;
+  }
+
+  const normalizedProfSkills = normalizeText(profSkillsStr);
+  if (normalizedProfSkills.includes("todas") || normalizedProfSkills.includes("any")) {
+    allowed = skillList;
+  } else {
+    allowed = skillList.filter(s => {
+      const normSkill = normalizeText(s);
+      const normStr = normalizedProfSkills;
+
+      if (normStr.includes(normSkill)) return true;
+      if (normSkill === 'interpretacion' && (normStr.includes('interpretacion') || normStr.includes('actuacion'))) return true;
+      if (normSkill === 'percepcion' && normStr.includes('percepcion')) return true;
+      if (normSkill === 'intuicion' && (normStr.includes('intuicion') || normStr.includes('perspicacia'))) return true;
+      if (normSkill === 'investigacion' && normStr.includes('investigacion')) return true;
+      if (normSkill === 'religion' && normStr.includes('religion')) return true;
+      if (normSkill === 'engano' && normStr.includes('engano')) return true;
+      return false;
+    });
+
+    if (allowed.length === 0) {
+      allowed = skillList;
+    }
+  }
+
+  return { limit, allowed };
+};
+
 export const getPointCost = (val: number) => {
   if (val <= 8) return 0;
   if (val === 9) return 1;
@@ -91,4 +182,4 @@ export function safeParseStats(statsField: any): any {
     sab: typeof parsed.sab === 'number' ? parsed.sab : 10,
     car: typeof parsed.car === 'number' ? parsed.car : 10
   };
-}
+}

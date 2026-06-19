@@ -1,11 +1,21 @@
 import { useState, useEffect, useRef, useMemo } from 'react';
-import { User, Shield, Backpack, X, Link, Scale, Lock, RefreshCw, ChevronLeft, ChevronRight, Check, Dices, ChevronUp, Pencil, Heart, Zap, Footprints, Award, Search, Filter } from 'lucide-react';
-import { classes, backgrounds } from '../../data/dnd-datos';
-import type { CharacterDraft, AlignmentType, AttributeKey } from '../../data/dnd-datos';
-import { calcMod, calculateHP, calculateAC, getRandomItem } from '../../utils/dnd-calculos';
+import { User, Shield, Backpack, X, Link, Scale, ChevronLeft, ChevronRight, Check, Dices, ChevronUp, Pencil, Heart, Zap, Footprints, Award, Search, Filter } from 'lucide-react';
+import { classes } from '../../data/dnd-datos';
+import type { CharacterDraft } from '../../data/dnd-datos';
+import { calcMod } from '../../utils/dnd-calculos';
 import { HeroCard } from './ui/CartaHeroe';
 import { formatDescription } from '../utils/formateador';
-import { getPointCost, getModStr, getProficiencyBonus, safeParseInventory, safeParseStats } from '../modules/personaje/personaje.utilidades';
+import {
+  getPointCost,
+  getModStr,
+  getProficiencyBonus,
+  safeParseInventory,
+  safeParseStats,
+  mapEnglishStatToSpanish,
+  mapSpanishNameToKey,
+  parseHitDie,
+  getSkillsOptionsAndLimit
+} from '../modules/personaje/personaje.utilidades';
 
 import { CharacterInventoryTab } from './personaje/PestanaInventarioPersonaje';
 import { CharacterTraitsTab } from './personaje/PestanaRasgosPersonaje';
@@ -20,84 +30,6 @@ import { SavingThrowModifierModal } from './personaje/SavingThrowModifierModal';
 import { SkillModifierModal } from './personaje/SkillModifierModal';
 
 import { skillList, statDescriptions } from '../modules/personaje/personaje.constantes';
-
-const mapEnglishStatToSpanish = (engStat: string): string => {
-  const mapping: Record<string, string> = {
-    str: 'fue',
-    dex: 'dex',
-    con: 'con',
-    int: 'int',
-    wis: 'sab',
-    cha: 'car'
-  };
-  return mapping[engStat.toLowerCase()] || engStat.toLowerCase();
-};
-
-const mapSpanishNameToKey = (name: string): string => {
-  const mapping: Record<string, string> = {
-    'fuerza': 'fue',
-    'destreza': 'dex',
-    'constitución': 'con',
-    'constitucion': 'con',
-    'inteligencia': 'int',
-    'sabiduría': 'sab',
-    'sabiduria': 'sab',
-    'carisma': 'car'
-  };
-  return mapping[name.trim().toLowerCase()] || name.trim().toLowerCase();
-};
-
-const parseHitDie = (val: any): number => {
-  if (typeof val === 'number') return val;
-  if (typeof val === 'string') {
-    const cleaned = val.toLowerCase().replace('d', '').trim();
-    const num = parseInt(cleaned, 10);
-    if (!isNaN(num)) return num;
-  }
-  return 8;
-};
-
-const getSkillsOptionsAndLimit = (profSkillsStr: string, name: string) => {
-  let limit = 2;
-  let allowed = skillList;
-
-  if (!profSkillsStr) {
-    return { limit, allowed };
-  }
-
-  const matchLimit = profSkillsStr.match(/(?:elige|choose|select)\s+(\d+)/i);
-  if (matchLimit && matchLimit[1]) {
-    limit = parseInt(matchLimit[1], 10);
-  } else if (name === 'Bardo' || name === 'Explorador') {
-    limit = 3;
-  } else if (name === 'Pícaro') {
-    limit = 4;
-  }
-
-  if (profSkillsStr.toLowerCase().includes("todas") || profSkillsStr.toLowerCase().includes("any")) {
-    allowed = skillList;
-  } else {
-    allowed = skillList.filter(s => {
-      const normSkill = s.toLowerCase();
-      const normStr = profSkillsStr.toLowerCase();
-      
-      if (normStr.includes(normSkill)) return true;
-      if (normSkill === 'interpretación' && (normStr.includes('interpretación') || normStr.includes('interpretacion') || normStr.includes('actuación') || normStr.includes('actuacion'))) return true;
-      if (normSkill === 'percepción' && (normStr.includes('percepción') || normStr.includes('percepcion'))) return true;
-      if (normSkill === 'intuición' && (normStr.includes('intuición') || normStr.includes('intuicion') || normStr.includes('perspicacia'))) return true;
-      if (normSkill === 'investigación' && (normStr.includes('investigación') || normStr.includes('investigacion'))) return true;
-      if (normSkill === 'religión' && (normStr.includes('religión') || normStr.includes('religion'))) return true;
-      if (normSkill === 'engaño' && (normStr.includes('engaño') || normStr.includes('engano'))) return true;
-      return false;
-    });
-
-    if (allowed.length === 0) {
-      allowed = skillList;
-    }
-  }
-
-  return { limit, allowed };
-};
 
 export const CharacterManager = ({ socket, characters, compendium, userRole, triggerDiceRoll, isOverlay, forceOpenId, onCloseOverlay }: any) => {
   const dbClasses = useMemo(() => {
