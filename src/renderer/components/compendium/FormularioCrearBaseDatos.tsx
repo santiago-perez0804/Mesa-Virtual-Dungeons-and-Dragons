@@ -1,18 +1,17 @@
 
-import React from 'react';
-import { Ghost, Scroll, Swords, Plus, Trash, Link } from 'lucide-react';
+import { Camera, Ghost, RefreshCw, Scroll, Search, Swords } from 'lucide-react';
 import { ACTION_TYPES, DAMAGE_TYPES } from '../../modules/compendium/compendio.traducciones';
 
-export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave, userRole }: any) => {
+export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }: any) => {
   const {
-    setIsCreating, editingId, createType, setCreateType, createName, setCreateName,
-    createImage, setCreateImage, createDesc, setCreateDesc, createShortDesc, setCreateShortDesc,
+    setIsCreating, editingId, createType, createName, setCreateName,
+    createImage, createDesc, setCreateDesc, createShortDesc, setCreateShortDesc,
     createSpellLevel, setCreateSpellLevel, createSpellComponents, setCreateSpellComponents,
     createSpellRange, setCreateSpellRange, createSpellDuration, setCreateSpellDuration,
     createSpellConcentration, setCreateSpellConcentration, createHp, setCreateHp,
     createAc, setCreateAc, createCr, setCreateCr, createSpeed, setCreateSpeed,
     createStats, setCreateStats, createAttacks, setCreateAttacks, createVuln, setCreateVuln,
-    createRes, setCreateRes, createImm, setCreateImm, createSize, setCreateSize,
+    createRes, setCreateRes, createImm, setCreateImm,
     createTraits, setCreateTraits, createRarity, setCreateRarity, isDamageItem, setIsDamageItem,
     itemAttackBonus, setItemAttackBonus, itemDamageFormula, setItemDamageFormula,
     itemDamageType, setItemDamageType, createTags, setCreateTags, createArmorType, setCreateArmorType,
@@ -287,7 +286,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave, u
                                     <button
                                       key={tag}
                                       onClick={() => {
-                                        if (createTags.includes(tag)) setCreateTags(createTags.filter(t => t !== tag));
+                                        if (createTags.includes(tag)) setCreateTags(createTags.filter((t: string) => t !== tag));
                                         else setCreateTags([...createTags, tag]);
                                       }}
                                       className="font-cinzel"
@@ -487,7 +486,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave, u
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '100px', overflowY: 'auto', border: '1px solid var(--border-color)', padding: '5px' }}>
                                       {DAMAGE_TYPES.map(dt => (
                                         <label key={dt} style={{ fontSize: '0.7rem', display: 'flex', gap: '5px', cursor: 'pointer' }}>
-                                          <input type="checkbox" checked={createVuln.includes(dt)} onChange={e => e.target.checked ? setCreateVuln([...createVuln, dt]) : setCreateVuln(createVuln.filter(v => v !== dt))} /> {dt}
+                                          <input type="checkbox" checked={createVuln.includes(dt)} onChange={e => e.target.checked ? setCreateVuln([...createVuln, dt]) : setCreateVuln(createVuln.filter((v: string) => v !== dt))} /> {dt}
                                         </label>
                                       ))}
                                     </div>
@@ -497,7 +496,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave, u
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '100px', overflowY: 'auto', border: '1px solid var(--border-color)', padding: '5px' }}>
                                       {DAMAGE_TYPES.map(dt => (
                                         <label key={dt} style={{ fontSize: '0.7rem', display: 'flex', gap: '5px', cursor: 'pointer' }}>
-                                          <input type="checkbox" checked={createRes.includes(dt)} onChange={e => e.target.checked ? setCreateRes([...createRes, dt]) : setCreateRes(createRes.filter(v => v !== dt))} /> {dt}
+                                          <input type="checkbox" checked={createRes.includes(dt)} onChange={e => e.target.checked ? setCreateRes([...createRes, dt]) : setCreateRes(createRes.filter((v: string) => v !== dt))} /> {dt}
                                         </label>
                                       ))}
                                     </div>
@@ -507,7 +506,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave, u
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', maxHeight: '100px', overflowY: 'auto', border: '1px solid var(--border-color)', padding: '5px' }}>
                                       {DAMAGE_TYPES.map(dt => (
                                         <label key={dt} style={{ fontSize: '0.7rem', display: 'flex', gap: '5px', cursor: 'pointer' }}>
-                                          <input type="checkbox" checked={createImm.includes(dt)} onChange={e => e.target.checked ? setCreateImm([...createImm, dt]) : setCreateImm(createImm.filter(v => v !== dt))} /> {dt}
+                                          <input type="checkbox" checked={createImm.includes(dt)} onChange={e => e.target.checked ? setCreateImm([...createImm, dt]) : setCreateImm(createImm.filter((v: string) => v !== dt))} /> {dt}
                                         </label>
                                       ))}
                                     </div>

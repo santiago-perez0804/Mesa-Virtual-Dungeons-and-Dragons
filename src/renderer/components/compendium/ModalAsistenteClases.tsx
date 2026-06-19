@@ -1,5 +1,4 @@
 
-import React from 'react';
 import { ClipboardList } from 'lucide-react';
 
 export const ClassWizardModal = ({ formState, editingClassId, socket }: any) => {
@@ -48,16 +47,16 @@ export const ClassWizardModal = ({ formState, editingClassId, socket }: any) => 
     ];
 
     const handleArmorToggle = (val: string) => {
-      setCArmors(cArmors.includes(val) ? cArmors.filter(x => x !== val) : [...cArmors, val]);
+      setCArmors(cArmors.includes(val) ? cArmors.filter((x: string) => x !== val) : [...cArmors, val]);
     };
 
     const handleWeaponToggle = (val: string) => {
-      setCWeapons(cWeapons.includes(val) ? cWeapons.filter(x => x !== val) : [...cWeapons, val]);
+      setCWeapons(cWeapons.includes(val) ? cWeapons.filter((x: string) => x !== val) : [...cWeapons, val]);
     };
 
     const handleSaveToggle = (val: string) => {
       if (cSaves.includes(val)) {
-        setCSaves(cSaves.filter(x => x !== val));
+        setCSaves(cSaves.filter((x: string) => x !== val));
       } else {
         if (cSaves.length >= 2) {
           setCSaves([cSaves[1], val]);
@@ -69,7 +68,7 @@ export const ClassWizardModal = ({ formState, editingClassId, socket }: any) => 
 
     const handleSkillToggle = (val: string) => {
       if (cSkills.includes(val)) {
-        setCSkills(cSkills.filter(x => x !== val));
+        setCSkills(cSkills.filter((x: string) => x !== val));
       } else {
         if (cSkills.length < cSkillsLimit) {
           setCSkills([...cSkills, val]);

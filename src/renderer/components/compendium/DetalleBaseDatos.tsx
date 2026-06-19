@@ -1,8 +1,8 @@
 
 import { formatDescription } from '../../utils/formateador';
 import { Ghost, Scroll, Swords, Link, AlertTriangle, Dna, Languages } from 'lucide-react';
-import { typeIcons } from '../VistaCompendio';
-export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onCloseOverlay, userRole }: any) => {
+
+export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onCloseOverlay }: any) => {
   const d = selectedItem.data ? (typeof selectedItem.data === 'string' ? JSON.parse(selectedItem.data) : selectedItem.data) : {};
   const isMonster = selectedItem.type === 'monster';
   const cr = d.cr || d.challenge_rating || '�';

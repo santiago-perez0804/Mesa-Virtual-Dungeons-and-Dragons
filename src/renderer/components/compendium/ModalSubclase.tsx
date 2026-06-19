@@ -1,6 +1,4 @@
 
-import React from 'react';
-
 export const SubclassModal = ({ formState, parentClass, socket }: any) => {
   const {
     isAddingSubclass, setIsAddingSubclass, subclassName, setSubclassName,
