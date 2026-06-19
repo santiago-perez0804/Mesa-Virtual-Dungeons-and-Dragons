@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bot, Star, Check, BookOpen, OctagonX, Camera, Tent, X } from 'lucide-react';
+import { Bot, Star, Check, BookOpen, OctagonX, Camera, Tent } from 'lucide-react';
 
 interface Campaign {
   id: number;
@@ -31,7 +31,7 @@ interface CampaignsViewProps {
   onEnterCampaign?: (campaignId: number) => void;
 }
 
-export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, userRole, characters, currentUser, onEnterCampaign, campaigns: propsCampaigns = [] }) => {
+export const CampaignsView: React.FC<CampaignsViewProps> = ({ socket, characters, currentUser, onEnterCampaign, campaigns: propsCampaigns = [] }) => {
   const campaigns = propsCampaigns as Campaign[];
   const [selectedCampaign, setSelectedCampaign] = useState<Campaign | null>(null);
   const [isCreating, setIsCreating] = useState(false);

@@ -1440,19 +1440,8 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
                   return 0;
                 });
 
-                return sortedCombatants.map((t: any, idx: number) => {
-                  const isChar = t.type === 'character';
-                  const charSource = isChar ? characters.find((c: any) => c.id === t.originalId) : null;
-                  let parsedInv: any = {};
-                  if (charSource && charSource.inventory) {
-                    try {
-                      let temp = charSource.inventory;
-                      if (typeof temp === 'string') temp = JSON.parse(temp);
-                      if (typeof temp === 'string') temp = JSON.parse(temp);
-                      parsedInv = temp || {};
-                    } catch(e) {}
-                  }
-
+                  return sortedCombatants.map((t: any, idx: number) => {
+                    const isChar = t.type === 'character';
                   const initIndex = combatState.initiativeOrder.findIndex(i => i.tokenId === t.instanceId);
                   const isTheirTurn = combatState.turnModeActive && initIndex !== -1 && combatState.currentTurnIndex === initIndex;
 

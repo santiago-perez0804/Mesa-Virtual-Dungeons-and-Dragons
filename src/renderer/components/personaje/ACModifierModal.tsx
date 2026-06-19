@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { X, Shield, Plus, Trash2 } from 'lucide-react';
 import { safeParseStats, safeParseInventory, calcMod } from '../../utils/personaje';
 

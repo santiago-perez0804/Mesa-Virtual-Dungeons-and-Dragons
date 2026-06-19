@@ -1,26 +1,13 @@
-import React from 'react';
 import { calcMod, getProficiencyBonus } from '../../modules/personaje/personaje.utilidades';
 import { Shield, Swords, Hammer, Languages } from 'lucide-react';
 
 export const CharacterStatsPanel = ({
   character,
   charStats,
-  selectedSavingThrows,
-  selectedSkills,
   onSelectSavingThrow,
   onSelectSkill,
   dbRaces = []
 }: any) => {
-
-  const SKILLS_MAP: Record<string, string> = {
-    'Atletismo': 'fue',
-    'Acrobacias': 'dex', 'Juego de Manos': 'dex', 'Sigilo': 'dex',
-    'Arcanos': 'int', 'Historia': 'int', 'Investigación': 'int', 'Naturaleza': 'int', 'Religión': 'int',
-    'Trato con Animales': 'sab', 'Intuición': 'sab', 'Medicina': 'sab', 'Percepción': 'sab', 'Supervivencia': 'sab',
-    'Engaño': 'car', 'Intimidación': 'car', 'Interpretación': 'car', 'Persuasión': 'car'
-  };
-
-  const pb = 1 + Math.ceil((character.level || 1) / 4);
 
   return (
     <>
