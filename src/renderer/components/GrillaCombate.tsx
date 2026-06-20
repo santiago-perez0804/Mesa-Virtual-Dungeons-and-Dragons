@@ -1,11 +1,14 @@
-import React, { useEffect, useState, useRef } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Ghost, User, Backpack, Dices, StickyNote, Box, Lock, Coins, Swords, ArrowRight } from 'lucide-react';
 import { ChatPanel } from './PanelChat';
 import { NoteTokenIcon, ImageTokenIcon, ClosedChestIcon, OpenChestIcon, ItemDropIcon, LineAoeIcon, ConeAoeIcon, CircleAoeIcon, SquareAoeIcon, getAoeIcon } from '../shared/components/iconos';
 import { CELL_PX, GRID_SIZE, BOARD_PX } from '../modules/combate/grilla.constantes';
 import { getGridItemCategory, safeParseGridInventory } from '../modules/combate/grilla.inventario';
-import { getLineCells } from '../modules/combate/lineaVision';
 import { renderConditionIcon } from './combate/ConditionIcon';
+import { NotificacionSalvacion } from './combate/NotificacionSalvacion';
+import { useNieblaGuerra } from '../modules/combate/hooks/useNieblaGuerra';
+import { useArrastrarYPaneo } from '../modules/combate/hooks/useArrastrarYPaneo';
+import { useSincronizacionTablero } from '../modules/combate/hooks/useSincronizacionTablero';
 
 export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, characters, monsters, chatMessages, compendium = [], onOpenCharacterSheet, onOpenMonsterSheet }: any) => {
   const [bgImage, setBgImage] = useState<string | null>(null);
@@ -77,29 +80,16 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
   const [isNightMode, setIsNightMode] = useState(false);
 
   
-  const isEditingSurfaceRef = useRef(isEditingSurface);
-  const solidCellsRef = useRef(solidCells);
-  const isPaintingWallRef = useRef(false);
-  const paintModeRef = useRef<'add' | 'remove'>('add');
-  const zoomRef = useRef(zoom);
-  const fowCanvasRef = useRef<HTMLCanvasElement>(null);
-
-  useEffect(() => { isEditingSurfaceRef.current = isEditingSurface; }, [isEditingSurface]);
-  useEffect(() => { solidCellsRef.current = solidCells; }, [solidCells]);
-  useEffect(() => { zoomRef.current = zoom; }, [zoom]);
-
-  const viewportRef = useRef<HTMLDivElement>(null);
-  const boardRef = useRef<HTMLDivElement>(null);
-
-  // Drag con refs para evitar re-renders en cada mousemove
-  const dragRef = useRef<any>(null);          // datos del drag activo
-  const wasDraggingRef = useRef(false);       // previene click después de soltar drag
-  const ghostRef = useRef<HTMLDivElement>(null); // elemento visual flotante
-  const snapRef = useRef<HTMLDivElement>(null);  // indicador de casilla destino
-  const panRef = useRef({ x: 0, y: 0 });        // pan sin re-render
-  const isPanningRef = useRef(false);
-  const startPanPosRef = useRef({ x: 0, y: 0 });
   const [drag, setDrag] = useState<any>(null); // solo para forzar re-render al soltar
+
+  // Arrastre de tokens, paneo, pintado de muros y zoom (ver useArrastrarYPaneo)
+  const {
+    viewportRef, boardRef, ghostRef, snapRef, wasDraggingRef, panRef,
+    handleViewportMouseDown, handleTokenMouseDown,
+  } = useArrastrarYPaneo({
+    socket, zoom, setZoom, isEditingSurface, solidCells, setSolidCells,
+    userRole, currentUser, boardTokens, setActiveTokenId, setDrag, setPan,
+  });
 
   // Estados para Cofres y Objetos Interactivos
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, cellX: number, cellY: number } | null>(null);
@@ -536,322 +526,13 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
     setIsCreatingAoe(false);
   };
 
-  useEffect(() => {
-    socket.on('grid:bg-update', (img: string) => setBgImage(img));
-    socket.on('combat:save-notification', (data: any) => setSaveNotification(data));
-    socket.on('grid:solid-update', (cells: string[]) => setSolidCells(new Set(cells)));
-    socket.on('grid:night-update', (isNight: boolean) => setIsNightMode(isNight));
-    socket.on('combat:state-update', (state: any) => setCombatState(state));
-    return () => {
-      socket.off('grid:bg-update');
-      socket.off('combat:save-notification');
-      socket.off('grid:solid-update');
-      socket.off('grid:night-update');
-      socket.off('combat:state-update');
-    };
-
-  }, [socket]);
-
-  useEffect(() => {
-    const handleNativeWheel = (e: WheelEvent) => {
-      e.preventDefault();
-      const zoomSpeed = 0.1;
-      setZoom(prev => {
-        const newZoom = e.deltaY < 0 ? prev + zoomSpeed : prev - zoomSpeed;
-        return Math.max(0.3, Math.min(newZoom, 4));
-      });
-    };
-    const viewport = viewportRef.current;
-    if (viewport) viewport.addEventListener('wheel', handleNativeWheel, { passive: false });
-    return () => { if (viewport) viewport.removeEventListener('wheel', handleNativeWheel); };
-  }, []);
-
-  const handleViewportMouseDown = (e: React.MouseEvent) => {
-    if (isEditingSurfaceRef.current && e.button === 0) {
-      // Comenzar a pintar/borrar paredes
-      const bRect = boardRef.current?.getBoundingClientRect();
-      if (!bRect) return;
-      const localX = (e.clientX - bRect.left) / zoom;
-      const localY = (e.clientY - bRect.top) / zoom;
-      const cellX = Math.floor(localX / CELL_PX);
-      const cellY = Math.floor(localY / CELL_PX);
-      if (cellX >= 0 && cellX < GRID_SIZE && cellY >= 0 && cellY < GRID_SIZE) {
-        const cellKey = `${cellX},${cellY}`;
-        const newSet = new Set(solidCellsRef.current);
-        if (newSet.has(cellKey)) {
-          paintModeRef.current = 'remove';
-          newSet.delete(cellKey);
-        } else {
-          paintModeRef.current = 'add';
-          newSet.add(cellKey);
-        }
-        isPaintingWallRef.current = true;
-        setSolidCells(newSet);
-        socket.emit('grid:update-solid', Array.from(newSet));
-      }
-      return;
-    }
-
-    if (e.button === 1 || (e.button === 0 && !dragRef.current)) {
-      isPanningRef.current = true;
-      startPanPosRef.current = { x: e.clientX - panRef.current.x, y: e.clientY - panRef.current.y };
-    }
-  };
-
-  // Registrar listeners UNA vez; todo usa refs para no re-registrar
-  useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
-      if (isPaintingWallRef.current && isEditingSurfaceRef.current && boardRef.current) {
-        const bRect = boardRef.current.getBoundingClientRect();
-        const localX = (e.clientX - bRect.left) / zoomRef.current;
-        const localY = (e.clientY - bRect.top) / zoomRef.current;
-        const cellX = Math.floor(localX / CELL_PX);
-        const cellY = Math.floor(localY / CELL_PX);
-        if (cellX >= 0 && cellX < GRID_SIZE && cellY >= 0 && cellY < GRID_SIZE) {
-          const cellKey = `${cellX},${cellY}`;
-          const currentSet = solidCellsRef.current;
-          
-          if (paintModeRef.current === 'add' && !currentSet.has(cellKey)) {
-            const newSet = new Set(currentSet);
-            newSet.add(cellKey);
-            socket.emit('grid:update-solid', Array.from(newSet));
-            // No podemos usar setSolidCells aquí de forma fiable sin causar re-renders excesivos
-            // así que el broadcast del server nos actualizará, pero podemos emitirlo frecuentemente
-          } else if (paintModeRef.current === 'remove' && currentSet.has(cellKey)) {
-            const newSet = new Set(currentSet);
-            newSet.delete(cellKey);
-            socket.emit('grid:update-solid', Array.from(newSet));
-          }
-        }
-        return;
-      }
-      // PAN
-      if (isPanningRef.current && boardRef.current) {
-        const nx = e.clientX - startPanPosRef.current.x;
-        const ny = e.clientY - startPanPosRef.current.y;
-        panRef.current = { x: nx, y: ny };
-        if (boardRef.current) {
-          boardRef.current.style.left = nx + 'px';
-          boardRef.current.style.top = ny + 'px';
-        }
-      }
-      // DRAG de token
-      if (dragRef.current && boardRef.current) {
-        const d = dragRef.current;
-        const bRect = boardRef.current.getBoundingClientRect();
-        const zoomNow = d.zoom;
-        const localX = (e.clientX - bRect.left) / zoomNow;
-        const localY = (e.clientY - bRect.top) / zoomNow;
-        // Mover ghost flotante con el cursor (libre, sin snap)
-        const freeX = d.tokenStartX + (e.clientX - d.startX) / zoomNow;
-        const freeY = d.tokenStartY + (e.clientY - d.startY) / zoomNow;
-        
-        d.hasMoved = true;
-
-        if (ghostRef.current) {
-          ghostRef.current.style.left = freeX + 'px';
-          ghostRef.current.style.top = freeY + 'px';
-        }
-        // Snap indicator
-        let cellX = Math.max(0, Math.min(Math.floor(localX / CELL_PX), GRID_SIZE - 1));
-        let cellY = Math.max(0, Math.min(Math.floor(localY / CELL_PX), GRID_SIZE - 1));
-
-        if (d.type === 'aoe') {
-          cellX = freeX / CELL_PX;
-          cellY = freeY / CELL_PX;
-
-          if (ghostRef.current) ghostRef.current.style.display = 'none';
-
-          const el = document.getElementById(`token-${d.tokenId}`);
-          if (el) {
-            const dx = (e.clientX - d.startX) / zoomNow;
-            const dy = (e.clientY - d.startY) / zoomNow;
-            el.style.left = (d.initialLeft + dx) + 'px';
-            el.style.top = (d.initialTop + dy) + 'px';
-          }
-        }
-
-        if (snapRef.current) {
-          snapRef.current.style.left = (cellX * CELL_PX) + 'px';
-          snapRef.current.style.top = (cellY * CELL_PX) + 'px';
-          if (d.type === 'aoe') {
-            snapRef.current.style.display = 'none';
-          } else {
-            snapRef.current.style.display = 'block';
-          }
-        }
-        dragRef.current.snapX = cellX;
-        dragRef.current.snapY = cellY;
-      }
-    };
-
-    const handleMouseUp = () => {
-      if (isPaintingWallRef.current) {
-        isPaintingWallRef.current = false;
-        // La actualización final ya se envió durante mousemove
-      }
-      isPanningRef.current = false;
-      if (dragRef.current) {
-        if (dragRef.current.hasMoved) {
-          wasDraggingRef.current = true;
-          setTimeout(() => { wasDraggingRef.current = false; }, 50);
-        }
-        const { tokenId, snapX, snapY } = dragRef.current;
-        socket.emit('token:move', { tokenId, x: snapX, y: snapY });
-        dragRef.current = null;
-        if (ghostRef.current) ghostRef.current.style.display = 'none';
-        if (snapRef.current) snapRef.current.style.display = 'none';
-        setDrag(null); // fuerza re-render para actualizar posición final
-      }
-      // Sync pan al state para que React sepa dónde está el board
-      setPan({ ...panRef.current });
-    };
-
-    window.addEventListener('mousemove', handleMouseMove);
-    window.addEventListener('mouseup', handleMouseUp);
-    return () => {
-      window.removeEventListener('mousemove', handleMouseMove);
-      window.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, [socket]); // solo se registra UNA vez
-
-  const handleTokenMouseDown = (e: React.MouseEvent, tokenId: string) => {
-    if (e.button !== 0) return;
-    e.preventDefault();
-    e.stopPropagation();
-    const token = boardTokens.find((t: any) => t.instanceId === tokenId);
-    if (!token) return;
-    setActiveTokenId(tokenId);
-    if (userRole !== 'dm' && (token.type !== 'character' || token.owner !== currentUser?.name)) return;
-
-    const el = document.getElementById(`token-${tokenId}`);
-    const initialLeft = el ? parseFloat(el.style.left || '0') : token.x * CELL_PX;
-    const initialTop = el ? parseFloat(el.style.top || '0') : token.y * CELL_PX;
-
-    dragRef.current = {
-      tokenId,
-      startX: e.clientX,
-      startY: e.clientY,
-      tokenStartX: token.x * CELL_PX,
-      tokenStartY: token.y * CELL_PX,
-      initialLeft,
-      initialTop,
-      snapX: token.x,
-      snapY: token.y,
-      zoom,
-      image: token.image,
-      name: token.name,
-      type: token.type,
-    };
-    if (ghostRef.current) {
-      ghostRef.current.style.left = (token.x * CELL_PX) + 'px';
-      ghostRef.current.style.top = (token.y * CELL_PX) + 'px';
-      ghostRef.current.style.display = 'block';
-    }
-    setDrag(tokenId); // solo para re-render que oculte token original
-  };
+  useSincronizacionTablero({ socket, setBgImage, setSaveNotification, setSolidCells, setIsNightMode, setCombatState });
 
   const myCharToken = boardTokens.find((t: any) => t.type === 'character' && t.owner === currentUser?.name);
   const myTeam = myCharToken?.teamColor || null;
 
-  // Fog of War (Visible Cells Computation)
-  const visibleCells = React.useMemo(() => {
-    const vis = new Set<string>();
-    const RADIUS = isNightMode ? 6 : 12; // 30ft vision (6 squares) at night, 60ft (12 squares) during day
-
-    const myTokens = boardTokens.filter((t: any) => t.type === 'character' && (t.teamColor === myTeam || t.owner === currentUser?.name));
-    const sourceTokens = (userRole === 'dm' || userRole === 'admin') 
-      ? boardTokens.filter((t: any) => t.type === 'character' || t.type === 'monster') 
-      : myTokens;
-
-    sourceTokens.forEach((t: any) => {
-      const tx = Math.floor(t.x);
-      const ty = Math.floor(t.y);
-      vis.add(`${tx},${ty}`);
-
-      for (let x = tx - RADIUS; x <= tx + RADIUS; x++) {
-        for (let y = ty - RADIUS; y <= ty + RADIUS; y++) {
-          if (x === tx - RADIUS || x === tx + RADIUS || y === ty - RADIUS || y === ty + RADIUS) {
-            const line = getLineCells(tx, ty, x, y);
-            for (const [cx, cy] of line) {
-              if (Math.hypot(cx - tx, cy - ty) > RADIUS) break;
-              vis.add(`${cx},${cy}`);
-              if (solidCells.has(`${cx},${cy}`)) break; // bloqueado por pared
-            }
-          }
-        }
-      }
-    });
-    return vis;
-  }, [boardTokens, solidCells, myTeam, currentUser, userRole, isNightMode]);
-
-
-  useEffect(() => {
-    const canvas = fowCanvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return;
-
-    // 1. Classify visible cells into innerVisible (100% visible) and boundary (75% visible)
-    const cellVisMap = new Map<string, number>();
-    visibleCells.forEach(cellKey => {
-      const [cx, cy] = cellKey.split(',').map(Number);
-      let isBoundary = false;
-      for (let dx = -1; dx <= 1; dx++) {
-        for (let dy = -1; dy <= 1; dy++) {
-          if (dx === 0 && dy === 0) continue;
-          const nx = cx + dx;
-          const ny = cy + dy;
-          if (nx >= 0 && nx < GRID_SIZE && ny >= 0 && ny < GRID_SIZE) {
-            if (!visibleCells.has(`${nx},${ny}`)) {
-              isBoundary = true;
-              break;
-            }
-          }
-        }
-        if (isBoundary) break;
-      }
-      cellVisMap.set(cellKey, isBoundary ? 0.75 : 1.0);
-    });
-
-    // 2. Create offscreen mask canvas
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = BOARD_PX;
-    tempCanvas.height = BOARD_PX;
-    const tempCtx = tempCanvas.getContext('2d');
-    if (tempCtx) {
-      // Fill the mask with solid black (100% fog)
-      tempCtx.fillStyle = '#000000';
-      tempCtx.fillRect(0, 0, BOARD_PX, BOARD_PX);
-
-      // destination-out to carve out the fog
-      tempCtx.globalCompositeOperation = 'destination-out';
-
-      // Draw boundary cells at 0.75 opacity (leaves 25% fog/black -> 75% visible)
-      tempCtx.fillStyle = 'rgba(255, 255, 255, 0.75)';
-      cellVisMap.forEach((vis, cellKey) => {
-        if (vis === 0.75) {
-          const [cx, cy] = cellKey.split(',').map(Number);
-          tempCtx.fillRect(cx * CELL_PX, cy * CELL_PX, CELL_PX, CELL_PX);
-        }
-      });
-
-      // Draw inner cells at 1.0 opacity (leaves 0% fog/black -> 100% visible)
-      tempCtx.fillStyle = 'rgba(255, 255, 255, 1.0)';
-      cellVisMap.forEach((vis, cellKey) => {
-        if (vis === 1.0) {
-          const [cx, cy] = cellKey.split(',').map(Number);
-          tempCtx.fillRect(cx * CELL_PX, cy * CELL_PX, CELL_PX, CELL_PX);
-        }
-      });
-    }
-
-    // 3. Clear main canvas and draw mask with filter blur
-    ctx.clearRect(0, 0, BOARD_PX, BOARD_PX);
-    ctx.filter = 'blur(10px)';
-    ctx.drawImage(tempCanvas, 0, 0);
-    ctx.filter = 'none';
-  }, [visibleCells]);
+  // Niebla de guerra: celdas visibles + canvas de máscara (ver useNieblaGuerra)
+  const { visibleCells, fowCanvasRef } = useNieblaGuerra({ boardTokens, solidCells, myTeam, currentUser, userRole, isNightMode });
 
 
   // Visibilidad en la Grilla (Mapa)
@@ -2217,32 +1898,14 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
         </div>
       </div>
 
-      {saveNotification && (
-        <div style={{ position: 'fixed', top: '50%', left: '50%', transform: 'translate(-50%, -50%)', background: 'var(--bg-base)', border: '2px solid var(--combat-red)', padding: '40px', borderRadius: '4px', textAlign: 'center', zIndex: 10000, boxShadow: '0 0 50px rgba(0,0,0,0.8)' }}>
-          <h2 className="font-cinzel" style={{ color: 'var(--combat-red)', fontSize: '2rem' }}>¡TIRADA DE SALVACIÓN!</h2>
-          <p style={{ color: 'var(--text-parchment)' }}>El DM solicita una tirada de {saveNotification.stat.toUpperCase()}</p>
-          {((currentUser && currentUser.name === saveNotification.targetName) || userRole === 'dm') && (
-            <button
-              onClick={() => {
-                const myChar = characters.find((c: any) => c.name === saveNotification.targetName);
-                if (!myChar) return;
-                const stats = typeof myChar.stats === 'string' ? JSON.parse(myChar.stats) : myChar.stats;
-                const mod = Math.floor(((stats[saveNotification.statKey] || 10) - 10) / 2);
-                const roll = Math.floor(Math.random() * 20) + 1;
-                const total = roll + mod;
-                const pass = total >= saveNotification.dc;
-                socket.emit('dice:roll', { die: 20 });
-                socket.emit('chat:send', { user: currentUser?.name, text: `🎲 **${saveNotification.targetName}** lanzó **${saveNotification.stat}**: d20(${roll}) + ${mod} = **${total}**. ${pass ? '✅ **SUPERADO**' : '❌ **FALLADO**'}`, timestamp: Date.now() });
-                setSaveNotification(null);
-              }}
-              className="font-cinzel"
-              style={{ background: 'var(--accent-gold)', color: '#000', border: 'none', padding: '10px 20px', marginTop: '20px', cursor: 'pointer', fontWeight: 'bold' }}
-            >
-              LANZAR DADO
-            </button>
-          )}
-        </div>
-      )}
+      <NotificacionSalvacion
+        saveNotification={saveNotification}
+        currentUser={currentUser}
+        userRole={userRole}
+        characters={characters}
+        socket={socket}
+        onClose={() => setSaveNotification(null)}
+      />
 
       {/* MODAL DETALLE DE COMBATIENTE */}
       {viewingToken && (() => {
