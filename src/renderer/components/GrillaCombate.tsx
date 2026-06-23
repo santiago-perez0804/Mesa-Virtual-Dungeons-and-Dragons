@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from 'react';
-import { Ghost, User, Backpack, Dices, StickyNote, Box, Lock, Coins, Swords, ArrowRight } from 'lucide-react';
+import { Ghost, User, Backpack, Dices, StickyNote, Box, Coins, Swords, ArrowRight } from 'lucide-react';
 import { ChatPanel } from './PanelChat';
 import { NoteTokenIcon, ImageTokenIcon, ClosedChestIcon, OpenChestIcon, ItemDropIcon, LineAoeIcon, ConeAoeIcon, CircleAoeIcon, SquareAoeIcon, getAoeIcon } from '../shared/components/iconos';
 import { CELL_PX, GRID_SIZE, BOARD_PX } from '../modules/combate/grilla.constantes';
