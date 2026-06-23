@@ -8,6 +8,9 @@ import { renderConditionIcon } from './combate/ConditionIcon';
 import { NotificacionSalvacion } from './combate/NotificacionSalvacion';
 import { ModalCrearNota } from './combate/modales/ModalCrearNota';
 import { ModalColocarImagen } from './combate/modales/ModalColocarImagen';
+import { ModalNotaMapa } from './combate/modales/ModalNotaMapa';
+import { ModalImagenMapa } from './combate/modales/ModalImagenMapa';
+import { ModalObjetoSuelo } from './combate/modales/ModalObjetoSuelo';
 import { useNieblaGuerra } from '../modules/combate/hooks/useNieblaGuerra';
 import { useArrastrarYPaneo } from '../modules/combate/hooks/useArrastrarYPaneo';
 import { useSincronizacionTablero } from '../modules/combate/hooks/useSincronizacionTablero';
@@ -2768,183 +2771,17 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
         <ModalColocarImagen imageUrlInput={imageUrlInput} onFileChange={handleImageFileChange} onSubmit={handleCreateImageSubmit} onClose={() => setIsCreatingImage(false)} />
       )}
 
-      {selectedNoteToken && (() => {
-        const activeNote = boardTokens.find((t: any) => t.instanceId === selectedNoteToken.instanceId);
-        if (!activeNote) return null;
-        const isDM = userRole === 'dm' || userRole === 'admin';
-        return (
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} onClick={() => setSelectedNoteToken(null)}>
-            <div className="clipped-frame" style={{ width: '100%', maxWidth: '500px', maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 0 50px rgba(0,0,0,0.9)', border: '2px solid var(--accent-gold)' }} onClick={e => e.stopPropagation()}>
-              {/* HEADER */}
-              <div style={{ padding: '20px 25px', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '15px', alignItems: 'center', background: 'rgba(0,0,0,0.2)' }}>
-                <div style={{ width: '40px', height: '40px', border: '1.5px solid var(--accent-gold)', flexShrink: 0, padding: '3px', background: 'rgba(0,0,0,0.3)' }}>
-                  <NoteTokenIcon />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <h3 className="font-cinzel" style={{ margin: 0, fontSize: '1.4rem', color: 'var(--accent-gold)' }}>NOTA DEL MAPA</h3>
-                </div>
-                {isDM && (
-                  <button
-                    onClick={() => {
-                      if (confirm("¿Eliminar esta nota permanentemente?")) {
-                        socket.emit('token:remove', activeNote.instanceId);
-                        setSelectedNoteToken(null);
-                      }
-                    }}
-                    className="font-cinzel"
-                    style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--combat-red)', border: '1px solid var(--combat-red)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.7rem' }}
-                  >
-                    🗑️ ELIMINAR
-                  </button>
-                )}
-              </div>
+      {selectedNoteToken && (
+        <ModalNotaMapa selectedNoteToken={selectedNoteToken} boardTokens={boardTokens} userRole={userRole} socket={socket} onClose={() => setSelectedNoteToken(null)} />
+      )}
 
-              {/* BODY */}
-              <div style={{ padding: '30px', overflowY: 'auto', background: 'var(--bg-surface)' }}>
-                <div style={{ color: 'var(--text-parchment)', fontSize: '1.05rem', lineHeight: '1.6', whiteSpace: 'pre-wrap', fontFamily: 'serif', padding: '15px', background: 'rgba(0,0,0,0.2)', border: '1px solid rgba(255,255,255,0.05)', borderRadius: '4px' }}>
-                  {activeNote.noteData?.text || 'Esta nota está vacía.'}
-                </div>
-              </div>
+      {selectedImageToken && (
+        <ModalImagenMapa selectedImageToken={selectedImageToken} boardTokens={boardTokens} userRole={userRole} socket={socket} onClose={() => setSelectedImageToken(null)} />
+      )}
 
-              {/* FOOTER */}
-              <div style={{ padding: '15px 25px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', background: 'rgba(0,0,0,0.2)' }}>
-                <button onClick={() => setSelectedNoteToken(null)} className="font-cinzel" style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', padding: '8px 20px', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold' }}>CERRAR</button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {selectedImageToken && (() => {
-        const activeImage = boardTokens.find((t: any) => t.instanceId === selectedImageToken.instanceId);
-        if (!activeImage) return null;
-        const isDM = userRole === 'dm' || userRole === 'admin';
-        return (
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} onClick={() => setSelectedImageToken(null)}>
-            <div className="clipped-frame" style={{ width: '100%', maxWidth: '700px', maxHeight: '90vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 0 50px rgba(0,0,0,0.9)', border: '2px solid var(--accent-gold)' }} onClick={e => e.stopPropagation()}>
-              {/* HEADER */}
-              <div style={{ padding: '20px 25px', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '15px', alignItems: 'center', background: 'rgba(0,0,0,0.2)' }}>
-                <div style={{ width: '40px', height: '40px', border: '1.5px solid var(--accent-gold)', flexShrink: 0, padding: '3px', background: 'rgba(0,0,0,0.3)' }}>
-                  <ImageTokenIcon />
-                </div>
-                <div style={{ flex: 1 }}>
-                  <h3 className="font-cinzel" style={{ margin: 0, fontSize: '1.4rem', color: 'var(--accent-gold)' }}>IMAGEN EN MAPA</h3>
-                </div>
-                {isDM && (
-                  <button
-                    onClick={() => {
-                      if (confirm("¿Eliminar esta imagen del mapa?")) {
-                        socket.emit('token:remove', activeImage.instanceId);
-                        setSelectedImageToken(null);
-                      }
-                    }}
-                    className="font-cinzel"
-                    style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--combat-red)', border: '1px solid var(--combat-red)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.7rem' }}
-                  >
-                    🗑️ ELIMINAR
-                  </button>
-                )}
-              </div>
-
-              {/* BODY */}
-              <div style={{ padding: '20px', overflowY: 'auto', display: 'flex', justifyContent: 'center', alignItems: 'center', background: 'var(--bg-surface)' }}>
-                {activeImage.imageData?.url ? (
-                  <img src={activeImage.imageData.url} alt="Image map content" style={{ maxWidth: '100%', maxHeight: '65vh', objectFit: 'contain', border: '1px solid var(--border-color)', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }} />
-                ) : (
-                  <p style={{ color: 'var(--text-secondary)' }}>No hay ninguna imagen cargada.</p>
-                )}
-              </div>
-
-              {/* FOOTER */}
-              <div style={{ padding: '15px 25px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', background: 'rgba(0,0,0,0.2)' }}>
-                <button onClick={() => setSelectedImageToken(null)} className="font-cinzel" style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', padding: '8px 20px', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold' }}>CERRAR</button>
-              </div>
-            </div>
-          </div>
-        );
-      })()}
-
-      {selectedItemToken && (() => {
-        const item = selectedItemToken.itemData;
-        if (!item) return null;
-        
-        const isDM = userRole === 'dm' || userRole === 'admin';
-        const myChars = characters.filter((c: any) => userRole === 'dm' || c.owner === currentUser.name);
-
-        return (
-          <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10000, padding: '20px' }} onClick={() => setSelectedItemToken(null)}>
-            <div className="clipped-frame" style={{ width: '100%', maxWidth: '600px', maxHeight: '80vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', boxShadow: '0 0 50px rgba(0,0,0,0.9)', border: '2px solid var(--accent-gold)' }} onClick={e => e.stopPropagation()}>
-              
-              {/* HEADER */}
-              <div style={{ padding: '25px 30px', borderBottom: '1px solid var(--border-color)', display: 'flex', gap: '20px', alignItems: 'center', background: 'rgba(0,0,0,0.2)' }}>
-                <div style={{ width: '50px', height: '50px', border: '2px solid var(--accent-gold)', overflow: 'hidden', flexShrink: 0, background: 'rgba(0,0,0,0.4)', padding: '5px' }}>
-                  {item.image ? <img src={item.image} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} /> : <ItemDropIcon rarity={item.rarity || 'Común'} />}
-                </div>
-                <div style={{ flex: 1 }}>
-                  <h2 className="font-cinzel" style={{ margin: 0, fontSize: '1.6rem', color: 'var(--accent-gold)' }}>{item.name}</h2>
-                  <p className="font-cinzel" style={{ margin: '4px 0 0 0', color: 'var(--text-secondary)', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                    Objeto en el suelo • {item.rarity}
-                  </p>
-                </div>
-                {isDM && (
-                  <button
-                    onClick={() => {
-                      socket.emit('token:remove', selectedItemToken.instanceId);
-                      setSelectedItemToken(null);
-                    }}
-                    className="font-cinzel"
-                    style={{ background: 'rgba(239, 68, 68, 0.1)', color: 'var(--combat-red)', border: '1px solid var(--combat-red)', padding: '6px 12px', borderRadius: '4px', cursor: 'pointer', fontSize: '0.7rem' }}
-                  >
-                    🗑️ ELIMINAR
-                  </button>
-                )}
-              </div>
-
-              {/* BODY */}
-              <div style={{ padding: '30px', overflowY: 'auto', display: 'flex', flexDirection: 'column', gap: '20px', background: 'var(--bg-surface)' }}>
-                <div>
-                  <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', marginBottom: '10px', fontSize: '0.9rem' }}><StickyNote className="w-4 h-4 inline-block mr-2" /> DESCRIPCIÓN</h4>
-                  <p style={{ color: 'var(--text-parchment)', fontSize: '0.95rem', lineHeight: '1.5', margin: 0, whiteSpace: 'pre-wrap' }}>
-                    {item.description || 'Sin descripción disponible.'}
-                  </p>
-                </div>
-                
-                {myChars.length > 0 && (
-                  <div style={{ marginTop: '10px', background: 'rgba(0,0,0,0.2)', padding: '15px', border: '1px solid var(--border-color)', borderRadius: '6px', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                    <div>
-                      <h4 className="font-cinzel" style={{ color: 'var(--accent-gold)', margin: '0 0 4px 0', fontSize: '0.9rem' }}><Backpack className="w-4 h-4 inline-block mr-2" /> RECOGER OBJETO</h4>
-                      <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: 0 }}>Se agregará directamente a tu inventario y desaparecerá del mapa.</p>
-                    </div>
-                    
-                    <button
-                      onClick={handlePickupFloorItem}
-                      className="font-cinzel torch-glow"
-                      style={{
-                        background: 'var(--accent-gold)',
-                        color: '#000',
-                        border: 'none',
-                        padding: '10px 24px',
-                        borderRadius: '4px',
-                        cursor: 'pointer',
-                        fontWeight: 'bold',
-                        fontSize: '0.85rem'
-                      }}
-                    >
-                      RECOGER
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* FOOTER */}
-              <div style={{ padding: '20px 30px', borderTop: '1px solid var(--border-color)', display: 'flex', justifyContent: 'flex-end', background: 'rgba(0,0,0,0.2)' }}>
-                <button onClick={() => setSelectedItemToken(null)} className="font-cinzel" style={{ background: 'transparent', color: 'var(--text-secondary)', border: '1px solid var(--border-color)', padding: '10px 20px', cursor: 'pointer', borderRadius: '4px', fontWeight: 'bold' }}>CERRAR</button>
-              </div>
-
-            </div>
-          </div>
-        );
-      })()}
+      {selectedItemToken && (
+        <ModalObjetoSuelo selectedItemToken={selectedItemToken} userRole={userRole} characters={characters} currentUser={currentUser} socket={socket} onPickup={handlePickupFloorItem} onClose={() => setSelectedItemToken(null)} />
+      )}
 
       {/* MODAL DE VIDA Y CONDICION */}
       {healthModalToken && (() => {
