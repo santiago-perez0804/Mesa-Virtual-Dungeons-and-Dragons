@@ -32,15 +32,16 @@ interface SeleccionarProps {
   setItemSearchQuery: (v: string) => void;
   onSelect: (item: any) => void;
   onClose: () => void;
+  titulo?: React.ReactNode;
 }
 
 /** Modal para elegir un objeto del compendio (al colocar en el suelo o en un cofre). */
-export function ModalSeleccionarObjeto({ compendium, itemSearchQuery, setItemSearchQuery, onSelect, onClose }: SeleccionarProps) {
+export function ModalSeleccionarObjeto({ compendium, itemSearchQuery, setItemSearchQuery, onSelect, onClose, titulo = '⚔️ SELECCIONAR OBJETO' }: SeleccionarProps) {
   return (
     <div style={{ position: 'fixed', top: 0, left: 0, width: '100%', height: '100%', background: 'rgba(0,0,0,0.85)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 10001 }} onClick={onClose}>
       <div className="clipped-frame" style={{ background: 'var(--bg-surface)', border: '2px solid var(--accent-gold)', width: '100%', maxWidth: '500px', height: '600px', display: 'flex', flexDirection: 'column', boxShadow: '0 0 50px rgba(0,0,0,0.9)' }} onClick={e => e.stopPropagation()}>
         <div style={{ padding: '25px', borderBottom: '1px solid var(--border-color)' }}>
-          <h3 className="font-cinzel" style={{ margin: '0 0 15px 0', color: 'var(--accent-gold)' }}>⚔️ SELECCIONAR OBJETO</h3>
+          <h3 className="font-cinzel" style={{ margin: '0 0 15px 0', color: 'var(--accent-gold)' }}>{titulo}</h3>
           <input type="text" value={itemSearchQuery} onChange={e => setItemSearchQuery(e.target.value)} placeholder="🔍 Buscar objeto en el compendio..." style={{ background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white', padding: '12px', width: '100%', borderRadius: '4px', boxSizing: 'border-box', outline: 'none' }} />
         </div>
         <div style={{ flex: 1, overflowY: 'auto', padding: '20px', display: 'flex', flexDirection: 'column', gap: '8px' }}>
