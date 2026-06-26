@@ -1,16 +1,46 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
-import { User, Shield, Backpack, X, Link, Scale, Lock, RefreshCw, ChevronLeft, ChevronRight, Check, Dices, ChevronUp, Pencil, Heart, Zap, Footprints, Award, Search, Filter } from 'lucide-react';
-import { classes, backgrounds } from '../../data/dnd-datos';
-import type { CharacterDraft, AlignmentType, AttributeKey } from '../../data/dnd-datos';
-import { calcMod, calculateHP, calculateAC, getRandomItem } from '../../utils/dnd-calculos';
-import { HeroCard } from './ui/CartaHeroe';
+import { useState, useEffect, useMemo } from 'react';
+import { User, Shield, Backpack, X, Link, Scale, ChevronLeft, ChevronRight, Check, Dices, ChevronUp, Pencil, Heart, Zap, Footprints, Award } from 'lucide-react';
+import { classes } from '../../data/dnd-datos';
+import type { CharacterDraft } from '../../data/dnd-datos';
+import { calcMod } from '../../utils/dnd-calculos';
 import { formatDescription } from '../utils/formateador';
-import { getPointCost, getModStr, getProficiencyBonus, safeParseInventory, safeParseStats } from '../modules/personaje/personaje.utilidades';
+import {
+  getPointCost,
+  getProficiencyBonus,
+  safeParseInventory,
+  safeParseStats,
+  getSkillsOptionsAndLimit
+} from '../modules/personaje/personaje.utilidades';
+import {
+  buildDbAlignments,
+  buildDbClasses,
+  buildDbItems,
+  buildDbRaces,
+  findBaseSpeedForRace,
+  findHitDieForClass
+} from '../modules/personaje/personaje.compendio';
+import {
+  createDefaultAttributes,
+  createDefaultDraft,
+  createDefaultInventory
+} from '../modules/personaje/personaje.defaults';
+import {
+  filterCharacters,
+  parseCharacterClasses,
+  sortCharacters,
+  type CharacterSortKey
+} from '../modules/personaje/personaje.listado';
+import { characterManagerStyles as styles } from '../modules/personaje/personaje.styles';
+import { useCharacterImageCropper } from '../modules/personaje/hooks/useCharacterImageCropper';
+import { levelUpCharacter } from '../modules/personaje/personaje.nivel';
 
 import { CharacterInventoryTab } from './personaje/PestanaInventarioPersonaje';
 import { CharacterTraitsTab } from './personaje/PestanaRasgosPersonaje';
 import { CharacterSpellsTab } from './personaje/PestanaHechizosPersonaje';
 import { CharacterStatsPanel } from './personaje/PanelEstadisticasPersonaje';
+import { CharacterListPanel } from './personaje/CharacterListPanel';
+import { CharacterImageCropModal } from './personaje/CharacterImageCropModal';
+import { CharacterCreationStepper } from './personaje/CharacterCreationStepper';
 import { ACModifierModal } from './personaje/ACModifierModal';
 import { InitiativeModifierModal } from './personaje/InitiativeModifierModal';
 import { SpeedModifierModal } from './personaje/SpeedModifierModal';
@@ -21,265 +51,13 @@ import { SkillModifierModal } from './personaje/SkillModifierModal';
 
 import { skillList, statDescriptions } from '../modules/personaje/personaje.constantes';
 
-const mapEnglishStatToSpanish = (engStat: string): string => {
-  const mapping: Record<string, string> = {
-    str: 'fue',
-    dex: 'dex',
-    con: 'con',
-    int: 'int',
-    wis: 'sab',
-    cha: 'car'
-  };
-  return mapping[engStat.toLowerCase()] || engStat.toLowerCase();
-};
-
-const mapSpanishNameToKey = (name: string): string => {
-  const mapping: Record<string, string> = {
-    'fuerza': 'fue',
-    'destreza': 'dex',
-    'constitución': 'con',
-    'constitucion': 'con',
-    'inteligencia': 'int',
-    'sabiduría': 'sab',
-    'sabiduria': 'sab',
-    'carisma': 'car'
-  };
-  return mapping[name.trim().toLowerCase()] || name.trim().toLowerCase();
-};
-
-const parseHitDie = (val: any): number => {
-  if (typeof val === 'number') return val;
-  if (typeof val === 'string') {
-    const cleaned = val.toLowerCase().replace('d', '').trim();
-    const num = parseInt(cleaned, 10);
-    if (!isNaN(num)) return num;
-  }
-  return 8;
-};
-
-const getSkillsOptionsAndLimit = (profSkillsStr: string, name: string) => {
-  let limit = 2;
-  let allowed = skillList;
-
-  if (!profSkillsStr) {
-    return { limit, allowed };
-  }
-
-  const matchLimit = profSkillsStr.match(/(?:elige|choose|select)\s+(\d+)/i);
-  if (matchLimit && matchLimit[1]) {
-    limit = parseInt(matchLimit[1], 10);
-  } else if (name === 'Bardo' || name === 'Explorador') {
-    limit = 3;
-  } else if (name === 'Pícaro') {
-    limit = 4;
-  }
-
-  if (profSkillsStr.toLowerCase().includes("todas") || profSkillsStr.toLowerCase().includes("any")) {
-    allowed = skillList;
-  } else {
-    allowed = skillList.filter(s => {
-      const normSkill = s.toLowerCase();
-      const normStr = profSkillsStr.toLowerCase();
-      
-      if (normStr.includes(normSkill)) return true;
-      if (normSkill === 'interpretación' && (normStr.includes('interpretación') || normStr.includes('interpretacion') || normStr.includes('actuación') || normStr.includes('actuacion'))) return true;
-      if (normSkill === 'percepción' && (normStr.includes('percepción') || normStr.includes('percepcion'))) return true;
-      if (normSkill === 'intuición' && (normStr.includes('intuición') || normStr.includes('intuicion') || normStr.includes('perspicacia'))) return true;
-      if (normSkill === 'investigación' && (normStr.includes('investigación') || normStr.includes('investigacion'))) return true;
-      if (normSkill === 'religión' && (normStr.includes('religión') || normStr.includes('religion'))) return true;
-      if (normSkill === 'engaño' && (normStr.includes('engaño') || normStr.includes('engano'))) return true;
-      return false;
-    });
-
-    if (allowed.length === 0) {
-      allowed = skillList;
-    }
-  }
-
-  return { limit, allowed };
-};
-
 export const CharacterManager = ({ socket, characters, compendium, userRole, triggerDiceRoll, isOverlay, forceOpenId, onCloseOverlay }: any) => {
-  const dbClasses = useMemo(() => {
-    if (!compendium) return [];
-    return compendium
-      .filter((item: any) => item.type === 'class')
-      .map((item: any) => {
-        let parsedData: any = {};
-        try {
-          parsedData = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
-        } catch (e) {
-          parsedData = {};
-        }
-
-        const rawSaves = parsedData.prof_saving_throws;
-        const mappedSaves = rawSaves
-          ? rawSaves.split(',').map((s: string) => mapSpanishNameToKey(s))
-          : (item.name === 'Bárbaro' ? ['fue', 'con'] :
-             item.name === 'Bardo' ? ['dex', 'car'] :
-             item.name === 'Clérigo' ? ['sab', 'car'] :
-             item.name === 'Druida' ? ['int', 'sab'] :
-             item.name === 'Guerrero' ? ['fue', 'con'] :
-             item.name === 'Monje' ? ['fue', 'dex'] :
-             item.name === 'Paladín' ? ['sab', 'car'] :
-             item.name === 'Explorador' ? ['fue', 'dex'] :
-             item.name === 'Pícaro' ? ['dex', 'int'] :
-             item.name === 'Hechicero' ? ['con', 'car'] :
-             item.name === 'Brujo' ? ['sab', 'car'] :
-             item.name === 'Mago' ? ['int', 'sab'] : ['fue', 'con']);
-
-        return {
-          id: item.name,
-          name: item.name,
-          description: parsedData.description || parsedData.desc || '',
-          hitDice: parseHitDie(parsedData.hit_die || parsedData.hit_dice || 8),
-          savingThrows: mappedSaves
-        };
-      });
-  }, [compendium]);
-
-  const getHitDieForClass = (className: string) => {
-    const found = dbClasses.find(c => c.name === className || c.id === className);
-    if (found) return found.hitDice;
-    return 10;
-  };
-
-  const dbRaces = useMemo(() => {
-    if (!compendium) return [];
-    return compendium
-      .filter((item: any) => item.type === 'race')
-      .map((item: any) => {
-        let parsedData: any = {};
-        try {
-          parsedData = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
-        } catch (e) {
-          parsedData = {};
-        }
-        
-        const subr = (parsedData.subraces || []).map((s: any) => {
-          const subraceCompendiumItem = compendium.find(
-            (cItem: any) => 
-              cItem.type === 'subrace' && 
-              (cItem.name.toLowerCase() === s.name.toLowerCase() || 
-               (typeof cItem.data === 'string' && JSON.parse(cItem.data).index === s.index))
-          );
-          let subraceDesc = 'Sin descripción.';
-          let subraceBonuses = {};
-          if (subraceCompendiumItem) {
-            let sData: any = {};
-            try {
-              sData = typeof subraceCompendiumItem.data === 'string' 
-                ? JSON.parse(subraceCompendiumItem.data) 
-                : subraceCompendiumItem.data;
-              subraceDesc = sData.desc || sData.description || 'Sin descripción.';
-              if (Array.isArray(sData.ability_bonuses)) {
-                sData.ability_bonuses.forEach((b: any) => {
-                  if (b.ability_score && b.ability_score.index) {
-                    const engKey = b.ability_score.index;
-                    const espKey = mapEnglishStatToSpanish(engKey);
-                    subraceBonuses[espKey] = b.bonus;
-                  }
-                });
-              }
-            } catch (e) {}
-          }
-          return {
-            id: s.name,
-            name: s.name,
-            description: subraceDesc,
-            bonuses: subraceBonuses,
-            bonusText: ''
-          };
-        });
-
-        const bonuses: any = {};
-        if (Array.isArray(parsedData.ability_bonuses)) {
-          parsedData.ability_bonuses.forEach((b: any) => {
-            if (b.ability_score && b.ability_score.index) {
-              const engKey = b.ability_score.index;
-              const espKey = mapEnglishStatToSpanish(engKey);
-              bonuses[espKey] = b.bonus;
-            }
-          });
-        }
-
-        const bonusTexts = [];
-        for (const [attr, val] of Object.entries(bonuses)) {
-          bonusTexts.push(`+${val} ${attr.toUpperCase()}`);
-        }
-
-        const languagesKnown = (parsedData.languages_known || []).map((l: string) => 
-          l.charAt(0).toUpperCase() + l.slice(1)
-        );
-
-        return {
-          id: item.name,
-          name: item.name,
-          description: parsedData.size_description || parsedData.age || 'Sin descripción.',
-          age: parsedData.age || '',
-          size: parsedData.size || 'Medio',
-          speed: parsedData.speed || 30,
-          bonuses: bonuses,
-          bonusText: bonusTexts.length > 0 ? bonusTexts.join(', ') : '+1 a todo',
-          subraces: subr,
-          languages: languagesKnown.length > 0 ? languagesKnown : ['Común'],
-          alignment: parsedData.alignment || '',
-          alignmentDesc: parsedData.alignment_desc || '',
-          image: parsedData.image || ''
-        };
-      });
-  }, [compendium]);
-
-  const dbItems = useMemo(() => {
-    if (!compendium) return [];
-    return compendium
-      .filter((item: any) => item.type === 'item')
-      .map((item: any) => {
-        let parsedData: any = {};
-        try {
-          parsedData = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
-        } catch (e) {
-          parsedData = {};
-        }
-        return {
-          id: item.id,
-          name: item.name,
-          data: parsedData
-        };
-      });
-  }, [compendium]);
-
-  const getCharacterBaseSpeed = (charRaceStr: string) => {
-    if (!charRaceStr) return 6;
-    const baseRace = charRaceStr.split('(')[0].trim();
-    const found = dbRaces.find(r => r.name === baseRace || r.id === baseRace);
-    if (found) {
-      return Math.floor(found.speed / 5);
-    }
-    if (baseRace === 'Enano' || baseRace === 'Mediano' || baseRace === 'Gnomo') return 5;
-    return 6;
-  };
-
-  const dbAlignments = useMemo(() => {
-    if (!compendium) return [];
-    return compendium
-      .filter((item: any) => item.type === 'alignment')
-      .map((item: any) => {
-        let parsedData: any = {};
-        try {
-          parsedData = typeof item.data === 'string' ? JSON.parse(item.data) : item.data;
-        } catch (e) {
-          parsedData = {};
-        }
-        let id = parsedData.index || item.name;
-        if (id === 'neutral') id = 'true-neutral';
-        return {
-          id: id,
-          label: item.name,
-          desc: parsedData.desc || ''
-        };
-      });
-  }, [compendium]);
+  const dbClasses = useMemo(() => buildDbClasses(compendium), [compendium]);
+  const getHitDieForClass = (className: string) => findHitDieForClass(dbClasses, className);
+  const dbRaces = useMemo(() => buildDbRaces(compendium), [compendium]);
+  const dbItems = useMemo(() => buildDbItems(compendium), [compendium]);
+  const getCharacterBaseSpeed = (charRaceStr: string) => findBaseSpeedForRace(dbRaces, charRaceStr);
+  const dbAlignments = useMemo(() => buildDbAlignments(compendium), [compendium]);
 
 
 
@@ -292,10 +70,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [image, setImage] = useState('');
   const [fullBodyImage, setFullBodyImage] = useState('');
   const [editingId, setEditingId] = useState<number | null>(null);
-  const [stats, setStats] = useState({
-    fue: 8, dex: 8, con: 8,
-    int: 8, sab: 8, car: 8
-  });
+  const [stats, setStats] = useState(createDefaultAttributes);
   const [hitDieValue, setHitDieValue] = useState<number | ''>(10);
   const [showTraits, setShowTraits] = useState(false);
 
@@ -303,82 +78,41 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   const [selectedClassSkills, setSelectedClassSkills] = useState<string[]>([]);
   const [selectedSavingThrows, setSelectedSavingThrows] = useState<string[]>(['fue', 'con']);
   const [backgroundItems, setBackgroundItems] = useState<string[]>(['', '']);
-  const [skillQuery, setSkillQuery] = useState('');
-  const [skillDropdownOpen, setSkillDropdownOpen] = useState(false);
-  const [itemQuery0, setItemQuery0] = useState('');
-  const [itemDropdownOpen0, setItemDropdownOpen0] = useState(false);
-  const [itemQuery1, setItemQuery1] = useState('');
-  const [itemDropdownOpen1, setItemDropdownOpen1] = useState(false);
 
 
-  const defaultInventory = { armas: [], armaduras: [], consumibles: [], artefactos: [], coins: { pc: 0, pl: 0, el: 0, po: 0, pt: 0 }, slots: {} };
-  const [inventory, setInventory] = useState<any>(defaultInventory);
+  const [inventory, setInventory] = useState<any>(createDefaultInventory);
+  const [draft, setDraft] = useState<CharacterDraft>(createDefaultDraft);
 
-
-  const defaultDraft: CharacterDraft = {
-    name: '',
-    avatarUrl: '',
-    age: null,
-    height: '',
-    weight: '',
-    gender: '',
-    alignment: null,
-    languages: ['Común'],
-    backstoryText: '',
-    race: 'Humano',
-    subrace: 'Estándar',
-    class: 'Guerrero',
-    attributes: { fue: 8, dex: 8, con: 8, int: 8, sab: 8, car: 8 },
-    savingThrows: ['fue', 'con'],
-    background: null,
-    skillProficiencies: [],
-    equipment: [],
-    personalityTrait: '',
-    ideal: '',
-    bond: '',
-    flaw: ''
-  };
-
-  const [draft, setDraft] = useState<CharacterDraft>(defaultDraft);
-
-  // --- ESTADOS PARA RECORTE DE AVATAR (CROP) ---
-  const [cropImageSrc, setCropImageSrc] = useState<string | null>(null);
-  const [showCropModal, setShowCropModal] = useState(false);
-  const [cropScale, setCropScale] = useState(1);
-  const [cropOffsetX, setCropOffsetX] = useState(0);
-  const [cropOffsetY, setCropOffsetY] = useState(0);
-  const [isCropDragging, setIsCropDragging] = useState(false);
-  const [cropDragStart, setCropDragStart] = useState({ x: 0, y: 0 });
-  const [cropImgDims, setCropImgDims] = useState({ width: 0, height: 0 });
-  const [cropMode, setCropMode] = useState<'avatar' | 'portrait'>('avatar');
-  const cropImgRef = useRef<HTMLImageElement>(null);
-  const portraitInputRef = useRef<HTMLInputElement>(null);
-
-  useEffect(() => {
-    if (!cropImgDims.width || !cropImgDims.height) return;
-    
-    const viewportW = 260;
-    const viewportH = cropMode === 'avatar' ? 260 : 390;
-    
-    const imgAspect = cropImgDims.width / cropImgDims.height;
-    const viewportAspect = viewportW / viewportH;
-    const fitsHeight = imgAspect > viewportAspect;
-    
-    const baseWidth = fitsHeight ? viewportH * imgAspect : viewportW;
-    const baseHeight = fitsHeight ? viewportH : viewportW / imgAspect;
-    
-    const W = baseWidth * cropScale;
-    const H = baseHeight * cropScale;
-    
-    const maxOffsetX = Math.max(0, (W - viewportW) / 2);
-    const maxOffsetY = Math.max(0, (H - viewportH) / 2);
-    
-    setCropOffsetX(prev => Math.min(maxOffsetX, Math.max(-maxOffsetX, prev)));
-    setCropOffsetY(prev => Math.min(maxOffsetY, Math.max(-maxOffsetY, prev)));
-  }, [cropScale, cropImgDims, cropMode]);
-
-
-
+  const {
+    cropImageSrc,
+    setCropImageSrc,
+    showCropModal,
+    setShowCropModal,
+    cropScale,
+    setCropScale,
+    cropOffsetX,
+    setCropOffsetX,
+    cropOffsetY,
+    setCropOffsetY,
+    isCropDragging,
+    setIsCropDragging,
+    cropDragStart,
+    setCropDragStart,
+    cropImgDims,
+    setCropImgDims,
+    cropMode,
+    setCropMode,
+    cropImgRef,
+    portraitInputRef,
+    handleImageUpload,
+    handleCropSave
+  } = useCharacterImageCropper({
+    onAvatarUploaded: (url: string) => {
+      setImage(url);
+      setDraft(prev => ({ ...prev, avatarUrl: url }));
+    },
+    onPortraitUploaded: setFullBodyImage
+  });
 
 
   const [raceQuery, setRaceQuery] = useState(draft.race || '');
@@ -421,7 +155,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
   // --- ESTADOS DE BÚSQUEDA ---
   const [searchTerm, setSearchTerm] = useState('');
   const [sortDropdownOpen, setSortDropdownOpen] = useState(false);
-  const [sortBy, setSortBy] = useState<'none' | 'level-asc' | 'level-desc' | 'class' | 'hp'>('none');
+  const [sortBy, setSortBy] = useState<CharacterSortKey>('none');
 
   useEffect(() => {
     if (!sortDropdownOpen) return;
@@ -515,99 +249,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     }
   }, [activeSlotIndex]);
 
-
-
-  // --- CÁLCULO POINT BUY ---
-  const spentPoints = Object.values(stats).reduce((acc, val) => acc + getPointCost(val), 0);
-  const remainingPoints = 27 - spentPoints;
-
   // --- LÓGICA DE PERSONAJES ---
-
-  const handleImageUpload = (e: any) => {
-    const file = e.target.files[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = () => {
-        setCropImageSrc(reader.result as string);
-        setCropScale(1);
-        setCropOffsetX(0);
-        setCropOffsetY(0);
-        setShowCropModal(true);
-      };
-      reader.readAsDataURL(file);
-      e.target.value = '';
-    }
-  };
-
-  const handleCropSave = async () => {
-    const canvas = document.createElement('canvas');
-    const canvasW = cropMode === 'avatar' ? 300 : 520;
-    const canvasH = cropMode === 'avatar' ? 300 : 780;
-    canvas.width = canvasW;
-    canvas.height = canvasH;
-    const ctx = canvas.getContext('2d');
-    if (ctx && cropImgRef.current) {
-      // Fondo transparente/negro
-      ctx.fillStyle = '#0f0c08';
-      ctx.fillRect(0, 0, canvasW, canvasH);
-
-      const img = cropImgRef.current;
-      const iw = img.naturalWidth;
-      const ih = img.naturalHeight;
-
-      const viewportW = 260;
-      const viewportH = cropMode === 'avatar' ? 260 : 390;
-
-      const imgAspect = iw / ih;
-      const viewportAspect = viewportW / viewportH;
-      const fitsHeight = imgAspect > viewportAspect;
-
-      const baseScale = fitsHeight ? (canvasH / ih) : (canvasW / iw);
-      const finalScale = baseScale * cropScale;
-
-      const dw = iw * finalScale;
-      const dh = ih * finalScale;
-
-      const scaleX = canvasW / viewportW;
-      const scaleY = canvasH / viewportH;
-
-      // Dibujar con los desplazamientos de arrastre
-      const dx = (canvasW / 2) - dw / 2 + (cropOffsetX * scaleX);
-      const dy = (canvasH / 2) - dh / 2 + (cropOffsetY * scaleY);
-
-      ctx.drawImage(img, dx, dy, dw, dh);
-
-      const croppedDataUrl = canvas.toDataURL('image/jpeg', 0.9);
-
-      try {
-        const blob = await (await fetch(croppedDataUrl)).blob();
-        const file = new File([blob], 'image.jpg', { type: 'image/jpeg' });
-
-        const formData = new FormData();
-        formData.append('file', file);
-        const backendUrl = `${window.location.protocol}//${window.location.hostname}:3000`;
-        const uploadUrl = `${backendUrl}/api/upload?folder=avatars`;
-
-        const res = await fetch(uploadUrl, { method: 'POST', body: formData });
-        const data = await res.json();
-        if (data.success) {
-          if (cropMode === 'avatar') {
-            setImage(data.url);
-            setDraft(prev => ({ ...prev, avatarUrl: data.url }));
-          } else {
-            setFullBodyImage(data.url);
-          }
-          setShowCropModal(false);
-          setCropImageSrc(null);
-        } else {
-          alert('Error al subir imagen recortada: ' + data.error);
-        }
-      } catch (err) {
-        console.error(err);
-        alert('Error de conexión al subir la imagen');
-      }
-    }
-  };
 
   const handleSave = () => {
     if (!name) return alert("¡Tu héroe necesita un nombre!");
@@ -626,12 +268,12 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     const finalStats = { ...stats };
     if (!editingId) {
       const baseRace = race.split('(')[0].trim();
-      const dbRaceObj = dbRaces.find(r => r.name === baseRace || r.id === baseRace);
+      const dbRaceObj = dbRaces.find((r: any) => r.name === baseRace || r.id === baseRace);
       const bonuses = dbRaceObj?.bonuses || {};
       Object.keys(bonuses).forEach((s: string) => {
         (finalStats as any)[s] += bonuses[s];
       });
-      const subraceObj = dbRaceObj?.subraces?.find(sr => sr.id === subrace || sr.name === subrace);
+      const subraceObj = dbRaceObj?.subraces?.find((sr: any) => sr.id === subrace || sr.name === subrace);
       const subraceBonuses = subraceObj?.bonuses || {};
       Object.keys(subraceBonuses).forEach((s: string) => {
         (finalStats as any)[s] += subraceBonuses[s];
@@ -690,8 +332,9 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     setCharClass('Guerrero');
     setRace('Humano');
     setSubrace('Estándar');
-    setInventory(defaultInventory);
-    setStats({ fue: 8, dex: 8, con: 8, int: 8, sab: 8, car: 8 });
+    setInventory(createDefaultInventory());
+    setStats(createDefaultAttributes());
+    setDraft(createDefaultDraft());
     setSelectedSkills([]);
     setSelectedClassSkills([]);
     setSelectedSavingThrows(['fue', 'con']);
@@ -725,7 +368,7 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     setInventory(parsedInv);
 
     // Split skills between background skills and class skills
-    const foundDbClass = dbClasses.find(cls => cls.name === currentClass || cls.id === currentClass);
+    const foundDbClass = dbClasses.find((cls: any) => cls.name === currentClass || cls.id === currentClass);
     let allSkills = parsedInv.habilidades || [];
     let bgSkills: string[] = [];
     let clsSkills: string[] = [];
@@ -764,305 +407,33 @@ export const CharacterManager = ({ socket, characters, compendium, userRole, tri
     }
   };
 
-  const updateStat = (stat: string, val: number) => {
-    if (editingId) {
-      // En modo edición (Level Up manual de stats), permitimos ir hasta 20
-      const clampedVal = Math.max(1, Math.min(20, val));
-      setStats({ ...stats, [stat]: clampedVal });
-    } else {
-      // Modo Creación (Point Buy)
-      const clampedVal = Math.max(8, Math.min(15, val));
-      const currentCost = getPointCost(stats[stat as keyof typeof stats]);
-      const newCost = getPointCost(clampedVal);
-      if (spentPoints - currentCost + newCost <= 27) {
-        setStats({ ...stats, [stat]: clampedVal });
-      }
-    }
-  };
+  const handleLevelUp = () => levelUpCharacter({
+    selectedCharacter,
+    levelUpClass,
+    getHitDieForClass,
+    socket,
+    triggerDiceRoll,
+    setSelectedCharacter,
+    setLevelUpClass
+  });
 
-  const parseClasses = (clsStr: string) => {
-    try {
-      const parsed = JSON.parse(clsStr);
-      if (typeof parsed === 'object' && parsed !== null) return parsed;
-    } catch { }
-    return { [clsStr || "Guerrero"]: 1 };
-  };
-
-  const handleLevelUp = () => {
-    if (!levelUpClass) return alert("Elige una clase para tomar tu nuevo nivel.");
-
-    const hitDie = getHitDieForClass(levelUpClass);
-    const roll = Math.floor(Math.random() * hitDie) + 1;
-    const charStats = safeParseStats(selectedCharacter.stats);
-    const conMod = calcMod(charStats.con);
-    const hpGain = Math.max(1, roll + conMod);
-    const newLevel = (selectedCharacter.level || 1) + 1;
-
-    const parsedClasses = parseClasses(selectedCharacter.class);
-    parsedClasses[levelUpClass] = (parsedClasses[levelUpClass] || 0) + 1;
-
-    const applyUpdate = () => {
-      const newMaxHp = (selectedCharacter.max_hp || 10) + hpGain;
-      const newCurrentHp = (selectedCharacter.current_hp || 10) + hpGain;
-
-      const updated = {
-        ...selectedCharacter,
-        class: JSON.stringify(parsedClasses),
-        level: newLevel,
-        max_hp: newMaxHp,
-        current_hp: newCurrentHp
-      };
-
-      socket.emit('character:update', updated);
-      setSelectedCharacter(updated);
-      setLevelUpClass("");
-
-      // Enviar un mensaje de chat de sistema de alta calidad heráldico
-      const chatMsg = {
-        id: Date.now() + Math.random(),
-        sender: 'Sistema',
-        to: 'all',
-        text: `🎲 **${selectedCharacter.name}** subió a nivel **${newLevel}** (${levelUpClass}) y tiró **d${hitDie}** para su vida sacando **${roll}** (Mod CON: ${getModStr(charStats.con)}). ¡Su vida máxima aumentó en **+${hpGain}**!`,
-        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        isSystem: true
-      };
-      socket.emit('chat:send', chatMsg);
-    };
-
-    if (triggerDiceRoll) {
-      triggerDiceRoll(`d${hitDie}` as any, roll, applyUpdate);
-    } else {
-      alert(`🗡️ Tomaste un nivel en ${levelUpClass}.
-Tiraste un d${hitDie} y sacaste ${roll}.
-Modificador de CON: ${getModStr(charStats.con)}.
-¡Tu Vida Máxima aumenta en ${hpGain} puntos!`);
-      applyUpdate();
-    }
-  };
-
-  // --- LÓGICA DE MONSTRUOS (BESTIARIO) ---
-
-
-
-  // --- ESTILOS ---
-  const styles = {
-    container: {
-      display: 'flex',
-      flexDirection: 'column' as const,
-      gap: '40px',
-      color: 'var(--text-parchment)',
-      width: '100%',
-      paddingBottom: '100px'
-    },
-    card: {
-      background: 'var(--bg-surface)',
-      padding: '40px',
-      border: '1px solid var(--border-color)',
-      boxShadow: '0 20px 60px rgba(0,0,0,0.6)'
-    },
-    input: {
-      padding: 'var(--search-input-padding)',
-      background: 'var(--bg-base)',
-      border: '1px solid var(--border-color)',
-      borderRadius: '2px',
-      color: 'white',
-      width: '100%',
-      boxSizing: 'border-box' as const,
-      outline: 'none',
-      transition: 'border-color 0.2s'
-    },
-    statLabel: {
-      fontSize: '0.9rem',
-      color: 'var(--accent-gold)',
-      fontWeight: 'bold' as const,
-      marginBottom: '6px',
-      display: 'block',
-      letterSpacing: '1px'
-    }
-  };
-
-  const filteredCharacters = characters.filter((c: any) =>
-    c.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    c.owner?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
-
-  const sortedCharacters = useMemo(() => {
-    let result = [...filteredCharacters];
-    if (sortBy === 'level-asc') {
-      result.sort((a, b) => (a.level || 1) - (b.level || 1));
-    } else if (sortBy === 'level-desc') {
-      result.sort((a, b) => (b.level || 1) - (a.level || 1));
-    } else if (sortBy === 'class') {
-      result.sort((a, b) => {
-        const classA = Object.keys(parseClasses(a.class))[0] || '';
-        const classB = Object.keys(parseClasses(b.class))[0] || '';
-        return classA.localeCompare(classB);
-      });
-    } else if (sortBy === 'hp') {
-      result.sort((a, b) => (b.max_hp || 0) - (a.max_hp || 0));
-    }
-    return result;
-  }, [filteredCharacters, sortBy]);
+  const filteredCharacters = useMemo(() => filterCharacters(characters, searchTerm), [characters, searchTerm]);
+  const sortedCharacters = useMemo(() => sortCharacters(filteredCharacters, sortBy), [filteredCharacters, sortBy]);
 
   return (
     <div style={styles.container}>
-      <section style={{ display: isOverlay ? 'none' : 'block' }}>
-        <div style={{ position: 'relative', marginBottom: 'var(--search-container-margin)' }}>
-          {/* Fondo recortado que tiene clip-path */}
-          <div className="clipped-frame" style={{ position: 'absolute', inset: 0, pointerEvents: 'none', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', zIndex: 0 }} />
-
-          {/* Contenedor flex frontal que NO se recorta, permitiendo que el dropdown sobresalga */}
-          <div style={{ display: 'flex', gap: '12px', alignItems: 'center', padding: 'var(--search-container-padding)', position: 'relative', zIndex: 1 }}>
-            <div style={{ flex: 1, position: 'relative' }}>
-              <input
-                className="mono"
-                style={{ ...styles.input, paddingLeft: 'var(--search-input-padding-left)' }}
-                placeholder="Buscar héroe en la reserva..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-              <Search size={18} style={{ position: 'absolute', left: 'var(--search-icon-left)', top: '50%', transform: 'translateY(-50%)', opacity: 0.5 }} />
-            </div>
-
-            {/* Botón de Filtro */}
-            <div style={{ position: 'relative' }}>
-              <button
-                onClick={(e) => { e.stopPropagation(); setSortDropdownOpen(!sortDropdownOpen); }}
-                className="font-cinzel torch-glow"
-                style={{
-                  background: 'transparent',
-                  color: 'var(--accent-gold)',
-                  border: '1px solid var(--accent-gold)',
-                  padding: 'var(--search-input-padding)',
-                  borderRadius: '4px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                  fontSize: '0.85rem',
-                  display: 'flex',
-                  alignItems: 'center',
-                  gap: '8px'
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = 'rgba(200, 135, 42, 0.1)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = 'transparent';
-                }}
-              >
-                <Filter size={16} />
-                <span className="mono" style={{ fontSize: '0.8rem', opacity: 0.8 }}>
-                  {sortBy === 'none' ? 'Filtrar' : 
-                   sortBy === 'level-asc' ? 'Nivel (Asc)' :
-                   sortBy === 'level-desc' ? 'Nivel (Desc)' :
-                   sortBy === 'class' ? 'Clase' : 'PG'}
-                </span>
-              </button>
-
-              {sortDropdownOpen && (
-                <div
-                  className="clipped-frame"
-                  style={{
-                    position: 'absolute',
-                    top: '110%',
-                    right: 0,
-                    background: 'var(--bg-surface)',
-                    border: '1px solid var(--accent-gold)',
-                    borderRadius: '4px',
-                    boxShadow: '0 8px 16px rgba(0,0,0,0.8)',
-                    zIndex: 100,
-                    minWidth: '160px',
-                    display: 'flex',
-                    flexDirection: 'column',
-                    padding: '5px 0'
-                  }}
-                >
-                  {[
-                    { key: 'none', label: 'Sin ordenar' },
-                    { key: 'level-asc', label: 'Nivel (asc)' },
-                    { key: 'level-desc', label: 'Nivel (desc)' },
-                    { key: 'class', label: 'Por clase' },
-                    { key: 'hp', label: 'Por PG' }
-                  ].map((opt) => (
-                    <button
-                      key={opt.key}
-                      onClick={() => {
-                        setSortBy(opt.key as any);
-                        setSortDropdownOpen(false);
-                      }}
-                      style={{
-                        background: sortBy === opt.key ? 'rgba(200, 135, 42, 0.15)' : 'transparent',
-                        border: 'none',
-                        color: sortBy === opt.key ? 'var(--accent-gold)' : 'var(--text-parchment)',
-                        padding: '10px 15px',
-                        textAlign: 'left',
-                        cursor: 'pointer',
-                        fontSize: '0.85rem',
-                        fontFamily: 'var(--font-body)',
-                        width: '100%',
-                        transition: 'background 0.2s'
-                      }}
-                      onMouseEnter={e => {
-                        e.currentTarget.style.background = 'rgba(200, 135, 42, 0.25)';
-                      }}
-                      onMouseLeave={e => {
-                        e.currentTarget.style.background = sortBy === opt.key ? 'rgba(200, 135, 42, 0.15)' : 'transparent';
-                      }}
-                    >
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
-              )}
-            </div>
-
-            <button
-              onClick={() => { resetForm(); setIsCreating(true); }}
-              className="font-cinzel torch-glow"
-              style={{
-                background: 'transparent',
-                color: 'var(--accent-gold)',
-                border: '1px solid var(--accent-gold)',
-                padding: 'var(--search-input-padding)',
-                borderRadius: '4px',
-                cursor: 'pointer',
-                fontWeight: 'bold',
-                fontSize: '0.85rem',
-                letterSpacing: '1px',
-                transition: 'all 0.2s ease',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '8px'
-              }}
-              onMouseEnter={e => {
-                e.currentTarget.style.background = 'var(--accent-gold)';
-                e.currentTarget.style.color = '#111';
-              }}
-              onMouseLeave={e => {
-                e.currentTarget.style.background = 'transparent';
-                e.currentTarget.style.color = 'var(--accent-gold)';
-              }}
-            >
-              <span style={{ fontSize: '1.1rem', lineHeight: '1' }}>+</span> Nuevo Héroe
-            </button>
-          </div>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(var(--char-grid-minmax), 1fr))', gap: 'var(--char-grid-gap)' }}>
-
-          {sortedCharacters.map((c: any) => {
-            const parsedCls = parseClasses(c.class);
-            const className = Object.keys(parsedCls)[0] || 'Clase';
-            return (
-              <HeroCard
-                key={c.id}
-                character={{ ...c, class: className }}
-                onClick={() => openCharacterSheet(c)}
-              />
-            );
-          })}
-          {sortedCharacters.length === 0 && <div style={{ color: 'var(--text-secondary)', fontStyle: 'italic', gridColumn: '1/-1', textAlign: 'center', padding: '40px' }}>No se encontraron aventureros...</div>}
-        </div>
-      </section>
+      <CharacterListPanel
+        isOverlay={isOverlay}
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        sortBy={sortBy}
+        setSortBy={setSortBy}
+        sortDropdownOpen={sortDropdownOpen}
+        setSortDropdownOpen={setSortDropdownOpen}
+        sortedCharacters={sortedCharacters}
+        onCreateCharacter={() => { resetForm(); setIsCreating(true); }}
+        onOpenCharacter={openCharacterSheet}
+      />
 
       {/* MODAL DE FORJA / EDICIÓN */}
       {isCreating && (
@@ -1071,57 +442,10 @@ Modificador de CON: ${getModStr(charStats.con)}.
             <div style={{ ...styles.card, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', border: '2px solid var(--accent-gold)', padding: 0, overflow: 'hidden', position: 'relative' }} className="clipped-frame">
               <button onClick={() => resetForm()} style={{ position: 'absolute', top: '15px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '2.5rem', cursor: 'pointer', zIndex: 10 }}><X className="w-6 h-6 m-auto" /></button>
 
-            {/* INDICADOR DE PASOS (Stepper top fijo) */}
-            <div style={{ display: 'flex', justifyContent: 'center', gap: '50px', padding: '25px 40px 20px 40px', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
-              {[1, 2, 3].map(s => {
-                const isActive = creationStep === s;
-                const isCompleted = creationStep > s;
-
-                let circleStyle: React.CSSProperties = {
-                  width: '32px',
-                  height: '32px',
-                  borderRadius: '50%',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  fontWeight: 'bold',
-                  fontSize: '0.9rem',
-                  transition: 'all 0.3s ease',
-                };
-
-                if (isActive) {
-                  circleStyle = {
-                    ...circleStyle,
-                    background: 'var(--accent-gold)',
-                    color: 'var(--bg-base)',
-                    border: '2px solid var(--accent-gold)',
-                    boxShadow: '0 0 10px rgba(200, 135, 42, 0.5)',
-                  };
-                } else if (isCompleted) {
-                  circleStyle = {
-                    ...circleStyle,
-                    background: 'transparent',
-                    color: 'var(--accent-gold)',
-                    border: '2px solid var(--accent-gold)',
-                  };
-                } else {
-                  circleStyle = {
-                    ...circleStyle,
-                    background: 'transparent',
-                    color: 'var(--text-secondary)',
-                    border: '2px solid var(--border-color)',
-                  };
-                }
-
-                return (
-                  <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: isCompleted ? 'pointer' : 'default' }} onClick={() => isCompleted && setCreationStep(s)}>
-                    <div className="mono" style={circleStyle} title={s === 1 ? 'ESENCIA' : s === 2 ? 'COMPETENCIAS' : 'VITALIDAD'}>
-                      {isCompleted ? '✓' : s}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <CharacterCreationStepper
+              creationStep={creationStep}
+              setCreationStep={setCreationStep}
+            />
 
             {/* CONTENIDO SCROLLABLE */}
             <div style={{ flex: 1, overflowY: 'auto', padding: '30px 40px', display: 'flex', flexDirection: 'column', gap: '30px' }}>
@@ -1216,7 +540,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                             zIndex: 100, maxHeight: '200px', overflowY: 'auto', marginTop: '5px',
                             boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
                           }}>
-                            {dbRaces.filter(r => r.name.toLowerCase().includes(raceQuery.toLowerCase())).map(r => (
+                            {dbRaces.filter((r: any) => r.name.toLowerCase().includes(raceQuery.toLowerCase())).map((r: any) => (
                               <div
                                 key={r.id}
                                 onClick={() => {
@@ -1248,14 +572,14 @@ Modificador de CON: ${getModStr(charStats.con)}.
                         {/* Descripción de Raza */}
                         {draft.race && (
                           <div style={{ fontSize: '0.85rem', color: 'var(--text-parchment)', opacity: 0.9, fontStyle: 'italic', padding: '12px 18px', background: 'rgba(200, 135, 42, 0.04)', borderLeft: '3px solid var(--accent-gold)', marginTop: '8px' }}>
-                            {dbRaces.find(r => r.id === draft.race || r.name === draft.race)?.description}
+                            {dbRaces.find((r: any) => r.id === draft.race || r.name === draft.race)?.description}
                           </div>
                         )}
                       </div>
 
                       {/* Buscador de Subraza (si la raza elegida tiene subrazas) */}
                       {(() => {
-                        const selectedRaceObj = dbRaces.find(r => r.id === draft.race || r.name === draft.race);
+                        const selectedRaceObj = dbRaces.find((r: any) => r.id === draft.race || r.name === draft.race);
                         if (!selectedRaceObj || !selectedRaceObj.subraces || selectedRaceObj.subraces.length === 0) return null;
 
                         return (
@@ -1282,7 +606,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                                 zIndex: 100, maxHeight: '150px', overflowY: 'auto', marginTop: '5px',
                                 boxShadow: '0 10px 30px rgba(0,0,0,0.8)'
                               }}>
-                                {selectedRaceObj.subraces.filter(sr => sr.name.toLowerCase().includes(subraceQuery.toLowerCase())).map(sr => (
+                                {selectedRaceObj.subraces.filter((sr: any) => sr.name.toLowerCase().includes(subraceQuery.toLowerCase())).map((sr: any) => (
                                   <div
                                     key={sr.id}
                                     onClick={() => {
@@ -1307,7 +631,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                             {/* Descripción de Subraza */}
                             {draft.subrace && (
                               <div style={{ fontSize: '0.85rem', color: 'var(--text-parchment)', opacity: 0.9, fontStyle: 'italic', padding: '12px 18px', background: 'rgba(200, 135, 42, 0.04)', borderLeft: '3px solid var(--accent-gold)', marginTop: '8px' }}>
-                                {selectedRaceObj.subraces.find(sr => sr.id === draft.subrace)?.description}
+                                {selectedRaceObj.subraces.find((sr: any) => sr.id === draft.subrace)?.description}
                               </div>
                             )}
                           </div>
@@ -1373,9 +697,9 @@ Modificador de CON: ${getModStr(charStats.con)}.
                             />
                           </div>
                         )}
-                        {draft.race && (fullBodyImage || dbRaces.find(r => r.id === draft.race || r.name === draft.race)?.image) ? (
+                        {draft.race && (fullBodyImage || dbRaces.find((r: any) => r.id === draft.race || r.name === draft.race)?.image) ? (
                           <img
-                            src={fullBodyImage || dbRaces.find(r => r.id === draft.race || r.name === draft.race)?.image}
+                            src={fullBodyImage || dbRaces.find((r: any) => r.id === draft.race || r.name === draft.race)?.image}
                             alt={draft.race}
                             style={{ width: '100%', height: '100%', objectFit: 'cover' }}
                           />
@@ -1453,7 +777,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                   <div>
                     <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '12px', display: 'block' }}>ALINEAMIENTO</label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '10px', marginBottom: '12px' }}>
-                      {dbAlignments.map(align => {
+                      {dbAlignments.map((align: any) => {
                         const isSelected = draft.alignment === align.id;
                         return (
                           <div
@@ -1489,7 +813,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                       {/* Información Completa del Alineamiento Elegido */}
                       {(() => {
-                        const selectedAlignObj = dbAlignments.find(a => a.id === draft.alignment);
+                        const selectedAlignObj = dbAlignments.find((a: any) => a.id === draft.alignment);
                         if (!selectedAlignObj) return null;
                         return (
                           <div style={{ 
@@ -1511,7 +835,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
 
                       {/* Guía de Alineamiento según la Raza */}
                       {(() => {
-                        const selectedRaceObj = dbRaces.find(r => r.id === draft.race || r.name === draft.race);
+                        const selectedRaceObj = dbRaces.find((r: any) => r.id === draft.race || r.name === draft.race);
                         const alignDesc = selectedRaceObj?.alignmentDesc;
                         if (!alignDesc) return null;
                         return (
@@ -1789,9 +1113,9 @@ Modificador de CON: ${getModStr(charStats.con)}.
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
                       {Object.entries(draft.attributes).map(([key, value]) => {
                         const baseRace = (draft.race || 'Humano').split('(')[0].trim();
-                        const dbRaceObj = dbRaces.find(r => r.name === baseRace || r.id === baseRace);
+                        const dbRaceObj = dbRaces.find((r: any) => r.name === baseRace || r.id === baseRace);
                         const raceBonus = dbRaceObj?.bonuses?.[key] || 0;
-                        const subraceObj = dbRaceObj?.subraces?.find(sr => sr.id === draft.subrace || sr.name === draft.subrace);
+                        const subraceObj = dbRaceObj?.subraces?.find((sr: any) => sr.id === draft.subrace || sr.name === draft.subrace);
                         const subraceBonus = subraceObj?.bonuses?.[key] || 0;
                         const total = value + raceBonus + subraceBonus;
                         const mod = calcMod(total);
@@ -1831,7 +1155,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                           const spentPoints = Object.values(draft.attributes).reduce((acc, v) => acc + getPointCost(v), 0);
                           const remainingPoints = 27 - spentPoints;
                           
-                          const currentCost = getPointCost(draft.attributes[key as any]);
+                          const currentCost = getPointCost(draft.attributes[key as keyof typeof draft.attributes]);
                           const newCost = getPointCost(val);
                           const costDiff = newCost - currentCost;
                           
@@ -2038,7 +1362,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                           zIndex: 100, maxHeight: '200px', overflowY: 'auto', marginBottom: '0px',
                           boxShadow: '0 -10px 30px rgba(0,0,0,0.8)'
                         }}>
-                          {(dbClasses.length > 0 ? dbClasses : classes).filter(c => c.name.toLowerCase().includes(classQuery.toLowerCase())).map(cls => (
+                          {(dbClasses.length > 0 ? dbClasses : classes).filter((c: any) => c.name.toLowerCase().includes(classQuery.toLowerCase())).map((cls: any) => (
                             <div
                               key={cls.id}
                               onClick={() => {
@@ -2071,7 +1395,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
 
                     {/* Descripción Detallada de la Clase Elegida */}
                     {(() => {
-                      const selectedDbClass = dbClasses.find(c => c.name === draft.class || c.id === draft.class);
+                      const selectedDbClass = dbClasses.find((c: any) => c.name === draft.class || c.id === draft.class);
                       const descToShow = selectedDbClass?.description || '';
                       if (!descToShow) return null;
                       return (
@@ -2083,7 +1407,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
 
                     {/* Selector de Habilidades de Clase */}
                     {(() => {
-                      const selectedDbClass = dbClasses.find(c => c.name === draft.class || c.id === draft.class);
+                      const selectedDbClass = dbClasses.find((c: any) => c.name === draft.class || c.id === draft.class);
                       if (!selectedDbClass) return null;
 
                       let profSkillsStr = "";
@@ -2440,11 +1764,11 @@ Modificador de CON: ${getModStr(charStats.con)}.
                         </h4>
                         <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '0.85rem', color: 'var(--text-parchment)', lineHeight: '1.4' }}>
                           <div>
-                            <strong>Descripción:</strong> {dbRaces.find(r => r.id === race || r.name === race)?.description} <span style={{ color: 'var(--accent-gold)' }}>({dbRaces.find(r => r.id === race || r.name === race)?.bonusText})</span>
+                            <strong>Descripción:</strong> {dbRaces.find((r: any) => r.id === race || r.name === race)?.description} <span style={{ color: 'var(--accent-gold)' }}>({dbRaces.find((r: any) => r.id === race || r.name === race)?.bonusText})</span>
                           </div>
                           {subrace && subrace !== 'Estándar' && (
                             <div>
-                              <strong>Subraza:</strong> {dbRaces.find(r => r.id === race || r.name === race)?.subraces.find(sr => sr.id === subrace || sr.name === subrace)?.description}
+                              <strong>Subraza:</strong> {dbRaces.find((r: any) => r.id === race || r.name === race)?.subraces.find((sr: any) => sr.id === subrace || sr.name === subrace)?.description}
                             </div>
                           )}
                         </div>
@@ -2612,185 +1936,35 @@ Modificador de CON: ${getModStr(charStats.con)}.
 
 
 
-      {/* MODAL DE RECORTE DE AVATAR */}
-      {showCropModal && cropImageSrc && (
-        <div style={{
-          position: 'fixed',
-          top: 0, left: 0, width: '100vw', height: '100vh',
-          background: 'rgba(5, 4, 3, 0.92)',
-          backdropFilter: 'blur(8px)',
-          display: 'flex',
-          alignItems: 'center',
-          justifyContent: 'center',
-          zIndex: 2000,
-          padding: '20px'
-        }}>
-          <div className="clipped-frame" style={{
-            background: 'var(--bg-surface)',
-            border: '2px solid var(--accent-gold)',
-            boxShadow: '0 0 50px rgba(0,0,0,0.8)',
-            padding: '30px',
-            width: '100%',
-            maxWidth: '450px',
-            display: 'flex',
-            flexDirection: 'column',
-            gap: '20px',
-            alignItems: 'center',
-            borderRadius: '8px'
-          }}>
-            <h3 className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '1.2rem', margin: 0, letterSpacing: '1px' }}>
-              {cropMode === 'avatar' ? 'AJUSTAR AVATAR' : 'AJUSTAR RETRATO'}
-            </h3>
-            <p style={{ color: 'var(--text-secondary)', fontSize: '0.8rem', margin: '0 0 10px 0', textAlign: 'center' }}>
-              Arrastra la imagen para centrarla y usa la barra para hacer zoom.
-            </p>
-
-            {/* Viewport de recorte (circular o rectangular) */}
-            <div style={{
-              width: '260px',
-              height: cropMode === 'avatar' ? '260px' : '390px',
-              borderRadius: cropMode === 'avatar' ? '50%' : '4px',
-              border: '2px solid var(--accent-gold)',
-              overflow: 'hidden',
-              position: 'relative',
-              background: '#0d0b09',
-              cursor: isCropDragging ? 'grabbing' : 'grab',
-              userSelect: 'none',
-              boxShadow: 'inset 0 0 20px rgba(0,0,0,0.8)'
-            }}
-            onMouseDown={(e) => {
-              setIsCropDragging(true);
-              setCropDragStart({ x: e.clientX - cropOffsetX, y: e.clientY - cropOffsetY });
-            }}
-            onMouseMove={(e) => {
-              if (isCropDragging && cropImgDims.width && cropImgDims.height) {
-                const targetX = e.clientX - cropDragStart.x;
-                const targetY = e.clientY - cropDragStart.y;
-                
-                const viewportW = 260;
-                const viewportH = cropMode === 'avatar' ? 260 : 390;
-
-                const imgAspect = cropImgDims.width / cropImgDims.height;
-                const viewportAspect = viewportW / viewportH;
-                const fitsHeight = imgAspect > viewportAspect;
-                
-                const baseWidth = fitsHeight ? viewportH * imgAspect : viewportW;
-                const baseHeight = fitsHeight ? viewportH : viewportW / imgAspect;
-                
-                const W = baseWidth * cropScale;
-                const H = baseHeight * cropScale;
-                
-                const maxOffsetX = Math.max(0, (W - viewportW) / 2);
-                const maxOffsetY = Math.max(0, (H - viewportH) / 2);
-                
-                setCropOffsetX(Math.min(maxOffsetX, Math.max(-maxOffsetX, targetX)));
-                setCropOffsetY(Math.min(maxOffsetY, Math.max(-maxOffsetY, targetY)));
-              }
-            }}
-            onMouseUp={() => setIsCropDragging(false)}
-            onMouseLeave={() => setIsCropDragging(false)}
-            >
-              <img
-                ref={cropImgRef}
-                src={cropImageSrc}
-                alt="Para recortar"
-                draggable={false}
-                onLoad={(e) => {
-                  setCropImgDims({
-                    width: e.currentTarget.naturalWidth,
-                    height: e.currentTarget.naturalHeight
-                  });
-                }}
-                style={{
-                  position: 'absolute',
-                  top: '50%',
-                  left: '50%',
-                  width: (cropImgDims.width / cropImgDims.height) > (cropMode === 'avatar' ? 1 : 260/390) ? 'auto' : '100%',
-                  height: (cropImgDims.width / cropImgDims.height) > (cropMode === 'avatar' ? 1 : 260/390) ? '100%' : 'auto',
-                  transform: `translate(-50%, -50%) translate(${cropOffsetX}px, ${cropOffsetY}px) scale(${cropScale})`,
-                  transformOrigin: 'center',
-                  maxWidth: 'none',
-                  maxHeight: 'none',
-                  pointerEvents: 'none',
-                  userSelect: 'none'
-                }}
-              />
-            </div>
-
-            {/* Control de Zoom */}
-            <div style={{ width: '100%', display: 'flex', flexDirection: 'column', gap: '8px', marginTop: '10px' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.75rem', color: 'var(--text-secondary)' }}>
-                <span className="font-cinzel">ZOOM</span>
-                <span className="mono">{Math.round(cropScale * 100)}%</span>
-              </div>
-              <input
-                type="range"
-                min="1"
-                max="3"
-                step="0.05"
-                value={cropScale}
-                onChange={(e) => setCropScale(parseFloat(e.target.value))}
-                style={{
-                  width: '100%',
-                  accentColor: 'var(--accent-gold)',
-                  background: 'var(--bg-void)',
-                  height: '6px',
-                  borderRadius: '3px',
-                  outline: 'none',
-                  cursor: 'pointer'
-                }}
-              />
-            </div>
-
-            {/* Botones de acción */}
-            <div style={{ display: 'flex', gap: '15px', width: '100%', marginTop: '10px' }}>
-              <button
-                type="button"
-                className="font-cinzel"
-                onClick={() => {
-                  setShowCropModal(false);
-                  setCropImageSrc(null);
-                }}
-                style={{
-                  flex: 1,
-                  background: 'rgba(255,255,255,0.05)',
-                  border: '1px solid var(--border-color)',
-                  color: 'var(--text-secondary)',
-                  padding: '10px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                  fontSize: '0.85rem'
-                }}
-              >
-                CANCELAR
-              </button>
-              <button
-                type="button"
-                onClick={handleCropSave}
-                style={{
-                  flex: 1,
-                  background: 'var(--accent-gold)',
-                  border: 'none',
-                  color: 'var(--bg-base)',
-                  padding: '10px',
-                  cursor: 'pointer',
-                  fontWeight: 'bold',
-                  fontSize: '0.85rem',
-                  boxShadow: '0 0 10px rgba(200,135,42,0.4)'
-                }}
-              >
-                ACEPTAR
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
+      <CharacterImageCropModal
+        isOpen={showCropModal}
+        imageSrc={cropImageSrc}
+        cropMode={cropMode}
+        cropScale={cropScale}
+        setCropScale={setCropScale}
+        cropOffsetX={cropOffsetX}
+        setCropOffsetX={setCropOffsetX}
+        cropOffsetY={cropOffsetY}
+        setCropOffsetY={setCropOffsetY}
+        isCropDragging={isCropDragging}
+        setIsCropDragging={setIsCropDragging}
+        cropDragStart={cropDragStart}
+        setCropDragStart={setCropDragStart}
+        cropImgDims={cropImgDims}
+        setCropImgDims={setCropImgDims}
+        cropImgRef={cropImgRef}
+        onCancel={() => {
+          setShowCropModal(false);
+          setCropImageSrc(null);
+        }}
+        onSave={handleCropSave}
+      />
 
       {/* MODAL DE DETALLES DEL PERSONAJE */}
       {selectedCharacter && (() => {
         const charStats = safeParseStats(selectedCharacter.stats);
         const charInv = safeParseInventory(selectedCharacter.inventory);
-        const parsedClasses = parseClasses(selectedCharacter.class);
+        const parsedClasses = parseCharacterClasses(selectedCharacter.class);
         const classesDisplay = Object.entries(parsedClasses).map(([cls, lvl]) => `${cls} ${lvl}`).join(' / ');
         const isSpellcaster = Object.keys(parsedClasses).some(cls => {
           const clsLower = cls.toLowerCase().trim();
@@ -3067,7 +2241,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
                              <div style={{ width: 'var(--char-sheet-portrait-w)', height: 'var(--char-sheet-portrait-h)', borderRadius: '4px', border: '1px solid var(--border-color)', overflow: 'hidden', flexShrink: 0, background: 'var(--bg-base)', display: 'flex', alignItems: 'center', justifyContent: 'center', boxShadow: '0 4px 10px rgba(0,0,0,0.5)' }}>
                                {(() => {
                                  const baseRace = (selectedCharacter.race || 'Humano').split(' ')[0].trim();
-                                 const dbRaceMatch = dbRaces.find(r => r.name === baseRace || r.id === baseRace);
+                                  const dbRaceMatch = dbRaces.find((r: any) => r.name === baseRace || r.id === baseRace);
                                  const defaultPortrait = dbRaceMatch?.image || '';
                                  const displayImage = selectedCharacter.full_body_image || defaultPortrait;
                                  return (
@@ -3195,8 +2369,6 @@ Modificador de CON: ${getModStr(charStats.con)}.
                                           const coinIdx = activeSlotIndex - 20;
                                           const coinKey = coinKeys[coinIdx];
                                           const coinLabel = coinLabels[coinIdx];
-                                          const currentQty = charInv.coins?.[coinKey] || 0;
-
                                           return (
                                             <div style={{
                                               position: 'fixed',
@@ -4269,8 +3441,8 @@ Modificador de CON: ${getModStr(charStats.con)}.
                                               >
                                                 <option value="">-- ELIGE CLASE --</option>
                                                 {(() => {
-                                                  const classNamesList = dbClasses.map(c => c.name);
-                                                  return classNamesList.map(c => <option key={c} value={c}>{c}</option>);
+                                                  const classNamesList = dbClasses.map((c: any) => c.name);
+                                                  return classNamesList.map((c: string) => <option key={c} value={c}>{c}</option>);
                                                 })()}
                                               </select>
                                             </div>

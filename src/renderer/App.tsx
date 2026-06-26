@@ -1,8 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
-import { io } from 'socket.io-client';
-import { Palette, AlertTriangle, LogOut, Search } from 'lucide-react';
+import { AlertTriangle, LogOut, Search } from 'lucide-react';
 import LoginScreen from './components/PantallaLogin';
-import DiceVisualizer from './components/VisualizadorDados';
 import { CharacterManager } from './components/GestorPersonajes.tsx';
 import { CombatGrid } from './components/GrillaCombate.tsx';
 import { DatabaseView } from './components/VistaCompendio.tsx';
@@ -10,14 +8,10 @@ import { AdminPanel } from './components/PanelAdmin.tsx';
 // import { ChatPanel } from './components/PanelChat.tsx';
 import { CampaignsView } from './components/VistaCampanas.tsx';
 import { parseAndRollHP } from './utils/utilidadesDados';
-
-type DiceType = 'd3' | 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20';
-
-const socket = io(
-  window.location.port === '5173'
-    ? `${window.location.protocol}//${window.location.hostname}:3000`
-    : window.location.origin
-);
+import { socket } from './app/socket';
+import { LoadingScreen } from './components/app/LoadingScreen';
+import { ImageGenerationToast, type ImageToastState } from './components/app/ImageGenerationToast';
+import { DiceRollOverlay, type CurrentRoll, type DiceType } from './components/app/DiceRollOverlay';
 
 function App() {
   const [user, setUser] = useState<{ name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string } | null>(null);
@@ -49,7 +43,7 @@ function App() {
   useEffect(() => {
     userRef.current = user;
   }, [user]);
-  const [currentRoll, setCurrentRoll] = useState<{ value: number; die: DiceType } | null>(null);
+  const [currentRoll, setCurrentRoll] = useState<CurrentRoll | null>(null);
   const [characters, setCharacters] = useState<any[]>([]);
   const [monsters, setMonsters] = useState<any[]>([]);
   const [compendium, setCompendium] = useState<any[]>([]);
@@ -156,7 +150,7 @@ function App() {
       setActiveTab('campaigns');
     }
   }, [currentRoomCampaignId, activeTab, isCampaignsLoaded]);
-  const [imageToast, setImageToast] = useState<{ id: number; name: string; status: 'generating' | 'ready' | 'failed' } | null>(null);
+  const [imageToast, setImageToast] = useState<ImageToastState | null>(null);
 
   const [overlayCharacterId, setOverlayCharacterId] = useState<number | null>(null);
   const [overlayMonsterId, setOverlayMonsterId] = useState<string | null>(null);
@@ -345,37 +339,7 @@ function App() {
   };
 
   if (isCheckingToken) {
-    return (
-      <div style={{
-        display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center',
-        minHeight: '100vh', background: 'radial-gradient(circle, #1e1b15 0%, #0d0c09 100%)',
-        color: 'var(--accent-gold)'
-      }}>
-        <style>{`
-          @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
-          }
-          @keyframes pulse {
-            0%, 100% { opacity: 0.6; transform: scale(1); }
-            50% { opacity: 1; transform: scale(1.03); }
-          }
-        `}</style>
-        <div className="font-cinzel" style={{ fontSize: '2.5rem', marginBottom: '20px', textShadow: '0 0 20px rgba(200,135,42,0.4)', animation: 'pulse 1.8s ease-in-out infinite', fontWeight: 'bold' }}>
-          D&D PP
-        </div>
-        <div style={{
-          width: '32px', height: '32px', borderRadius: '50%',
-          border: '3px solid rgba(200,135,42,0.15)',
-          borderTopColor: 'var(--accent-gold)',
-          animation: 'spin 0.8s linear infinite',
-          boxShadow: '0 0 10px rgba(200, 135, 42, 0.2)'
-        }} />
-        <span className="font-cinzel" style={{ fontSize: '0.8rem', marginTop: '15px', color: 'var(--text-secondary)', letterSpacing: '3px', opacity: 0.7 }}>
-          INICIANDO MESA...
-        </span>
-      </div>
-    );
+    return <LoadingScreen />;
   }
 
   if (!user) {
@@ -385,75 +349,20 @@ function App() {
   return (
     <div className="vtt-main" style={{ position: 'relative', minHeight: '100vh', backgroundColor: 'var(--bg-base)', color: 'var(--text-parchment)', fontFamily: 'var(--font-body)' }}>
 
-      {/* CAPA DEL LANZADOR DE DADOS 3D (Overlay Interactivo Bloqueante) */}
       {currentRoll && (
-        <div style={{
-          position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh',
-          zIndex: 9999, display: 'flex', alignItems: 'center', justifyContent: 'center',
-          pointerEvents: 'all', backgroundColor: 'rgba(0,0,0,0.55)',
-          backdropFilter: 'blur(3px)'
-        }}>
-          <DiceVisualizer
-            resultado={currentRoll.value}
-            tipoDeDado={currentRoll.die}
-            width={window.innerWidth}
-            height={window.innerHeight}
-            onAnimationComplete={() => {
-              setCurrentRoll(null);
-              if (onRollCompleteRef.current) {
-                onRollCompleteRef.current();
-                onRollCompleteRef.current = null;
-              }
-            }}
-          />
-        </div>
+        <DiceRollOverlay
+          roll={currentRoll}
+          onComplete={() => {
+            setCurrentRoll(null);
+            if (onRollCompleteRef.current) {
+              onRollCompleteRef.current();
+              onRollCompleteRef.current = null;
+            }
+          }}
+        />
       )}
 
-      {/* TOAST: GENERACIÓN DE IMAGEN IA */}
-      {imageToast && (
-        <div style={{
-          position: 'fixed', bottom: '30px', right: '30px', zIndex: 9998,
-          background: imageToast.status === 'ready'
-            ? 'linear-gradient(135deg, rgba(16,185,129,0.15), rgba(5,150,105,0.1))'
-            : imageToast.status === 'failed'
-            ? 'linear-gradient(135deg, rgba(239,68,68,0.15), rgba(185,28,28,0.1))'
-            : 'linear-gradient(135deg, rgba(200,135,42,0.15), rgba(161,107,31,0.1))',
-          border: `1px solid ${imageToast.status === 'ready' ? '#10b981' : imageToast.status === 'failed' ? '#ef4444' : 'var(--accent-gold)'}`,
-          borderRadius: '8px', padding: '16px 22px', display: 'flex', alignItems: 'center', gap: '14px',
-          boxShadow: '0 8px 32px rgba(0,0,0,0.6)', backdropFilter: 'blur(10px)',
-          animation: 'fadeInUp 0.3s ease',
-          maxWidth: '320px'
-        }}>
-          {imageToast.status === 'generating' ? (
-            <div style={{
-              width: '28px', height: '28px', borderRadius: '50%',
-              border: '3px solid rgba(200,135,42,0.3)',
-              borderTopColor: 'var(--accent-gold)',
-              animation: 'spin 0.8s linear infinite', flexShrink: 0
-            }} />
-          ) : imageToast.status === 'ready' ? (
-            <Palette size={24} style={{ flexShrink: 0 }} />
-          ) : (
-            <AlertTriangle size={24} style={{ flexShrink: 0 }} />
-          )}
-          <div>
-            <div className="font-cinzel" style={{
-              color: imageToast.status === 'ready' ? '#10b981' : imageToast.status === 'failed' ? '#ef4444' : 'var(--accent-gold)',
-              fontSize: '0.75rem', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px', marginBottom: '3px'
-            }}>
-              {imageToast.status === 'generating' ? 'Generando imagen IA...' : imageToast.status === 'ready' ? '¡Imagen lista!' : 'Sin imagen (plan gratuito)'}
-            </div>
-            <div style={{ color: 'var(--text-parchment)', fontSize: '0.85rem', fontWeight: 'bold' }}>
-              {imageToast.name}
-            </div>
-            {imageToast.status === 'generating' && (
-              <div style={{ color: 'var(--text-secondary)', fontSize: '0.7rem', marginTop: '2px' }}>
-                La imagen se agregará automáticamente al guardarse
-              </div>
-            )}
-          </div>
-        </div>
-      )}
+      {imageToast && <ImageGenerationToast toast={imageToast} />}
 
       {/* HEADER */}
       <header style={{ background: 'var(--bg-surface)', padding: 'var(--header-padding)', borderBottom: '2px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>

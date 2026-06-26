@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo } from 'react';
-import { Ghost, Scroll, Swords, Shield, Sparkles, Footprints, Dna, AlertTriangle, Zap, BarChart, BookOpen, Languages } from 'lucide-react';
+import { BarChart, BookOpen, Scroll, Zap } from 'lucide-react';
 import { FeatureTooltip } from './TooltipRasgos';
 import { CompendiumCard } from './ui/CartaCompendio';
 import { DatabaseDetail } from './compendium/DetalleBaseDatos';
@@ -10,22 +10,10 @@ import { SubclassModal } from './compendium/ModalSubclase';
 import { FeatureDetail } from './compendium/DetalleRasgo';
 import { formatDescription } from '../utils/formateador';
 import { useDatabaseForms } from '../modules/compendium/hooks/useFormulariosBaseDatos';
+import { cleanNameForMatching, safeStr } from '../modules/compendium/compendio.utilidades';
+import { typeIcons } from './compendium/typeIcons';
 
-import { ACTION_TYPES, DAMAGE_TYPES, EMERGENCY_SRD_CLASSES } from '../modules/compendium/compendio.traducciones';
-
-export const typeIcons: Record<string, React.ReactNode> = {
-  all: <><BookOpen className="w-4 h-4 flex-shrink-0" /> Ver Todo</>,
-  monster: <><Ghost className="w-4 h-4 flex-shrink-0" /> Monstruos</>,
-  spell: <><Scroll className="w-4 h-4 flex-shrink-0" /> Hechizos</>,
-  item: <><Swords className="w-4 h-4 flex-shrink-0" /> Objetos</>,
-  class: <><Shield className="w-4 h-4 flex-shrink-0" /> Clases</>,
-  subclass: <><Sparkles className="w-4 h-4 flex-shrink-0" /> Subclases</>,
-  race: <><Footprints className="w-4 h-4 flex-shrink-0" /> Razas</>,
-  subrace: <><Dna className="w-4 h-4 flex-shrink-0" /> Subrazas</>,
-  condition: <><AlertTriangle className="w-4 h-4 flex-shrink-0" /> Estados</>,
-  language: <><Languages className="w-4 h-4 flex-shrink-0" /> Idiomas</>,
-  features: <><Zap className="w-4 h-4 flex-shrink-0" /> Rasgos</>
-};
+import { EMERGENCY_SRD_CLASSES } from '../modules/compendium/compendio.traducciones';
 /*
 const parseMarkdownTable = (tableStr: string) => {
   if (!tableStr) return null;
@@ -39,41 +27,6 @@ const parseMarkdownTable = (tableStr: string) => {
 };
 */
 
-const cleanNameForMatching = (name: string): string => {
-  if (!name) return '';
-  let s = name.toLowerCase();
-
-  // Remove common parenthesized details, like '(subclase)', '(2)', '(1 dado)', etc.
-  s = s.replace(/\s*\(.*\)/g, '');
-
-  // Remove trailing numbers (e.g. 'extra attack 2' -> 'extra attack')
-  s = s.replace(/\s+\d+$/g, '');
-
-  // Standardize common encoding issues or vowel accent errors in D&D terms
-  s = s.replace(/caracter[^s\s]{1,3}stica/gi, 'caracteristica');
-  s = s.replace(/acci[^n\s]{1,3}n/gi, 'accion');
-  s = s.replace(/b[^r\s]{1,3}rbaro/gi, 'barbaro');
-  s = s.replace(/cl[^r\s]{1,3}rigo/gi, 'clerigo');
-  s = s.replace(/campe[^n\s]{1,3}n/gi, 'campeon');
-  s = s.replace(/cr[^t\s]{1,3}tico/gi, 'critico');
-  s = s.replace(/palad[^n\s]{1,3}n/gi, 'paladin');
-  s = s.replace(/elusi[^v\s]{1,3}o/gi, 'elusivo');
-  s = s.replace(/evasi[^n\s]{1,3}n/gi, 'evasion');
-  s = s.replace(/perici[^a\s]{1,3}a/gi, 'pericia');
-  s = s.replace(/bendici[^n\s]{1,3}n/gi, 'bendicion');
-  s = s.replace(/protecci[^n\s]{1,3}n/gi, 'proteccion');
-  s = s.replace(/artifici[^e\s]{1,3}l/gi, 'artificial');
-
-  // Strip standard diacritics
-  s = s.normalize('NFD').replace(/[\u0300-\u036f]/g, '');
-
-  // Strip all non-alphanumeric characters entirely for tight matching
-  s = s.replace(/[^a-z0-9]/g, '');
-  
-  return s;
-};
-
-const safeStr = (val: any) => val != null ? String(val) : '';
 export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpenId, onCloseOverlay }: any) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState<'all' | 'monster' | 'spell' | 'item' | 'class' | 'subclass' | 'race' | 'subrace' | 'condition' | 'language' | 'features'>('all');
@@ -772,62 +725,6 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
     setClassWizardStep(1);
     setIsCreatingClass!(true);
   };
-
-  const generateTableMarkdown = (resourceName: string, resourceProg: string[], traitsList: any[]) => {
-    let headers = ['Nivel', 'Bono de Competencia', 'Rasgos'];
-    if (resourceName) {
-      headers.push(resourceName);
-    }
-    
-    let headerLine = `| ${headers.join(' | ')} |`;
-    let dividerLine = `| ${headers.map(() => '---').join(' | ')} |`;
-    
-    let rows: string[] = [];
-    for (let lvl = 1; lvl <= 20; lvl++) {
-      const profBonus = `+${1 + Math.ceil(lvl / 4)}`;
-      const lvlTraits = traitsList
-        .filter((t: any) => parseInt(t.level) === lvl)
-        .map((t: any) => t.name)
-        .join(', ');
-        
-      let cells = [
-        `${lvl}º`,
-        profBonus,
-        lvlTraits || 'Mejora de Característica'
-      ];
-      
-      if (resourceName) {
-        cells.push(resourceProg[lvl - 1] || '—');
-      }
-      
-      rows.push(`| ${cells.join(' | ')} |`);
-    }
-    
-    return [headerLine, dividerLine, ...rows].join('\n');
-  };
-
-  const getValidSubclassLevels = (clsName: string, activeData: any) => {
-    const name = clsName?.toLowerCase() || '';
-    if (name.includes('guerrero') || name.includes('fighter')) return [3, 7, 10, 15, 18];
-    if (name.includes('pícaro') || name.includes('rogue')) return [3, 9, 13, 17];
-    if (name.includes('mago') || name.includes('wizard')) return [2, 6, 10, 14];
-    if (name.includes('clérigo') || name.includes('cleric')) return [1, 2, 6, 8, 17];
-    if (name.includes('paladín') || name.includes('paladin')) return [3, 7, 15, 20];
-    if (name.includes('bardo') || name.includes('bard')) return [3, 6, 14];
-    if (name.includes('druida') || name.includes('druid')) return [2, 6, 10, 14];
-    if (name.includes('monje') || name.includes('monk')) return [3, 6, 11, 17];
-    if (name.includes('explorador') || name.includes('ranger')) return [3, 7, 11, 15];
-    if (name.includes('hechicero') || name.includes('sorcerer')) return [1, 6, 14, 18];
-    if (name.includes('warlock') || name.includes('brujo')) return [1, 6, 10, 14];
-    if (name.includes('bárbaro') || name.includes('barbarian')) return [3, 6, 10, 14];
-    
-    const first = activeData?.subclass_level || 3;
-    return [first, first + 4, first + 7, first + 12].filter((l: number) => l <= 20);
-  };
-
-  ;
-
-  ;
 
   const renderFeatureCrudModal = () => {
     if (!isEditingFeature) return null;
@@ -1794,6 +1691,7 @@ export const DatabaseView = ({ compendium, socket, userRole, isOverlay, forceOpe
                 <DatabaseDetail selectedItem={selectedItem} setSelectedItem={setSelectedItem} isOverlay={isOverlay} onCloseOverlay={onCloseOverlay} userRole={userRole} />
               )}
               {/* MODAL DE DETALLE DE RASGO */}
+              {renderFeatureCrudModal()}
               <FeatureDetail selectedFeature={selectedFeature} setSelectedFeature={setSelectedFeature} openEditFeatureForm={openEditFeatureForm} handleDeleteFeature={handleDeleteFeature} userRole={userRole} />
             </div>
           </div>

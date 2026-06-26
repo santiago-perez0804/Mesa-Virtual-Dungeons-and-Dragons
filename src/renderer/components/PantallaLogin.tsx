@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Eye, EyeOff, Shield, User, Lock, Upload } from 'lucide-react';
+import { Eye, EyeOff, User, Lock, Upload } from 'lucide-react';
 
 interface LoginProps {
   socket: any;
