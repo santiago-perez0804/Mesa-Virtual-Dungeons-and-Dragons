@@ -8,6 +8,7 @@ interface CharacterSheetDashboardProps {
   charStats: any;
   getEffectiveStat: (statKey: string) => number;
   getCharacterBaseSpeed: (race: string) => number;
+  setShowHpModal: (val: boolean) => void;
   setShowACModal: (val: boolean) => void;
   setShowInitiativeModal: (val: boolean) => void;
   setShowSpeedModal: (val: boolean) => void;
@@ -19,6 +20,7 @@ export const CharacterSheetDashboard: React.FC<CharacterSheetDashboardProps> = (
   charStats,
   getEffectiveStat,
   getCharacterBaseSpeed,
+  setShowHpModal,
   setShowACModal,
   setShowInitiativeModal,
   setShowSpeedModal,
@@ -35,13 +37,24 @@ export const CharacterSheetDashboard: React.FC<CharacterSheetDashboardProps> = (
   const customProficiency = (charStats.customProficiencyModifiers || []).reduce((acc: number, m: any) => acc + m.value, 0);
   const totalProficiency = getProficiencyBonus(selectedCharacter.level || 1) + customProficiency;
 
+  const customHpMods = (charStats.customHpModifiers || []).reduce((acc: number, m: any) => acc + m.value, 0);
+  const baseMaxHp = selectedCharacter.max_hp || 10;
+  const totalMaxHp = baseMaxHp + customHpMods;
+  const currentHp = selectedCharacter.current_hp ?? totalMaxHp;
+
   return (
     <div style={{ display: 'grid', gridTemplateColumns: 'var(--char-sheet-dash-columns)', gap: 'var(--char-sheet-dash-gap)', justifyContent: 'center', marginBottom: '10px' }}>
-      <div style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: 'var(--char-sheet-dash-padding)', textAlign: 'center', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 'var(--char-sheet-dash-min-height)' }}>
+      <div 
+        onClick={() => setShowHpModal(true)}
+        style={{ background: 'var(--bg-raised)', border: '1px solid var(--border-color)', borderRadius: '4px', padding: 'var(--char-sheet-dash-padding)', textAlign: 'center', cursor: 'pointer', transition: 'all 0.2s', display: 'flex', flexDirection: 'column', justifyContent: 'center', minHeight: 'var(--char-sheet-dash-min-height)' }}
+        onMouseOver={(e) => e.currentTarget.style.borderColor = 'var(--accent-gold)'}
+        onMouseOut={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
+        title="Editar Puntos de Golpe"
+      >
         <Heart size={20} style={{ color: 'var(--gold-primary)', alignSelf: 'center', marginBottom: '8px', width: 'var(--char-sheet-dash-icon-size)', height: 'var(--char-sheet-dash-icon-size)' }} />
         <div className="font-cinzel" style={{ fontSize: 'var(--char-sheet-dash-label-size)', color: 'var(--accent-gold)', textTransform: 'uppercase', marginBottom: '6px', fontWeight: 'bold', letterSpacing: '0.5px' }}>Puntos de Golpe</div>
         <div className="mono" style={{ fontSize: 'var(--char-sheet-dash-hp-size)', color: 'var(--gold-primary)', fontWeight: 'bold' }}>
-          {selectedCharacter.current_hp || selectedCharacter.max_hp || 10}<span style={{ color: 'rgba(200, 135, 42, 0.6)', fontSize: 'var(--char-sheet-dash-hp-slash-size)', fontWeight: 'normal' }}>/{selectedCharacter.max_hp || 10}</span>
+          {currentHp}<span style={{ color: 'rgba(200, 135, 42, 0.6)', fontSize: 'var(--char-sheet-dash-hp-slash-size)', fontWeight: 'normal' }}>/{totalMaxHp}</span>
         </div>
       </div>
       

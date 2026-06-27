@@ -6,6 +6,7 @@ import { ProficiencyModifierModal } from '../../../../components/personaje/Profi
 import { AttributeModifierModal } from '../../../../components/personaje/AttributeModifierModal';
 import { SavingThrowModifierModal } from '../../../../components/personaje/SavingThrowModifierModal';
 import { SkillModifierModal } from '../../../../components/personaje/SkillModifierModal';
+import { HpModifierModal } from '../../../../components/personaje/HpModifierModal';
 
 interface CharacterSheetModalsProps {
   selectedCharacter: any;
@@ -13,6 +14,8 @@ interface CharacterSheetModalsProps {
   setSelectedCharacter: (c: any) => void;
   showACModal: boolean;
   setShowACModal: (val: boolean) => void;
+  showHpModal: boolean;
+  setShowHpModal: (val: boolean) => void;
   showInitiativeModal: boolean;
   setShowInitiativeModal: (val: boolean) => void;
   showSpeedModal: boolean;
@@ -33,6 +36,8 @@ export const CharacterSheetModals: React.FC<CharacterSheetModalsProps> = ({
   setSelectedCharacter,
   showACModal,
   setShowACModal,
+  showHpModal,
+  setShowHpModal,
   showInitiativeModal,
   setShowInitiativeModal,
   showSpeedModal,
@@ -53,6 +58,15 @@ export const CharacterSheetModals: React.FC<CharacterSheetModalsProps> = ({
           character={selectedCharacter} 
           socket={socket} 
           onClose={() => setShowACModal(false)} 
+          onUpdate={setSelectedCharacter}
+        />
+      )}
+
+      {showHpModal && (
+        <HpModifierModal 
+          character={selectedCharacter} 
+          socket={socket} 
+          onClose={() => setShowHpModal(false)} 
           onUpdate={setSelectedCharacter}
         />
       )}

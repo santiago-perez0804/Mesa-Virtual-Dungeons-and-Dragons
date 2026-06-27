@@ -15,6 +15,7 @@ export const CharacterSheetDetailed = (props: any) => {
   const { selectedCharacter, setSelectedCharacter, dbClasses, dbRaces, getCharacterBaseSpeed,
           handleDelete, handleLevelUp, isLevelingUp, setIsLevelingUp,
           levelUpClass, setLevelUpClass, charDetailTab, setCharDetailTab, showACModal, setShowACModal,
+          showHpModal, setShowHpModal,
           showInitiativeModal, setShowInitiativeModal, showSpeedModal, setShowSpeedModal, showProficiencyModal, setShowProficiencyModal,
           socket, styles, parseClasses,
           startEdit, onCloseOverlay, userRole, selectedSavingThrows, selectedSkills,
@@ -136,6 +137,7 @@ export const CharacterSheetDetailed = (props: any) => {
                   charStats={charStats}
                   getEffectiveStat={getEffectiveStat}
                   getCharacterBaseSpeed={getCharacterBaseSpeed}
+                  setShowHpModal={setShowHpModal}
                   setShowACModal={setShowACModal}
                   setShowInitiativeModal={setShowInitiativeModal}
                   setShowSpeedModal={setShowSpeedModal}
@@ -192,6 +194,8 @@ export const CharacterSheetDetailed = (props: any) => {
           selectedCharacter={selectedCharacter}
           socket={socket}
           setSelectedCharacter={setSelectedCharacter}
+          showHpModal={showHpModal}
+          setShowHpModal={setShowHpModal}
           showACModal={showACModal}
           setShowACModal={setShowACModal}
           showInitiativeModal={showInitiativeModal}
