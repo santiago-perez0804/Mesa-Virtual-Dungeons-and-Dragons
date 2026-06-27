@@ -1,6 +1,7 @@
 import React from 'react';
 import { Ghost, HeartCrack, Flame, Snowflake, Moon, Shield, Zap, Biohazard, Activity, X, User, Backpack, Dices, StickyNote, Box, Lock, Coins, Swords, ArrowRight } from 'lucide-react';
 import { NoteTokenIcon, ImageTokenIcon, ClosedChestIcon, OpenChestIcon, ItemDropIcon, CompassIcon, LineAoeIcon, ConeAoeIcon, CircleAoeIcon, SquareAoeIcon, getAoeIcon } from '../../../shared/components/iconos';
+import { ChatPanel } from '../../../components/PanelChat';
 
 export const CombatBoard = (props: any) => {
   const {
@@ -30,6 +31,14 @@ export const CombatBoard = (props: any) => {
     handleCreateNoteSubmit, handleCreateImageSubmit, handleImageFileChange, handleSpawnAoe,
     CELL_PX, GRID_SIZE, BOARD_PX, renderConditionIcon
   } = props;
+
+  const myTeam = currentUser ? (characters.find((c: any) => c.name === currentUser.name)?.teamColor || 'blue') : 'blue';
+
+  const canSeeOnGrid = (t: any) => {
+    if (userRole === 'dm' || userRole === 'admin') return true;
+    if (t.isVisible === false && t.owner !== currentUser?.name) return false;
+    return true;
+  };
 
   return (
     <>
@@ -306,7 +315,6 @@ export const CombatBoard = (props: any) => {
             )}
             
             <canvas 
-              ref={fowCanvasRef}
               width={BOARD_PX} 
               height={BOARD_PX}
               style={{
@@ -316,7 +324,7 @@ export const CombatBoard = (props: any) => {
             />
             
             {(userRole === 'dm' || userRole === 'admin') && Array.from(solidCells).map(cellKey => {
-              const [cx, cy] = cellKey.split(',').map(Number);
+              const [cx, cy] = (cellKey as string).split(',').map(Number);
               return (
                 <div key={`wall-${cellKey}`} style={{
                   position: 'absolute',

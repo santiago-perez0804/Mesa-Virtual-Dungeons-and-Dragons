@@ -11,7 +11,7 @@ interface CampaignDetailProps {
   diaryEntries: DiaryEntry[];
   isAiActive: boolean;
   addDiaryEntry: (content: string, image: string) => void;
-  onEnterCampaign?: (campaignId: number) => void;
+  onEnterCampaign?: (campaign: Campaign) => void;
   deleteCampaign: (id: number) => void;
   openEditForm: (campaign: Campaign) => void;
 }
@@ -111,7 +111,7 @@ export const CampaignDetail: React.FC<CampaignDetailProps> = ({
             <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>
               <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
                 <button 
-                  onClick={() => onEnterCampaign(selectedCampaign.id)}
+                  onClick={() => onEnterCampaign(selectedCampaign)}
                   className="torch-glow"
                   style={{
                     background: 'linear-gradient(135deg, var(--natural-green), #1b8a4f)',
@@ -129,7 +129,7 @@ export const CampaignDetail: React.FC<CampaignDetailProps> = ({
                   onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.02)'}
                   onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
                 >
-                  🚪 ENTRAR A LA REJILLA DE COMBATE
+                  🚪 ENTRAR
                 </button>
 
                 <button 

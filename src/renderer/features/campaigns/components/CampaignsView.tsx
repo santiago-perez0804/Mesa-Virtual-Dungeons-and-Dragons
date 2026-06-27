@@ -4,13 +4,14 @@ import { useCampaignForm } from '../hooks/useCampaignForm';
 import { CampaignGrid } from './CampaignGrid';
 import { CampaignDetail } from './CampaignDetail';
 import { CampaignForm } from './CampaignForm';
+import type { Campaign } from '../types';
 
 interface CampaignsViewProps {
   socket: any;
   userRole: string;
   characters: any[];
   currentUser?: { name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string } | null;
-  onEnterCampaign?: (campaignId: number) => void;
+  onEnterCampaign?: (campaign: Campaign) => void;
 }
 
 export const CampaignsView: React.FC<CampaignsViewProps> = ({ 

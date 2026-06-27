@@ -7,7 +7,7 @@ interface CampaignGridProps {
   currentUser: any;
   openCreateForm: () => void;
   viewCampaign: (campaign: Campaign) => void;
-  onEnterCampaign?: (campaignId: number) => void;
+  onEnterCampaign?: (campaign: Campaign) => void;
 }
 
 export const CampaignGrid: React.FC<CampaignGridProps> = ({
@@ -19,10 +19,10 @@ export const CampaignGrid: React.FC<CampaignGridProps> = ({
 }) => {
   const [roomInput, setRoomInput] = useState('');
 
-  const joinCampaignRoom = (e: React.MouseEvent, campaignId: number) => {
+  const joinCampaignRoom = (e: React.MouseEvent, campaign: Campaign) => {
     e.stopPropagation();
     if (onEnterCampaign) {
-      onEnterCampaign(campaignId);
+      onEnterCampaign(campaign);
     }
   };
 
@@ -100,9 +100,9 @@ export const CampaignGrid: React.FC<CampaignGridProps> = ({
                 alert('Por favor ingresa un ID de sala válido.');
                 return;
               }
-              const campaignExists = campaigns.some(c => c.id === id);
-              if (campaignExists && onEnterCampaign) {
-                onEnterCampaign(id);
+              const campaignObj = campaigns.find(c => c.id === id);
+              if (campaignObj && onEnterCampaign) {
+                onEnterCampaign(campaignObj);
               } else {
                 alert('No se encontró ninguna campaña con el ID de sala ingresado. Asegúrate de tener acceso.');
               }
@@ -183,7 +183,7 @@ export const CampaignGrid: React.FC<CampaignGridProps> = ({
                     Detalles
                   </button>
                   <button 
-                    onClick={(e) => joinCampaignRoom(e, campaign.id)} 
+                    onClick={(e) => joinCampaignRoom(e, campaign)} 
                     className="torch-glow"
                     style={{
                       background: 'linear-gradient(135deg, var(--natural-green), #1b8a4f)',

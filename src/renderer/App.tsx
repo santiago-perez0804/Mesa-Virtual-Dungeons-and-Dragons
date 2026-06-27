@@ -78,31 +78,40 @@ function App() {
     currentRoleRef.current = currentRole;
   }, [currentRole]);
 
-  const handleJoinCampaignRoom = (campaignId: number) => {
-    const campaign = campaigns.find(c => c.id === campaignId);
-    if (!campaign) return;
+  const handleJoinCampaignRoom = (campaign: any) => {
+    const campaignId = campaign.id;
+    alert("Iniciando ingreso a campaña ID: " + campaignId);
+    if (!campaign) {
+      alert("No se encontró la campaña: " + campaignId + " | total campañas: " + campaigns.length);
+      return;
+    }
 
     const savedHeroId = localStorage.getItem(`dnd_vtt_campaign_${campaignId}_hero`);
     const isPlayer = user && user.role !== 'admin' && campaign.owner !== user.name;
 
+    alert(`Debug: isPlayer=${isPlayer}, savedHeroId=${savedHeroId}, owner=${campaign.owner}, currentUser=${user?.name}`);
+
     if (isPlayer && !savedHeroId) {
       // Primera vez que se une: validar héroes del jugador
-      const playerCharacters = characters.filter(c => c.owner === user.name);
+      const playerCharacters = characters.filter(c => c.owner === user?.name);
       if (playerCharacters.length === 0) {
         alert("⚔️ ¡No tienes ningún héroe creado! Te redirigiremos a la pestaña de HÉROES para que crees tu personaje antes de entrar a la aventura.");
         setActiveTab('characters');
         return;
       }
       // Mostrar selector de héroes
+      alert("Mostrando selector de héroes para campaña: " + campaignId);
       setShowHeroSelectorForCampaignId(campaignId);
       return;
     }
 
+    alert("Entrando directo a la sala. Seteando variables de estado y tab a combat.");
     // Entrar directo (DM, admin, o jugador que ya eligió héroe)
     setCurrentRoomCampaignId(campaignId);
     localStorage.setItem('dnd_vtt_campaign_room', String(campaignId));
     socket.emit('room:join', { campaignId, characterId: savedHeroId ? Number(savedHeroId) : undefined });
     setActiveTab('combat');
+    alert("Tab de combate activada.");
   };
 
   const handleLeaveRoom = () => {
@@ -514,10 +523,10 @@ function App() {
         <div style={{ display: 'flex', gap: '2px' }}>
           {[
             { id: 'combat', label: 'COMBATE', color: 'var(--combat-red)', visible: currentRoomCampaignId !== null },
-            { id: 'characters', label: 'HÉROES', color: 'var(--natural-green)', visible: currentRole !== 'admin' },
-            { id: 'campaigns', label: 'CAMPAÑAS', color: 'var(--accent-gold)', visible: true },
-            { id: 'database', label: 'COMPENDIO', color: 'var(--accent-gold)', visible: true },
-            { id: 'admin', label: 'ADMIN', color: '#f59e0b', visible: currentRole === 'admin' }
+            { id: 'characters', label: 'HÉROES', color: 'var(--natural-green)', visible: currentRole !== 'admin' && currentRoomCampaignId === null },
+            { id: 'campaigns', label: 'CAMPAÑAS', color: 'var(--accent-gold)', visible: currentRoomCampaignId === null },
+            { id: 'database', label: 'COMPENDIO', color: 'var(--accent-gold)', visible: currentRoomCampaignId === null },
+            { id: 'admin', label: 'ADMIN', color: '#f59e0b', visible: currentRole === 'admin' && currentRoomCampaignId === null }
           ].filter(t => t.visible !== false).map(tab => (
             <button
               key={tab.id}
