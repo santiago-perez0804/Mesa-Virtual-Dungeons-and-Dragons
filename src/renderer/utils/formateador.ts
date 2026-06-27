@@ -28,7 +28,6 @@ export const formatDescription = (text: any): string => {
   html = html.replace(/&lt;strong&gt;/gi, '');
   html = html.replace(/&lt;\/strong&gt;/gi, '');
 
-  html += '<br /><br /><span style="background: red; color: white; padding: 5px; font-weight: bold;">FORMATTER ACTIVE V3</span>';
 
   return html;
 };

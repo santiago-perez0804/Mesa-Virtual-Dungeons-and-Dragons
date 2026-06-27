@@ -21,15 +21,15 @@ export const useGestorPersonajesState = ({ socket, characters, compendium, userR
           name: item.name,
           description: parsedData.description || parsedData.desc || '',
           hitDice: parsedData.hit_die || parsedData.hit_dice || 8,
-          savingThrows: item.name === 'B├írbaro' ? ['fue', 'con'] :
+          savingThrows: item.name === 'Bárbaro' ? ['fue', 'con'] :
                         item.name === 'Bardo' ? ['dex', 'car'] :
-                        item.name === 'Cl├®rigo' ? ['sab', 'car'] :
+                        item.name === 'Clérigo' ? ['sab', 'car'] :
                         item.name === 'Druida' ? ['int', 'sab'] :
                         item.name === 'Guerrero' ? ['fue', 'con'] :
                         item.name === 'Monje' ? ['fue', 'dex'] :
-                        item.name === 'Palad├¡n' ? ['sab', 'car'] :
+                        item.name === 'Paladín' ? ['sab', 'car'] :
                         item.name === 'Explorador' ? ['fue', 'dex'] :
-                        item.name === 'P├¡caro' ? ['dex', 'int'] :
+                        item.name === 'Pícaro' ? ['dex', 'int'] :
                         item.name === 'Hechicero' ? ['con', 'car'] :
                         item.name === 'Brujo' ? ['sab', 'car'] :
                         item.name === 'Mago' ? ['int', 'sab'] : ['fue', 'con']
@@ -58,7 +58,7 @@ export const useGestorPersonajesState = ({ socket, characters, compendium, userR
         const subr = (parsedData.subraces || []).map((s: any) => ({
           id: s.name,
           name: s.name,
-          description: s.desc || s.description || 'Sin descripci├│n.',
+          description: s.desc || s.description || 'Sin descripción.',
           bonuses: s.ability_bonuses || {},
           bonusText: ''
         }));
@@ -84,14 +84,14 @@ export const useGestorPersonajesState = ({ socket, characters, compendium, userR
         return {
           id: item.name,
           name: item.name,
-          description: parsedData.size_description || parsedData.age || 'Sin descripci├│n.',
+          description: parsedData.size_description || parsedData.age || 'Sin descripción.',
           age: parsedData.age || '',
           size: parsedData.size || 'Medio',
           speed: parsedData.speed || 30,
           bonuses: bonuses,
           bonusText: bonusTexts.length > 0 ? bonusTexts.join(', ') : '+1 a todo',
           subraces: subr,
-          languages: languagesKnown.length > 0 ? languagesKnown : ['Com├║n'],
+          languages: languagesKnown.length > 0 ? languagesKnown : ['Común'],
           alignment: parsedData.alignment || '',
           alignmentDesc: parsedData.alignment_desc || '',
           image: parsedData.image || ''
@@ -133,11 +133,11 @@ export const useGestorPersonajesState = ({ socket, characters, compendium, userR
 
 
 
-  // --- ESTADOS DEL FORMULARIO DE CREACI├ôN ---
+  // --- ESTADOS DEL FORMULARIO DE CREACIÓN ---
   const [name, setName] = useState('');
   const [charClass, setCharClass] = useState('Guerrero');
   const [race, setRace] = useState('Humano');
-  const [subrace, setSubrace] = useState('Est├índar');
+  const [subrace, setSubrace] = useState('Estándar');
   const [description, setDescription] = useState('');
   const [image, setImage] = useState('');
   const [fullBodyImage, setFullBodyImage] = useState('');
@@ -172,10 +172,10 @@ export const useGestorPersonajesState = ({ socket, characters, compendium, userR
     weight: '',
     gender: '',
     alignment: null,
-    languages: ['Com├║n'],
+    languages: ['Común'],
     backstoryText: '',
     race: 'Humano',
-    subrace: 'Est├índar',
+    subrace: 'Estándar',
     class: 'Guerrero',
     attributes: { fue: 8, dex: 8, con: 8, int: 8, sab: 8, car: 8 },
     savingThrows: ['fue', 'con'],
@@ -267,7 +267,7 @@ export const useGestorPersonajesState = ({ socket, characters, compendium, userR
   const [selectedCharacter, setSelectedCharacter] = useState<any>(null);
   const [levelUpClass, setLevelUpClass] = useState('');
 
-  // --- ESTADOS DE B├ÜSQUEDA ---
+  // --- ESTADOS DE BÚSQUEDA ---
   const [searchTerm, setSearchTerm] = useState('');
   const [activeSlotIndex, setActiveSlotIndex] = useState<number | null>(null);
   const [slotSearchQuery, setSlotSearchQuery] = useState('');
@@ -393,10 +393,10 @@ export const useGestorPersonajesState = ({ socket, characters, compendium, userR
 
 
 
-  // --- C├üLCULO POINT BUY ---
+  // --- CÁLCULO POINT BUY ---
   const spentPoints = Object.values(stats).reduce((acc, val) => acc + getPointCost(val), 0);
 
-  // --- L├ôGICA DE PERSONAJES ---
+  // --- LÓGICA DE PERSONAJES ---
 
   const handleImageUpload = (e: any) => {
     const file = e.target.files[0];
@@ -479,28 +479,29 @@ export const useGestorPersonajesState = ({ socket, characters, compendium, userR
         }
       } catch (err) {
         console.error(err);
-        alert('Error de conexi├│n al subir la imagen');
+        alert('Error de conexión al subir la imagen');
       }
     }
   };
 
   const handleSave = () => {
-    if (!name) return alert("┬íTu h├®roe necesita un nombre!");
+    const finalName = draft.name || name;
+    if (!finalName) return alert("¡Tu héroe necesita un nombre!");
 
     let payloadMaxHp = 10;
     let payloadClass = charClass;
     const payloadLevel = 1;
 
     if (!editingId) {
-      // Creaci├│n: Vida configurada por el usuario (m├¡nimo 1 de vida)
+      // Creación: Vida configurada por el usuario (mínimo 1 de vida)
       payloadMaxHp = Math.max(1, (hitDieValue === '' ? 1 : hitDieValue) + calcMod(stats.con));
       // Guardamos la clase como JSON para soportar multiclase futura
-      payloadClass = JSON.stringify({ [charClass]: 1 });
+      payloadClass = JSON.stringify({ [draft.class || charClass]: 1 });
     }
 
     const finalStats = { ...stats };
     if (!editingId) {
-      const baseRace = race.split('(')[0].trim();
+      const baseRace = (draft.race || race).split('(')[0].trim();
       const dbRaceObj = dbRaces.find(r => r.name === baseRace || r.id === baseRace);
       const bonuses = dbRaceObj?.bonuses || {};
       Object.keys(bonuses).forEach((s: string) => {
@@ -512,10 +513,10 @@ export const useGestorPersonajesState = ({ socket, characters, compendium, userR
     const ac = 10 + dexMod;
 
     const payload = {
-      name,
+      name: finalName,
       charClass: payloadClass,
-      race: `${race} (${subrace})`,
-      description,
+      race: `${draft.race || race} (${draft.subrace || subrace})`,
+      description: draft.backstoryText || description,
       stats: finalStats,
       image,
       full_body_image: fullBodyImage,
@@ -524,7 +525,16 @@ export const useGestorPersonajesState = ({ socket, characters, compendium, userR
         trasfondo: backgroundItems.filter(i => i.trim() !== ''),
         habilidades: selectedSkills,
         salvaciones: selectedSavingThrows,
-        idiomas: draft.languages
+        idiomas: draft.languages,
+        edad: draft.age,
+        altura: draft.height,
+        peso: draft.weight,
+        pronombres: draft.gender,
+        alineamiento: draft.alignment,
+        rasgoPersonalidad: draft.personalityTrait,
+        ideal: draft.ideal,
+        vinculo: draft.bond,
+        defecto: draft.flaw
       }),
       level: payloadLevel,
       max_hp: payloadMaxHp,
@@ -559,7 +569,7 @@ export const useGestorPersonajesState = ({ socket, characters, compendium, userR
     setFullBodyImage('');
     setCharClass('Guerrero');
     setRace('Humano');
-    setSubrace('Est├índar');
+    setSubrace('Estándar');
     setInventory(defaultInventory);
     setStats({ fue: 8, dex: 8, con: 8, int: 8, sab: 8, car: 8 });
     setSelectedSkills([]);
@@ -567,6 +577,7 @@ export const useGestorPersonajesState = ({ socket, characters, compendium, userR
     setBackgroundItems(['', '']);
     setHitDieValue(10);
     setShowTraits(false);
+    setDraft(defaultDraft);
     if (isOverlay && onCloseOverlay) {
       onCloseOverlay();
     }
@@ -595,18 +606,18 @@ export const useGestorPersonajesState = ({ socket, characters, compendium, userR
   };
 
   const handleDelete = (id: number) => {
-    if (window.confirm("┬┐Est├ís seguro de eliminar este aventurero?")) {
+    if (window.confirm("¿Estás seguro de eliminar este aventurero?")) {
       socket.emit('character:delete', id);
     }
   };
 
   const updateStat = (stat: string, val: number) => {
     if (editingId) {
-      // En modo edici├│n (Level Up manual de stats), permitimos ir hasta 20
+      // En modo edición (Level Up manual de stats), permitimos ir hasta 20
       const clampedVal = Math.max(1, Math.min(20, val));
       setStats({ ...stats, [stat]: clampedVal });
     } else {
-      // Modo Creaci├│n (Point Buy)
+      // Modo Creación (Point Buy)
       const clampedVal = Math.max(8, Math.min(15, val));
       const currentCost = getPointCost(stats[stat as keyof typeof stats]);
       const newCost = getPointCost(clampedVal);
@@ -653,12 +664,12 @@ export const useGestorPersonajesState = ({ socket, characters, compendium, userR
       setSelectedCharacter(updated);
       setLevelUpClass("");
 
-      // Enviar un mensaje de chat de sistema de alta calidad her├íldico
+      // Enviar un mensaje de chat de sistema de alta calidad heráldico
       const chatMsg = {
         id: Date.now() + Math.random(),
         sender: 'Sistema',
         to: 'all',
-        text: `­ƒÄ▓ **${selectedCharacter.name}** subi├│ a nivel **${newLevel}** (${levelUpClass}) y tir├│ **d${hitDie}** para su vida sacando **${roll}** (Mod CON: ${getModStr(charStats.con)}). ┬íSu vida m├íxima aument├│ en **+${hpGain}**!`,
+        text: `­ƒÄ▓ **${selectedCharacter.name}** subió a nivel **${newLevel}** (${levelUpClass}) y tiró **d${hitDie}** para su vida sacando **${roll}** (Mod CON: ${getModStr(charStats.con)}). ¡Su vida máxima aumentó en **+${hpGain}**!`,
         timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
         isSystem: true
       };
@@ -671,12 +682,12 @@ export const useGestorPersonajesState = ({ socket, characters, compendium, userR
       alert(`­ƒùí´©Å Tomaste un nivel en ${levelUpClass}.
 Tiraste un d${hitDie} y sacaste ${roll}.
 Modificador de CON: ${getModStr(charStats.con)}.
-┬íTu Vida M├íxima aumenta en ${hpGain} puntos!`);
+¡Tu Vida Máxima aumenta en ${hpGain} puntos!`);
       applyUpdate();
     }
   };
 
-  // --- L├ôGICA DE MONSTRUOS (BESTIARIO) ---
+  // --- LÓGICA DE MONSTRUOS (BESTIARIO) ---
 
 
 
@@ -698,14 +709,14 @@ Modificador de CON: ${getModStr(charStats.con)}.
     },
     input: {
       padding: 'var(--search-input-padding)',
-      background: 'var(--bg-base)',
-      border: '1px solid var(--border-color)',
-      borderRadius: '2px',
+      background: 'rgba(0, 0, 0, 0.45)',
+      border: '1px solid rgba(200, 135, 42, 0.3)',
+      borderRadius: '4px',
       color: 'white',
       width: '100%',
       boxSizing: 'border-box' as const,
       outline: 'none',
-      transition: 'border-color 0.2s'
+      transition: 'border-color 0.2s, background 0.2s'
     },
     statLabel: {
       fontSize: '0.9rem',
@@ -735,7 +746,7 @@ Modificador de CON: ${getModStr(charStats.con)}.
     inventory, setInventory, draft, setDraft, isCreating, setIsCreating,
     creationStep, setCreationStep, creationErrors, setCreationErrors,
     dbClasses, dbRaces, dbAlignments, getHitDieForClass, getCharacterBaseSpeed,
-    selectedCharacter, setSelectedCharacter, charDetailTab, setCharDetailTab,
+    selectedCharacter, setSelectedCharacter, charDetailTab, setCharDetailTab, openCharacterSheet,
     showHitDiceModal, setShowHitDiceModal, showHpModal, setShowHpModal,
     hpModifierAmount, setHpModifierAmount, showLongRestModal, setShowLongRestModal,
     showPortraitModal, setShowPortraitModal, showLevelUpModal, setShowLevelUpModal,

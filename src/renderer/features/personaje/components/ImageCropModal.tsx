@@ -134,7 +134,7 @@ export const ImageCropModal = (props: any) => {
               />
             </div>
 
-            {/* Botones de acci├│n */}
+            {/* Botones de acción */}
             <div style={{ display: 'flex', gap: '15px', width: '100%', marginTop: '10px' }}>
               <button
                 type="button"

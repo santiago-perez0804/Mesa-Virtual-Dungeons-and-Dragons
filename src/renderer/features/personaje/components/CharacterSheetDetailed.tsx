@@ -72,9 +72,9 @@ export const CharacterSheetDetailed = (props: any) => {
 
   return (
     <>
-      <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 'var(--char-sheet-modal-padding)', boxSizing: 'border-box' }}>
-        <div className="clipped-frame" style={{ ...styles.card, width: '100%', maxWidth: 'var(--char-sheet-card-max-w)', height: 'var(--char-sheet-card-height)', maxHeight: 'var(--char-sheet-card-height)', overflowY: 'hidden', position: 'relative', display: 'flex', flexDirection: 'column', gap: 'var(--char-sheet-card-gap)', boxShadow: '0 0 100px rgba(0,0,0,1)', padding: 'var(--char-sheet-card-padding)' }}>
-          
+      <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', flex: 1 }}>
+        <div className="" style={{ ...styles.card, width: '100%', flex: 1, display: 'flex', flexDirection: 'column', gap: 'var(--char-sheet-card-gap)', border: 'none', borderRadius: 0, padding: '30px 40px', overflow: 'hidden', position: 'relative' }}>
+
           <CharacterSheetHeader 
             selectedCharacter={selectedCharacter}
             setSelectedCharacter={setSelectedCharacter}

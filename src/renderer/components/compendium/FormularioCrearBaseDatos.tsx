@@ -158,7 +158,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }:
                                   <div>
                                     <label style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Rareza del Objeto</label>
                                     <select className="mono" style={{ width: '100%', padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} value={createRarity} onChange={e => setCreateRarity(e.target.value)}>
-                                      {['Com├║n', 'Poco Com├║n', 'Raro', 'Muy Raro', 'Legendario', 'Artefacto'].map(r => <option key={r} value={r}>{r.toUpperCase()}</option>)}
+                                      {['Común', 'Poco Común', 'Raro', 'Muy Raro', 'Legendario', 'Artefacto'].map(r => <option key={r} value={r}>{r.toUpperCase()}</option>)}
                                     </select>
                                   </div>
                                   <div>
@@ -171,11 +171,11 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }:
                                   <label style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', textTransform: 'uppercase', fontWeight: 'bold', letterSpacing: '1px' }}>Propiedades del Objeto</label>
                                   <div style={{ display: 'flex', gap: '15px', justifyContent: 'space-around', padding: '5px 0' }}>
                                     
-                                    {/* Bot├│n Da├▒o (Espada) */}
+                                    {/* Botón Daño (Espada) */}
                                     <button
                                       type="button"
                                       onClick={() => setIsDamageItem(!isDamageItem)}
-                                      title={isDamageItem ? "Hace Da├▒o: ACTIVO" : "Activar: Hace Da├▒o"}
+                                      title={isDamageItem ? "Hace Daño: ACTIVO" : "Activar: Hace Daño"}
                                       style={{
                                         width: '45px',
                                         height: '45px',
@@ -203,7 +203,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }:
                                       ÔÜö´©Å
                                     </button>
 
-                                    {/* Bot├│n Escudo (Protege) */}
+                                    {/* Botón Escudo (Protege) */}
                                     <button
                                       type="button"
                                       onClick={() => setIsProtectItem(!isProtectItem)}
@@ -235,11 +235,11 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }:
                                       ­ƒøí´©Å
                                     </button>
 
-                                    {/* Bot├│n Sintonizaci├│n (Cadena) */}
+                                    {/* Botón Sintonización (Cadena) */}
                                     <button
                                       type="button"
                                       onClick={() => setCreateRequiresAttunement(!createRequiresAttunement)}
-                                      title={createRequiresAttunement ? "Requiere Sintonizaci├│n: ACTIVO" : "Activar: Requiere Sintonizaci├│n"}
+                                      title={createRequiresAttunement ? "Requiere Sintonización: ACTIVO" : "Activar: Requiere Sintonización"}
                                       style={{
                                         width: '45px',
                                         height: '45px',
@@ -280,7 +280,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }:
 
                             {createType === 'item' && (
                               <div>
-                                <label style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Categor├¡a / Tag</label>
+                                <label style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', display: 'block', marginBottom: '8px', textTransform: 'uppercase' }}>Categoría / Tag</label>
                                 <div style={{ display: 'flex', gap: '10px' }}>
                                   {['arma', 'armadura', 'consumible', 'artefacto'].map(tag => (
                                     <button
@@ -346,7 +346,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }:
 
                                 <div style={{ display: 'flex', gap: '10px', alignItems: 'center', marginTop: '5px' }}>
                                   <input type="checkbox" id="isConcentrationCheck" checked={createSpellConcentration} onChange={e => setCreateSpellConcentration(e.target.checked)} />
-                                  <label htmlFor="isConcentrationCheck" style={{ fontSize: '0.8rem', color: 'var(--text-parchment)', cursor: 'pointer' }}>┬┐Concentraci├│n?</label>
+                                  <label htmlFor="isConcentrationCheck" style={{ fontSize: '0.8rem', color: 'var(--text-parchment)', cursor: 'pointer' }}>¿Concentración?</label>
                                 </div>
                               </div>
                             )}
@@ -379,17 +379,17 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }:
 
                             {createType !== 'spell' ? (
                               <div>
-                                <label style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', display: 'block', marginBottom: '5px', textTransform: 'uppercase' }}>Descripci├│n / Lore</label>
+                                <label style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', display: 'block', marginBottom: '5px', textTransform: 'uppercase' }}>Descripción / Lore</label>
                                 <textarea style={{ width: '100%', height: '120px', padding: '10px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white', resize: 'vertical', outline: 'none', lineHeight: '1.5' }} value={createDesc} onChange={(e) => setCreateDesc(e.target.value)} />
                               </div>
                             ) : (
                               <>
                                 <div>
-                                  <label style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', display: 'block', marginBottom: '5px', textTransform: 'uppercase' }}>Descripci├│n Corta</label>
+                                  <label style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', display: 'block', marginBottom: '5px', textTransform: 'uppercase' }}>Descripción Corta</label>
                                   <input className="mono" style={{ width: '100%', padding: '10px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white', outline: 'none' }} placeholder="Escribe una breve sinopsis..." value={createShortDesc} onChange={(e) => setCreateShortDesc(e.target.value)} />
                                 </div>
                                 <div>
-                                  <label style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', display: 'block', marginBottom: '5px', textTransform: 'uppercase' }}>Descripci├│n Completa</label>
+                                  <label style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', display: 'block', marginBottom: '5px', textTransform: 'uppercase' }}>Descripción Completa</label>
                                   <textarea style={{ width: '100%', height: '120px', padding: '10px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white', resize: 'vertical', outline: 'none', lineHeight: '1.5' }} placeholder="Escribe los detalles y efectos del hechizo..." value={createDesc} onChange={(e) => setCreateDesc(e.target.value)} />
                                 </div>
                               </>
@@ -402,7 +402,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }:
                                   <input className="mono" style={{ width: '100%', padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} placeholder="Ej: 6 casillas, toque, personal..." value={createSpellRange} onChange={e => setCreateSpellRange(e.target.value)} />
                                 </div>
                                 <div>
-                                  <label style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Duraci├│n</label>
+                                  <label style={{ fontSize: '0.65rem', color: 'var(--text-secondary)', textTransform: 'uppercase' }}>Duración</label>
                                   <select className="mono" style={{ width: '100%', padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} value={createSpellDuration} onChange={e => setCreateSpellDuration(e.target.value)}>
                                     {['instantaneo', '1 turno', '1 asalto', '1 minuto', '10 minutos'].map(dur => <option key={dur} value={dur}>{dur.toUpperCase()}</option>)}
                                   </select>
@@ -412,7 +412,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }:
 
                             {createType === 'item' && isDamageItem && (
                               <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', borderTop: '1px solid var(--border-color)', paddingTop: '20px', background: 'rgba(0,0,0,0.15)', padding: '20px', border: '1px solid var(--border-color)' }}>
-                                <h4 className="font-cinzel" style={{ margin: 0, color: 'var(--accent-gold)', fontSize: '0.9rem', letterSpacing: '1px' }}>ÔÜö´©Å AJUSTES DE ATAQUE Y DA├æO</h4>
+                                <h4 className="font-cinzel" style={{ margin: 0, color: 'var(--accent-gold)', fontSize: '0.9rem', letterSpacing: '1px' }}>ÔÜö´©Å AJUSTES DE ATAQUE Y DAÑO</h4>
                                 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1.5fr 1fr', gap: '15px' }}>
                                   <div>
@@ -431,7 +431,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }:
                                     <input className="mono" style={{ width: '100%', padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} placeholder="Ej: +2" value={itemStatMod} onChange={e => setItemStatMod(e.target.value)} />
                                   </div>
                                   <div>
-                                    <label style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Estad├¡stica Base</label>
+                                    <label style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Estadística Base</label>
                                     <select className="mono" style={{ width: '100%', padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} value={itemStatSelection} onChange={e => setItemStatSelection(e.target.value)}>
                                       {['FUE', 'DES', 'CON', 'INT', 'SAB', 'CAR'].map(st => <option key={st} value={st}>{st}</option>)}
                                     </select>
@@ -444,15 +444,15 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }:
 
                                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '15px' }}>
                                   <div>
-                                    <label style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Da├▒o (Ej: 1d8+3)</label>
+                                    <label style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Daño (Ej: 1d8+3)</label>
                                     <input className="mono" style={{ width: '100%', padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} value={itemDamageFormula} onChange={e => setItemDamageFormula(e.target.value)} />
                                   </div>
                                   <div>
-                                    <label style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Da├▒o Cr├¡tico (Ej: 2d8)</label>
+                                    <label style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Daño Crítico (Ej: 2d8)</label>
                                     <input className="mono" style={{ width: '100%', padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} value={itemCritDamage} onChange={e => setItemCritDamage(e.target.value)} />
                                   </div>
                                   <div>
-                                    <label style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Tipo de Da├▒o</label>
+                                    <label style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Tipo de Daño</label>
                                     <select className="mono" style={{ width: '100%', padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} value={itemDamageType} onChange={e => setItemDamageType(e.target.value)}>
                                       {DAMAGE_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                                     </select>
@@ -473,7 +473,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }:
                                     <input type="number" className="mono" style={{ width: '100%', padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} value={createAc} onChange={e => setCreateAc(parseInt(e.target.value) || 10)} />
                                   </div>
                                   <div>
-                                    <label style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Desaf├¡o (CR)</label>
+                                    <label style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Desafío (CR)</label>
                                     <input className="mono" style={{ width: '100%', padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} value={createCr} onChange={e => setCreateCr(e.target.value)} />
                                   </div>
                                   <div>
@@ -535,17 +535,17 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }:
                                 <div>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                     <label style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Rasgos Especiales</label>
-                                    <button onClick={() => setCreateTraits([...createTraits, { name: '', desc: '' }])} style={{ background: 'transparent', border: 'none', color: 'var(--accent-gold)', fontSize: '0.75rem', cursor: 'pointer' }}>+ A├▒adir Rasgo</button>
+                                    <button onClick={() => setCreateTraits([...createTraits, { name: '', desc: '' }])} style={{ background: 'transparent', border: 'none', color: 'var(--accent-gold)', fontSize: '0.75rem', cursor: 'pointer' }}>+ Añadir Rasgo</button>
                                   </div>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                     {createTraits.map((t: any, idx: number) => (
                                       <div key={idx} style={{ display: 'flex', gap: '10px' }}>
-                                        <input placeholder="Nombre (Ej: Anf├¡bio)" style={{ flex: 1, padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} value={t.name} onChange={e => {
+                                        <input placeholder="Nombre (Ej: Anfíbio)" style={{ flex: 1, padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} value={t.name} onChange={e => {
                                           const list = [...createTraits];
                                           list[idx].name = e.target.value;
                                           setCreateTraits(list);
                                         }} />
-                                        <input placeholder="Descripci├│n del efecto..." style={{ flex: 2, padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} value={t.desc} onChange={e => {
+                                        <input placeholder="Descripción del efecto..." style={{ flex: 2, padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} value={t.desc} onChange={e => {
                                           const list = [...createTraits];
                                           list[idx].desc = e.target.value;
                                           setCreateTraits(list);
@@ -561,13 +561,13 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }:
                                 <div>
                                   <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '10px' }}>
                                     <label style={{ fontSize: '0.65rem', color: 'var(--text-secondary)' }}>Acciones de Combate</label>
-                                    <button onClick={() => setCreateAttacks([...createAttacks, { name: '', desc: '', isAttack: false, actionType: 'Acci├│n', attackBonus: '', damageFormula: '', damageType: 'cortante', range: '' }])} style={{ background: 'transparent', border: 'none', color: 'var(--accent-gold)', fontSize: '0.75rem', cursor: 'pointer' }}>+ A├▒adir Acci├│n</button>
+                                    <button onClick={() => setCreateAttacks([...createAttacks, { name: '', desc: '', isAttack: false, actionType: 'Acción', attackBonus: '', damageFormula: '', damageType: 'cortante', range: '' }])} style={{ background: 'transparent', border: 'none', color: 'var(--accent-gold)', fontSize: '0.75rem', cursor: 'pointer' }}>+ Añadir Acción</button>
                                   </div>
                                   <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
                                     {createAttacks.map((a: any, idx: number) => (
                                       <div key={idx} className="clipped-frame" style={{ background: 'rgba(0,0,0,0.2)', padding: '15px', border: '1px solid var(--border-color)', display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                         <div style={{ display: 'flex', gap: '10px' }}>
-                                          <input placeholder="Nombre de la Acci├│n (Ej: Mordisco)" style={{ flex: 2, padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} value={a.name} onChange={e => {
+                                          <input placeholder="Nombre de la Acción (Ej: Mordisco)" style={{ flex: 2, padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} value={a.name} onChange={e => {
                                             const list = [...createAttacks];
                                             list[idx].name = e.target.value;
                                             setCreateAttacks(list);
@@ -583,7 +583,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }:
                                             <button onClick={() => setCreateAttacks(createAttacks.filter((_: any, i: number) => i !== idx))} style={{ background: 'transparent', border: 'none', color: 'var(--combat-red)', cursor: 'pointer' }}>Ô£ò</button>
                                           )}
                                         </div>
-                                        <textarea placeholder="Descripci├│n del ataque o efecto..." style={{ width: '100%', height: '50px', padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white', resize: 'vertical' }} value={a.desc} onChange={e => {
+                                        <textarea placeholder="Descripción del ataque o efecto..." style={{ width: '100%', height: '50px', padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white', resize: 'vertical' }} value={a.desc} onChange={e => {
                                           const list = [...createAttacks];
                                           list[idx].desc = e.target.value;
                                           setCreateAttacks(list);
@@ -595,7 +595,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }:
                                             list[idx].isAttack = e.target.checked;
                                             setCreateAttacks(list);
                                           }} />
-                                          <label htmlFor={`isAtt-${idx}`} style={{ fontSize: '0.7rem', color: 'var(--text-parchment)', cursor: 'pointer' }}>┬┐Es un Ataque?</label>
+                                          <label htmlFor={`isAtt-${idx}`} style={{ fontSize: '0.7rem', color: 'var(--text-parchment)', cursor: 'pointer' }}>¿Es un Ataque?</label>
                                         </div>
 
                                         {a.isAttack && (
@@ -609,7 +609,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }:
                                               }} />
                                             </div>
                                             <div>
-                                              <label style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>F├│rmula Da├▒o (2d6+3)</label>
+                                              <label style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>Fórmula Daño (2d6+3)</label>
                                               <input className="mono" style={{ width: '100%', padding: '6px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} value={a.damageFormula} onChange={e => {
                                                 const list = [...createAttacks];
                                                 list[idx].damageFormula = e.target.value;
@@ -617,7 +617,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }:
                                               }} />
                                             </div>
                                             <div>
-                                              <label style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>Tipo Da├▒o</label>
+                                              <label style={{ fontSize: '0.6rem', color: 'var(--text-secondary)' }}>Tipo Daño</label>
                                               <select className="mono" style={{ width: '100%', padding: '6px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} value={a.damageType} onChange={e => {
                                                 const list = [...createAttacks];
                                                 list[idx].damageType = e.target.value;
@@ -646,7 +646,7 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }:
                         </div>
 
                         <button onClick={handleSave} className="font-cinzel torch-glow" style={{ width: '100%', background: 'var(--accent-gold)', color: 'white', border: 'none', padding: '15px', fontWeight: 'bold', cursor: 'pointer', fontSize: '1rem', letterSpacing: '2px', marginTop: '30px' }}>
-                          {editingId ? 'GUARDAR CAMBIOS' : 'A├æADIR AL COMPENDIO'}
+                          {editingId ? 'GUARDAR CAMBIOS' : 'AÑADIR AL COMPENDIO'}
                         </button>
                       </div>
                     

@@ -18,7 +18,7 @@ export const HeroGrid = (props: any) => {
         </div>
 
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(var(--char-grid-minmax), 1fr))', gap: 'var(--char-grid-gap)' }}>
-          {/* Bot├│n de Crear Nuevo H├®roe (Dashed Card) */}
+          {/* Botón de Crear Nuevo Héroe (Dashed Card) */}
           <div
             onClick={() => { resetForm(); setIsCreating(true); }}
             style={{

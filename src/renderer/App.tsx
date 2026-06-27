@@ -383,7 +383,7 @@ function App() {
   }
 
   return (
-    <div className="vtt-main" style={{ position: 'relative', minHeight: '100vh', backgroundColor: 'var(--bg-base)', color: 'var(--text-parchment)', fontFamily: 'var(--font-body)' }}>
+    <div className="vtt-main" style={{ position: 'relative', height: '100vh', overflow: 'hidden', display: 'flex', flexDirection: 'column', backgroundColor: 'var(--bg-base)', color: 'var(--text-parchment)', fontFamily: 'var(--font-body)' }}>
 
       {/* CAPA DEL LANZADOR DE DADOS 3D (Overlay Interactivo Bloqueante) */}
       {currentRoll && (
@@ -472,7 +472,7 @@ function App() {
           </span>
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--header-gap)' }}>
+        <div style={{ display: 'flex', alignItems: 'stretch', gap: 'var(--header-gap)' }}>
           <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--header-user-gap)', background: 'rgba(0,0,0,0.3)', padding: 'var(--header-user-padding)', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
             <div style={{ position: 'relative', width: 'var(--header-avatar-size)', height: 'var(--header-avatar-size)', overflow: 'hidden', background: 'var(--bg-base)', border: '1px solid var(--accent-gold)', cursor: 'pointer' }} title="Cambiar foto de perfil">
               {user.profile_image ? (
@@ -489,7 +489,7 @@ function App() {
                 style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: '100%', opacity: 0, cursor: 'pointer' }} 
               />
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <span style={{ fontSize: 'var(--header-role-size)', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
                 {currentRole === 'dm' ? 'Dungeon Master' : (currentRole === 'admin' ? 'Administrador' : 'Aventurero')}
               </span>
@@ -502,7 +502,7 @@ function App() {
               setUser(null);
             }}
             className="torch-glow"
-            style={{ background: 'transparent', border: '1px solid var(--combat-red)', color: 'var(--combat-red)', padding: 'var(--header-button-padding)', borderRadius: '4px', cursor: 'pointer', fontSize: 'var(--header-button-font-size)', fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: 'var(--header-button-gap)' }}
+            style={{ background: 'transparent', border: '1px solid var(--combat-red)', color: 'var(--combat-red)', padding: '0 20px', borderRadius: '4px', cursor: 'pointer', fontSize: 'var(--header-button-font-size)', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--header-button-gap)' }}
           >
             <LogOut style={{ width: 'var(--header-logout-icon-size)', height: 'var(--header-logout-icon-size)' }} /> SALIR
           </button>
@@ -564,7 +564,7 @@ function App() {
         )}
       </div>
 
-      <main className={`vtt-main-container ${activeTab === 'database' ? 'database-view-active' : ''}`} style={{ width: '100%', boxSizing: 'border-box', margin: '0 auto' }}>
+      <main className={`vtt-main-container ${activeTab === 'database' ? 'database-view-active' : ''}`} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', width: '100%', boxSizing: 'border-box', margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
         {activeTab === 'combat' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
 
@@ -853,7 +853,7 @@ function App() {
           <AdminPanel socket={socket} />
         )}
         {activeTab === 'characters' && (currentRole === 'player' || currentRole === 'dm' || currentRole === 'admin') && (
-          <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
+          <div style={{ width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
             <CharacterManager
               socket={socket}
               characters={characters}

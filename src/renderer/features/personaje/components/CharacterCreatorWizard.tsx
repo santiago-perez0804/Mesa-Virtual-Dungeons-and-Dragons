@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { User, Check, Dices, X, ChevronLeft, ChevronRight } from 'lucide-react';
 import { calcMod } from '../../../../utils/dnd-calculos';
+import { getPointCost } from '../../../modules/personaje/personaje.utilidades';
 
 export const CharacterCreatorWizard = (props: any) => {
   const { isCreating, creationStep, setCreationStep, draft, setDraft,
@@ -8,7 +9,7 @@ export const CharacterCreatorWizard = (props: any) => {
           backgroundItems, setBackgroundItems,
           selectedSkills, setSelectedSkills, setSelectedSavingThrows,
           dbClasses, dbRaces, dbAlignments, getHitDieForClass, handleSave, handleImageUpload, setCropMode, portraitInputRef,
-          styles, getPointCost, skillList, statDescriptions, resetForm,
+          styles, skillList, statDescriptions, resetForm,
           raceQuery, setRaceQuery, raceDropdownOpen, setRaceDropdownOpen,
           subraceQuery, setSubraceQuery, subraceDropdownOpen, setSubraceDropdownOpen,
           bgSkillQuery, setBgSkillQuery, bgSkillDropdownOpen, setBgSkillDropdownOpen,
@@ -19,14 +20,14 @@ export const CharacterCreatorWizard = (props: any) => {
   return (
     <>
       {isCreating && (
-        <div style={{ position: 'fixed', top: 0, left: 0, width: '100vw', height: '100vh', background: 'rgba(0,0,0,0.95)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, padding: '40px' }}>
-          <div style={{ position: 'relative', width: '100%', maxWidth: '1400px', height: '90vh', maxHeight: '90vh' }} onClick={e => e.stopPropagation()}>
-            <div style={{ ...styles.card, width: '100%', height: '100%', display: 'flex', flexDirection: 'column', border: '2px solid var(--accent-gold)', padding: 0, overflow: 'hidden', position: 'relative' }} className="clipped-frame">
-              <button onClick={() => resetForm()} style={{ position: 'absolute', top: '15px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '2.5rem', cursor: 'pointer', zIndex: 10 }}><X className="w-6 h-6 m-auto" /></button>
+        <div style={{ width: '100%', height: '100%', display: 'flex', flexDirection: 'column', flex: 1 }}>
+          <div style={{ position: 'relative', width: '100%', flex: 1, display: 'flex', flexDirection: 'column' }}>
+            <div style={{ ...styles.card, width: '100%', flex: 1, display: 'flex', flexDirection: 'column', border: 'none', borderRadius: 0, padding: 0, overflow: 'hidden', position: 'relative' }} className="">
+              <button onClick={() => resetForm()} style={{ position: 'absolute', top: '15px', right: '20px', background: 'none', border: 'none', color: 'var(--text-secondary)', fontSize: '2.5rem', cursor: 'pointer', zIndex: 10 }} title="Volver"><X className="w-6 h-6 m-auto" /></button>
 
             {/* INDICADOR DE PASOS (Stepper top fijo) */}
             <div style={{ display: 'flex', justifyContent: 'center', gap: '50px', padding: '25px 40px 20px 40px', borderBottom: '1px solid var(--border-color)', background: 'var(--bg-surface)' }}>
-              {[1, 2, 3].map(s => {
+              {[1, 2].map(s => {
                 const isActive = creationStep === s;
                 const isCompleted = creationStep > s;
 
@@ -68,7 +69,7 @@ export const CharacterCreatorWizard = (props: any) => {
 
                 return (
                   <div key={s} style={{ display: 'flex', alignItems: 'center', gap: '12px', cursor: isCompleted ? 'pointer' : 'default' }} onClick={() => isCompleted && setCreationStep(s)}>
-                    <div className="mono" style={circleStyle} title={s === 1 ? 'ESENCIA' : s === 2 ? 'COMPETENCIAS' : 'VITALIDAD'}>
+                    <div className="mono" style={circleStyle} title={s === 1 ? 'ESENCIA Y COMPETENCIAS' : 'VITALIDAD'}>
                       {isCompleted ? 'Ô£ô' : s}
                     </div>
                   </div>
@@ -81,9 +82,9 @@ export const CharacterCreatorWizard = (props: any) => {
 
               {creationStep === 1 && (
                 <>
-                  {/* Header: nombre del h├®roe (input full-width) y avatar */}
+                  {/* Header: nombre del héroe (input full-width) y avatar */}
                   <div style={{ width: '100%' }}>
-                    <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '8px', display: 'block' }}>NOMBRE DEL H├ëROE</label>
+                    <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '8px', display: 'block' }}>NOMBRE DEL HÉROE</label>
                     <div style={{ display: 'flex', gap: '25px', alignItems: 'center', width: '100%' }}>
                       <input
                         className="font-cinzel"
@@ -93,10 +94,11 @@ export const CharacterCreatorWizard = (props: any) => {
                           fontSize: '1.6rem',
                           fontWeight: 'bold',
                           color: 'var(--accent-gold)',
-                          borderBottom: '2px solid var(--border-color)',
-                          borderRadius: 0,
-                          background: 'transparent',
-                          padding: '10px 12px',
+                          border: '1px solid rgba(200, 135, 42, 0.4)',
+                          borderBottom: '2px solid var(--accent-gold)',
+                          borderRadius: '6px',
+                          background: 'rgba(0, 0, 0, 0.45)',
+                          padding: '12px 18px',
                           boxSizing: 'border-box'
                         }}
                         placeholder="Escribe su nombre..."
@@ -139,7 +141,7 @@ export const CharacterCreatorWizard = (props: any) => {
                     </div>
                   </div>
 
-                  {/* Secci├│n de Raza y Subraza en dos columnas */}
+                  {/* Sección de Raza y Subraza en dos columnas */}
                   <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '40px', alignItems: 'start', borderTop: '1px solid rgba(200, 135, 42, 0.15)', borderBottom: '1px solid rgba(200, 135, 42, 0.15)', padding: '30px 0' }}>
                     
                     {/* Columna Izquierda: Buscadores y descripciones */}
@@ -178,7 +180,7 @@ export const CharacterCreatorWizard = (props: any) => {
                                     ...prev,
                                     race: r.id,
                                     subrace: r.subraces.length > 0 ? r.subraces[0].id : null,
-                                    languages: r.languages || ['Com├║n'],
+                                    languages: r.languages || ['Común'],
                                     alignment: defaultAlign as any
                                   }));
                                   setRaceQuery(r.name);
@@ -198,7 +200,7 @@ export const CharacterCreatorWizard = (props: any) => {
                           </div>
                         )}
 
-                        {/* Descripci├│n de Raza */}
+                        {/* Descripción de Raza */}
                         {draft.race && (
                           <div style={{ fontSize: '0.85rem', color: 'var(--text-parchment)', opacity: 0.9, fontStyle: 'italic', padding: '12px 18px', background: 'rgba(200, 135, 42, 0.04)', borderLeft: '3px solid var(--accent-gold)', marginTop: '8px' }}>
                             <strong>{draft.race}:</strong> {dbRaces.find(r => r.id === draft.race || r.name === draft.race)?.description}
@@ -257,7 +259,7 @@ export const CharacterCreatorWizard = (props: any) => {
                               </div>
                             )}
 
-                            {/* Descripci├│n de Subraza */}
+                            {/* Descripción de Subraza */}
                             {draft.subrace && (
                               <div style={{ fontSize: '0.85rem', color: 'var(--text-parchment)', opacity: 0.9, fontStyle: 'italic', padding: '12px 18px', background: 'rgba(200, 135, 42, 0.04)', borderLeft: '3px solid var(--accent-gold)', marginTop: '8px' }}>
                                 <strong>{draft.subrace}:</strong> {selectedRaceObj.subraces.find(sr => sr.id === draft.subrace)?.description}
@@ -268,7 +270,7 @@ export const CharacterCreatorWizard = (props: any) => {
                       })()}
                     </div>
 
-                    {/* Columna Derecha: Foto de Raza (Tama├▒o Fijo 2:3) */}
+                    {/* Columna Derecha: Foto de Raza (Tamaño Fijo 2:3) */}
                     <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center' }}>
                       <div className="clipped-frame" style={{
                         width: '260px',
@@ -354,7 +356,7 @@ export const CharacterCreatorWizard = (props: any) => {
 
                   </div>
 
-                  {/* Detalles F├¡sicos */}
+                  {/* Detalles Físicos */}
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '20px' }}>
                     <div>
                       <label className="font-cinzel" style={{ fontSize: '0.7rem', color: 'var(--accent-gold)', letterSpacing: '1px', marginBottom: '8px', display: 'block' }}>EDAD</label>
@@ -362,7 +364,7 @@ export const CharacterCreatorWizard = (props: any) => {
                         type="number"
                         className="font-cinzel"
                         style={styles.input}
-                        placeholder="A├▒os"
+                        placeholder="Años"
                         value={draft.age || ''}
                         onChange={(e) => setDraft(prev => ({ ...prev, age: e.target.value ? parseInt(e.target.value) : null }))}
                       />
@@ -395,7 +397,7 @@ export const CharacterCreatorWizard = (props: any) => {
                         type="text"
                         className="font-cinzel"
                         style={styles.input}
-                        placeholder="Ej: ├ël / Ella / Ellos"
+                        placeholder="Ej: Él / Ella / Ellos"
                         value={draft.gender}
                         onChange={(e) => setDraft(prev => ({ ...prev, gender: e.target.value }))}
                       />
@@ -440,7 +442,7 @@ export const CharacterCreatorWizard = (props: any) => {
 
                     {/* Descripciones de Alineamiento y Raza */}
                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                      {/* Informaci├│n Completa del Alineamiento Elegido */}
+                      {/* Información Completa del Alineamiento Elegido */}
                       {(() => {
                         const selectedAlignObj = dbAlignments.find(a => a.id === draft.alignment);
                         if (!selectedAlignObj) return null;
@@ -462,7 +464,7 @@ export const CharacterCreatorWizard = (props: any) => {
                         );
                       })()}
 
-                      {/* Gu├¡a de Alineamiento seg├║n la Raza */}
+                      {/* Guía de Alineamiento según la Raza */}
                       {(() => {
                         const selectedRaceObj = dbRaces.find(r => r.id === draft.race || r.name === draft.race);
                         const alignDesc = selectedRaceObj?.alignmentDesc;
@@ -478,7 +480,7 @@ export const CharacterCreatorWizard = (props: any) => {
                             borderLeft: '2px solid var(--accent-gold)', 
                             lineHeight: '1.4'
                           }}>
-                            <strong>Inclinaci├│n de la raza ({selectedRaceObj.name}):</strong> {alignDesc}
+                            <strong>Inclinación de la raza ({selectedRaceObj.name}):</strong> {alignDesc}
                           </div>
                         );
                       })()}
@@ -493,7 +495,7 @@ export const CharacterCreatorWizard = (props: any) => {
                         {draft.languages.map(lang => (
                           <span key={lang} style={{ display: 'inline-flex', alignItems: 'center', gap: '6px', background: 'rgba(200, 135, 42, 0.15)', border: '1px solid var(--accent-gold)', padding: '4px 10px', borderRadius: '4px', fontSize: '0.8rem', color: 'var(--accent-gold)', fontWeight: 'bold' }}>
                             {lang}
-                            {lang !== 'Com├║n' && (
+                            {lang !== 'Común' && (
                               <button
                                 type="button"
                                 onClick={() => setDraft(prev => ({ ...prev, languages: prev.languages.filter(l => l !== lang) }))}
@@ -539,7 +541,7 @@ export const CharacterCreatorWizard = (props: any) => {
                     <textarea
                       rows={4}
                       style={{ ...styles.input, resize: 'none', height: 'auto', minHeight: 'unset', fontFamily: 'var(--font-body)', fontSize: '0.95rem', padding: '12px' }}
-                      placeholder="Escribe la leyenda de tu h├®roe..."
+                      placeholder="Escribe la leyenda de tu héroe..."
                       value={draft.backstoryText}
                       onChange={(e) => setDraft(prev => ({ ...prev, backstoryText: e.target.value }))}
                     />
@@ -698,7 +700,7 @@ export const CharacterCreatorWizard = (props: any) => {
                   </div>
                 </>
               )}
-              {creationStep === 2 && (
+              {creationStep === 1 && (
                 <>
                   {/* Point Buy Indicator */}
                   {(() => {
@@ -738,7 +740,7 @@ export const CharacterCreatorWizard = (props: any) => {
 
                   {/* Atributos */}
                   <div>
-                    <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '15px', display: 'block' }}>ATRIBUTOS Y TIRADAS DE SALVACI├ôN</label>
+                    <label className="font-cinzel" style={{ fontSize: '0.75rem', color: 'var(--accent-gold)', letterSpacing: '1.5px', marginBottom: '15px', display: 'block' }}>ATRIBUTOS Y TIRADAS DE SALVACIÓN</label>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '20px' }}>
                       {Object.entries(draft.attributes as Record<string, number>).map(([key, value]) => {
                         const baseRace = (draft.race || 'Humano').split('(')[0].trim();
@@ -751,9 +753,9 @@ export const CharacterCreatorWizard = (props: any) => {
                         const statNames: Record<string, string> = {
                           fue: 'FUERZA',
                           dex: 'DESTREZA',
-                          con: 'CONSTITUCI├ôN',
+                          con: 'CONSTITUCIÓN',
                           int: 'INTELIGENCIA',
-                          sab: 'SABIDUR├ìA',
+                          sab: 'SABIDURÍA',
                           car: 'CARISMA'
                         };
                         const fullName = statNames[key] || key.toUpperCase();
@@ -768,7 +770,7 @@ export const CharacterCreatorWizard = (props: any) => {
                             newSavingThrows = draft.savingThrows.filter(s => s !== key);
                           } else {
                             if (draft.savingThrows.length >= 2) {
-                              alert("Solo puedes seleccionar hasta 2 tiradas de salvaci├│n competentes.");
+                              alert("Solo puedes seleccionar hasta 2 tiradas de salvación competentes.");
                               return;
                             }
                             newSavingThrows = [...draft.savingThrows, key as any];
@@ -798,7 +800,7 @@ export const CharacterCreatorWizard = (props: any) => {
 
                         return (
                           <div key={key} style={{ position: 'relative', paddingTop: '12px' }}>
-                            {/* Indicador de Salvaci├│n arriba al centro */}
+                            {/* Indicador de Salvación arriba al centro */}
                             <div
                               style={{
                                 position: 'absolute',
@@ -818,7 +820,7 @@ export const CharacterCreatorWizard = (props: any) => {
                                 boxShadow: isSavingProficient ? '0 0 10px rgba(200, 135, 42, 0.5)' : 'none'
                               }}
                             >
-                              Ô£ª SALVACI├ôN
+                              Ô£ª SALVACIÓN
                             </div>
 
                             <div
@@ -952,7 +954,7 @@ export const CharacterCreatorWizard = (props: any) => {
                                   </button>
                                 </div>
 
-                                {/* Descripci├│n corta debajo */}
+                                {/* Descripción corta debajo */}
                                 <div style={{ fontSize: '0.7rem', color: 'var(--text-secondary)', textAlign: 'center', lineHeight: '1.2' }}>
                                   {desc}
                                 </div>
@@ -1019,7 +1021,7 @@ export const CharacterCreatorWizard = (props: any) => {
                       )}
                     </div>
 
-                    {/* Descripci├│n Detallada de la Clase Elegida */}
+                    {/* Descripción Detallada de la Clase Elegida */}
                     {(() => {
                       const selectedDbClass = dbClasses.find(c => c.name === draft.class || c.id === draft.class);
                       const descToShow = selectedDbClass?.description || '';
@@ -1033,7 +1035,7 @@ export const CharacterCreatorWizard = (props: any) => {
                   </div>
                 </>
               )}
-              {creationStep === 3 && (
+              {creationStep === 2 && (
                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', justifyContent: 'center', gap: '30px', padding: '20px 0' }}>
                   
                   {/* Title without emoji */}
@@ -1081,7 +1083,7 @@ export const CharacterCreatorWizard = (props: any) => {
                     {/* Name & Class info */}
                     <div style={{ flex: 1 }}>
                       <h4 className="font-cinzel" style={{ margin: 0, fontSize: '1.5rem', color: 'var(--accent-gold)', fontWeight: 'bold' }}>
-                        {draft.name || 'H├®roe sin Nombre'}
+                        {draft.name || 'Héroe sin Nombre'}
                       </h4>
                       <p style={{ margin: '4px 0 0 0', fontSize: '0.85rem', color: 'var(--text-secondary)' }}>
                         {charClass} ÔÇó {race} ({subrace})
@@ -1112,7 +1114,7 @@ export const CharacterCreatorWizard = (props: any) => {
                     }}
                   >
                     <label className="font-cinzel" style={{ fontSize: '0.8rem', color: 'var(--accent-gold)', letterSpacing: '1px', fontWeight: 'bold' }}>
-                      DADO DE VIDA & CONSTITUCI├ôN
+                      DADO DE VIDA & CONSTITUCIÓN
                     </label>
 
                     {/* Row with HP controls on left and details table on right */}
@@ -1194,13 +1196,13 @@ export const CharacterCreatorWizard = (props: any) => {
                           <span className="mono">+{hitDieValue}</span>
                         </div>
                         <div style={{ fontSize: '0.8rem', color: 'var(--text-parchment)', display: 'flex', justifyContent: 'space-between', gap: '30px' }}>
-                          <span>Modificador de Constituci├│n:</span>
+                          <span>Modificador de Constitución:</span>
                           <span className="mono" style={{ color: calcMod(stats.con) >= 0 ? 'var(--natural-green)' : 'var(--combat-red)' }}>
                             {calcMod(stats.con) >= 0 ? '+' : ''}{calcMod(stats.con)}
                           </span>
                         </div>
                         <div style={{ borderTop: '1px dashed rgba(255,255,255,0.05)', paddingTop: '6px', fontSize: '0.85rem', color: 'var(--accent-gold)', fontWeight: 'bold', display: 'flex', justifyContent: 'space-between', gap: '30px' }}>
-                          <span>Vida M├íxima Total:</span>
+                          <span>Vida Máxima Total:</span>
                           <span className="mono">{hitDieValue === '' ? '-' : Math.max(1, hitDieValue + calcMod(stats.con))} HP</span>
                         </div>
                       </div>
@@ -1208,7 +1210,7 @@ export const CharacterCreatorWizard = (props: any) => {
                     </div>
 
                     <p style={{ fontSize: '0.72rem', color: 'var(--accent-gold)', margin: '15px 0 0 0', fontStyle: 'italic', opacity: 0.8 }}>
-                      * Aviso: En el primer nivel se recomienda utilizar el valor m├íximo del dado de vida de tu clase.
+                      * Aviso: En el primer nivel se recomienda utilizar el valor máximo del dado de vida de tu clase.
                     </p>
 
                   </div>
@@ -1329,7 +1331,7 @@ export const CharacterCreatorWizard = (props: any) => {
                           <div>
                             <strong>{race}:</strong> {dbRaces.find(r => r.id === race || r.name === race)?.description} <span style={{ color: 'var(--accent-gold)' }}>({dbRaces.find(r => r.id === race || r.name === race)?.bonusText})</span>
                           </div>
-                          {subrace && subrace !== 'Est├índar' && (
+                          {subrace && subrace !== 'Estándar' && (
                             <div>
                               <strong>{subrace}:</strong> {dbRaces.find(r => r.id === race || r.name === race)?.subraces.find(sr => sr.id === subrace || sr.name === subrace)?.description}
                             </div>
@@ -1379,117 +1381,63 @@ export const CharacterCreatorWizard = (props: any) => {
               )}
             </div>
 
-            </div>
+              {/* BOTONES DE NAVEGACIÓN INFERIORES */}
+              <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '20px', marginTop: '10px', paddingBottom: '20px', paddingRight: '20px' }}>
+                {creationStep > 1 && (
+                  <button
+                    type="button"
+                    onClick={() => setCreationStep(creationStep - 1)}
+                    className="font-cinzel torch-glow"
+                    style={{
+                      background: 'rgba(15, 12, 8, 0.85)',
+                      border: '1px solid var(--accent-gold)',
+                      color: 'var(--accent-gold)',
+                      padding: '8px 20px',
+                      borderRadius: '4px',
+                      cursor: 'pointer',
+                      fontSize: '0.9rem',
+                      fontWeight: 'bold',
+                      letterSpacing: '1px'
+                    }}
+                  >
+                    ATRÁS
+                  </button>
+                )}
 
-            {/* FLOATING SIDE NAVIGATION ARROWS (Outside the main modal card) */}
-            {creationStep > 1 && (
-              <button
-                type="button"
-                onClick={() => setCreationStep(creationStep - 1)}
-                style={{
-                  position: 'absolute',
-                  right: '100%',
-                  marginRight: '15px',
-                  top: '50%',
-                  transform: 'translateY(-50%)',
-                  zIndex: 100,
-                  background: 'rgba(15, 12, 8, 0.85)',
-                  border: '2px solid var(--accent-gold)',
-                  color: 'var(--accent-gold)',
-                  width: '50px',
-                  height: '50px',
-                  borderRadius: '50%',
-                  cursor: 'pointer',
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'center',
-                  boxShadow: '0 0 15px rgba(200, 135, 42, 0.2)',
-                  transition: 'all 0.2s ease',
-                  outline: 'none'
-                }}
-                onMouseEnter={e => {
-                  e.currentTarget.style.background = 'var(--accent-gold)';
-                  e.currentTarget.style.color = 'var(--bg-base)';
-                  e.currentTarget.style.boxShadow = '0 0 25px rgba(200, 135, 42, 0.6)';
-                }}
-                onMouseLeave={e => {
-                  e.currentTarget.style.background = 'rgba(15, 12, 8, 0.85)';
-                  e.currentTarget.style.color = 'var(--accent-gold)';
-                  e.currentTarget.style.boxShadow = '0 0 15px rgba(200, 135, 42, 0.2)';
-                }}
-                title="Atr├ís"
-              >
-                <ChevronLeft className="w-6 h-6" />
-              </button>
-            )}
+                <button
+                  type="button"
+                  disabled={creationStep === 2 && hitDieValue === ''}
+                  onClick={() => {
+                    if (creationStep === 2) {
+                      if (hitDieValue === '') return;
+                      handleSave();
+                    } else {
+                      if (creationStep === 1 && !draft.name) {
+                        alert("¡Tu héroe necesita un nombre!");
+                        return;
+                      }
+                      setCreationStep(creationStep + 1);
+                    }
+                  }}
+                  className="font-cinzel torch-glow"
+                  style={{
+                    background: creationStep === 2 && hitDieValue !== '' ? 'var(--natural-green)' : 'var(--accent-gold)',
+                    border: creationStep === 2 && hitDieValue !== '' ? '1px solid var(--natural-green)' : '1px solid var(--accent-gold)',
+                    color: creationStep === 2 && hitDieValue !== '' ? 'white' : 'var(--bg-base)',
+                    padding: '8px 30px',
+                    borderRadius: '4px',
+                    cursor: creationStep === 2 && hitDieValue === '' ? 'not-allowed' : 'pointer',
+                    fontSize: '1rem',
+                    fontWeight: 'bold',
+                    letterSpacing: '1px',
+                    opacity: creationStep === 2 && hitDieValue === '' ? 0.5 : 1
+                  }}
+                >
+                  {creationStep === 2 ? 'FORJAR LEYENDA' : 'FINALIZAR'}
+                </button>
+              </div>
 
-            <button
-              type="button"
-              disabled={creationStep === 3 && hitDieValue === ''}
-              onClick={() => {
-                if (creationStep === 3) {
-                  if (hitDieValue === '') return;
-                  handleSave();
-                } else {
-                  if (creationStep === 1 && !draft.name) {
-                    alert("┬íTu h├®roe necesita un nombre!");
-                    return;
-                  }
-                  setCreationStep(creationStep + 1);
-                }
-              }}
-              style={{
-                position: 'absolute',
-                left: '100%',
-                marginLeft: '15px',
-                top: '50%',
-                transform: 'translateY(-50%)',
-                zIndex: 100,
-                background: creationStep === 3 ? (hitDieValue === '' ? 'rgba(46, 117, 89, 0.2)' : 'var(--natural-green)') : 'rgba(15, 12, 8, 0.85)',
-                border: creationStep === 3 ? (hitDieValue === '' ? '2px solid rgba(46, 117, 89, 0.2)' : '2px solid var(--natural-green)') : '2px solid var(--accent-gold)',
-                color: creationStep === 3 ? (hitDieValue === '' ? 'rgba(255,255,255,0.3)' : 'white') : 'var(--accent-gold)',
-                width: '50px',
-                height: '50px',
-                borderRadius: '50%',
-                cursor: creationStep === 3 && hitDieValue === '' ? 'not-allowed' : 'pointer',
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'center',
-                boxShadow: creationStep === 3 ? (hitDieValue === '' ? 'none' : '0 0 15px rgba(46, 117, 89, 0.4)') : '0 0 15px rgba(200, 135, 42, 0.2)',
-                transition: 'all 0.2s ease',
-                outline: 'none',
-                opacity: creationStep === 3 && hitDieValue === '' ? 0.5 : 1
-              }}
-              onMouseEnter={e => {
-                if (creationStep === 3) {
-                  if (hitDieValue === '') return;
-                  e.currentTarget.style.background = '#3db080';
-                  e.currentTarget.style.boxShadow = '0 0 25px rgba(46, 117, 89, 0.8)';
-                } else {
-                  e.currentTarget.style.background = 'var(--accent-gold)';
-                  e.currentTarget.style.color = 'var(--bg-base)';
-                  e.currentTarget.style.boxShadow = '0 0 25px rgba(200, 135, 42, 0.6)';
-                }
-              }}
-              onMouseLeave={e => {
-                if (creationStep === 3) {
-                  if (hitDieValue === '') {
-                    e.currentTarget.style.background = 'rgba(46, 117, 89, 0.2)';
-                    e.currentTarget.style.boxShadow = 'none';
-                    return;
-                  }
-                  e.currentTarget.style.background = 'var(--natural-green)';
-                  e.currentTarget.style.boxShadow = '0 0 15px rgba(46, 117, 89, 0.4)';
-                } else {
-                  e.currentTarget.style.background = 'rgba(15, 12, 8, 0.85)';
-                  e.currentTarget.style.color = 'var(--accent-gold)';
-                  e.currentTarget.style.boxShadow = '0 0 15px rgba(200, 135, 42, 0.2)';
-                }
-              }}
-              title={creationStep === 3 ? (editingId ? 'Confirmar cambios' : 'Finalizar y forjar leyenda') : 'Siguiente'}
-            >
-              {creationStep === 3 ? <Check className="w-6 h-6" /> : <ChevronRight className="w-6 h-6" />}
-            </button>
+            </div> {/* CIERRE DE CONTENIDO SCROLLABLE */}
 
           </div>
         </div>

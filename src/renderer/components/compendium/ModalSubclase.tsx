@@ -38,7 +38,7 @@ export const SubclassModal = ({ formState, parentClass, socket }: any) => {
     const validLevels = getValidSubclassLevels(parentClass.name, activeData);
 
     const addSubclassTrait = () => {
-      if (!subclassTraitName || !subclassTraitDesc) return alert("Nombre y descripci├│n del rasgo de subclase son requeridos.");
+      if (!subclassTraitName || !subclassTraitDesc) return alert("Nombre y descripción del rasgo de subclase son requeridos.");
       const newTrait = {
         name: subclassTraitName,
         level: subclassTraitLevel,
@@ -94,12 +94,12 @@ export const SubclassModal = ({ formState, parentClass, socket }: any) => {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', maxHeight: '60vh', overflowY: 'auto', paddingRight: '10px' }}>
             <div>
               <label className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.9rem', display: 'block', marginBottom: '8px' }}>Nombre de la Subclase</label>
-              <input className="mono" style={{ width: '100%', padding: '12px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)', outline: 'none' }} placeholder={`Ej: Juramento de la Devoci├│n, Asesino...`} value={subclassName} onChange={e => setSubclassName(e.target.value)} />
+              <input className="mono" style={{ width: '100%', padding: '12px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)', outline: 'none' }} placeholder={`Ej: Juramento de la Devoción, Asesino...`} value={subclassName} onChange={e => setSubclassName(e.target.value)} />
             </div>
 
             <div>
-              <label className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.9rem', display: 'block', marginBottom: '8px' }}>Descripci├│n de la Subclase</label>
-              <textarea className="mono" style={{ width: '100%', height: '100px', padding: '12px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)', outline: 'none', resize: 'none' }} placeholder="Escribe el trasfondo o lore de esta especializaci├│n..." value={subclassDesc} onChange={e => setSubclassDesc(e.target.value)} />
+              <label className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.9rem', display: 'block', marginBottom: '8px' }}>Descripción de la Subclase</label>
+              <textarea className="mono" style={{ width: '100%', height: '100px', padding: '12px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)', outline: 'none', resize: 'none' }} placeholder="Escribe el trasfondo o lore de esta especialización..." value={subclassDesc} onChange={e => setSubclassDesc(e.target.value)} />
             </div>
 
             {/* Agregar rasgo */}
@@ -111,14 +111,14 @@ export const SubclassModal = ({ formState, parentClass, socket }: any) => {
                   <input className="mono" style={{ width: '100%', padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} value={subclassTraitName} onChange={e => setSubclassTraitName(e.target.value)} />
                 </div>
                 <div>
-                  <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Nivel de Obtenci├│n</label>
+                  <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Nivel de Obtención</label>
                   <select className="mono" style={{ width: '100%', padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white' }} value={subclassTraitLevel} onChange={e => setSubclassTraitLevel(parseInt(e.target.value) || 3)}>
                     {validLevels.map(lvl => <option key={lvl} value={lvl}>Nivel {lvl}</option>)}
                   </select>
                 </div>
               </div>
               <div>
-                <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Descripci├│n del Rasgo</label>
+                <label style={{ fontSize: '0.75rem', color: 'var(--text-secondary)' }}>Descripción del Rasgo</label>
                 <textarea className="mono" style={{ width: '100%', height: '60px', padding: '8px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white', resize: 'none' }} value={subclassTraitDesc} onChange={e => setSubclassTraitDesc(e.target.value)} />
               </div>
               <button onClick={addSubclassTrait} className="font-cinzel torch-glow" style={{ width: '100%', background: 'transparent', border: '1px solid var(--accent-gold)', color: 'var(--accent-gold)', padding: '8px', fontWeight: 'bold', cursor: 'pointer', fontSize: '0.85rem' }}>+ AGREGAR RASGO DE SUBCLASE</button>

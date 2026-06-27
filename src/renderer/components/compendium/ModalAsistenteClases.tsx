@@ -34,17 +34,17 @@ export const ClassWizardModal = ({ formState, editingClassId, socket }: any) => 
       { num: 1, name: 'Identidad' },
       { num: 2, name: 'Competencias' },
       { num: 3, name: 'Recursos' },
-      { num: 4, name: 'Revisi├│n' }
+      { num: 4, name: 'Revisión' }
     ];
 
     const armorOptions = ['Acolchada', 'Cuero', 'Piel', 'Cota de Malla', 'Placas', 'Escudos', 'Todas las armaduras'];
     const weaponOptions = ['Armas Simples', 'Armas Marciales', 'Ballestas de mano', 'Espadas cortas', 'Estoques'];
-    const saveOptions = ['Fuerza', 'Destreza', 'Constituci├│n', 'Inteligencia', 'Sabidur├¡a', 'Carisma'];
+    const saveOptions = ['Fuerza', 'Destreza', 'Constitución', 'Inteligencia', 'Sabiduría', 'Carisma'];
     const skillOptions = [
       'Atletismo', 'Acrobacias', 'Juego de Manos', 'Sigilo',
-      'Arcanos', 'Historia', 'Investigaci├│n', 'Naturaleza', 'Religi├│n',
-      'Trato con Animales', 'Intuici├│n', 'Medicina', 'Percepci├│n', 'Supervivencia',
-      'Enga├▒o', 'Intimidaci├│n', 'Interpretaci├│n', 'Persuasi├│n'
+      'Arcanos', 'Historia', 'Investigación', 'Naturaleza', 'Religión',
+      'Trato con Animales', 'Intuición', 'Medicina', 'Percepción', 'Supervivencia',
+      'Engaño', 'Intimidación', 'Interpretación', 'Persuasión'
     ];
 
     const handleArmorToggle = (val: string) => {
@@ -151,10 +151,10 @@ export const ClassWizardModal = ({ formState, editingClassId, socket }: any) => 
               <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
                 <div>
                   <label className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.9rem', display: 'block', marginBottom: '8px' }}>Nombre de la Clase</label>
-                  <input className="mono" style={{ width: '100%', padding: '12px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)', outline: 'none' }} placeholder="Ej: Guerrero, B├írbaro..." value={cName} onChange={e => setCName(e.target.value)} />
+                  <input className="mono" style={{ width: '100%', padding: '12px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)', outline: 'none' }} placeholder="Ej: Guerrero, Bárbaro..." value={cName} onChange={e => setCName(e.target.value)} />
                 </div>
                 <div>
-                  <label className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.9rem', display: 'block', marginBottom: '8px' }}>Descripci├│n / Lore de la Clase</label>
+                  <label className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.9rem', display: 'block', marginBottom: '8px' }}>Descripción / Lore de la Clase</label>
                   <textarea className="mono" style={{ width: '100%', height: '120px', padding: '12px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)', outline: 'none', resize: 'none' }} placeholder="Escribe el lore o historia de la clase..." value={cDesc} onChange={e => setCDesc(e.target.value)} />
                 </div>
                 <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr 1fr', gap: '20px' }}>
@@ -169,7 +169,7 @@ export const ClassWizardModal = ({ formState, editingClassId, socket }: any) => 
                     <input className="mono" type="number" min="1" max="20" style={{ width: '100%', padding: '12px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)' }} value={cSubclassLvl} onChange={e => setCSubclassLvl(parseInt(e.target.value) || 3)} />
                   </div>
                   <div>
-                    <label className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.9rem', display: 'block', marginBottom: '8px' }}>T├¡tulo de Elecci├│n</label>
+                    <label className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.9rem', display: 'block', marginBottom: '8px' }}>Título de Elección</label>
                     <input className="mono" style={{ width: '100%', padding: '12px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)' }} placeholder="Ej: Arquetipo, Colegio..." value={cSubclassTitle} onChange={e => setCSubclassTitle(e.target.value)} />
                   </div>
                 </div>
@@ -179,7 +179,7 @@ export const ClassWizardModal = ({ formState, editingClassId, socket }: any) => 
             {classWizardStep === 2 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
                 <div>
-                  <label className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.9rem', display: 'block', marginBottom: '8px' }}>Tiradas de Salvaci├│n (Elige exactamente 2)</label>
+                  <label className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.9rem', display: 'block', marginBottom: '8px' }}>Tiradas de Salvación (Elige exactamente 2)</label>
                   <div style={{ display: 'flex', gap: '10px', flexWrap: 'wrap' }}>
                     {saveOptions.map(save => {
                       const selected = cSaves.includes(save);
@@ -220,10 +220,10 @@ export const ClassWizardModal = ({ formState, editingClassId, socket }: any) => 
                 <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '20px', alignItems: 'flex-end' }}>
                   <div>
                     <label className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.9rem', display: 'block', marginBottom: '8px' }}>Herramientas y Otros</label>
-                    <input className="mono" style={{ width: '100%', padding: '12px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)' }} placeholder="Ej: Herramientas de Ladr├│n..." value={cTools} onChange={e => setCTools(e.target.value)} />
+                    <input className="mono" style={{ width: '100%', padding: '12px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)' }} placeholder="Ej: Herramientas de Ladrón..." value={cTools} onChange={e => setCTools(e.target.value)} />
                   </div>
                   <div>
-                    <label className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.9rem', display: 'block', marginBottom: '8px' }}>L├¡mite Habilidades</label>
+                    <label className="font-cinzel" style={{ color: 'var(--accent-gold)', fontSize: '0.9rem', display: 'block', marginBottom: '8px' }}>Límite Habilidades</label>
                     <input className="mono" type="number" min="1" max="10" style={{ width: '100%', padding: '12px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)' }} value={cSkillsLimit} onChange={e => setCSkillsLimit(parseInt(e.target.value) || 2)} />
                   </div>
                 </div>
@@ -275,12 +275,12 @@ export const ClassWizardModal = ({ formState, editingClassId, socket }: any) => 
 
             {classWizardStep === 4 && (
               <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', background: 'rgba(0,0,0,0.15)', padding: '25px', border: '1px solid var(--border-color)' }}>
-                <h3 className="font-cinzel" style={{ margin: 0, color: 'var(--accent-gold)', fontSize: '1.6rem', textAlign: 'center' }}><ClipboardList className="w-6 h-6 inline-block mr-2" /> REVISI├ôN DE LA CREACI├ôN</h3>
+                <h3 className="font-cinzel" style={{ margin: 0, color: 'var(--accent-gold)', fontSize: '1.6rem', textAlign: 'center' }}><ClipboardList className="w-6 h-6 inline-block mr-2" /> REVISIÓN DE LA CREACIÓN</h3>
                 
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', color: 'var(--text-parchment)', fontSize: '0.95rem' }}>
                   <div><b>Nombre de la Clase:</b> {cName || <span style={{ color: 'red' }}>Requerido</span>}</div>
                   <div><b>Dado de Golpe:</b> {cHitDie}</div>
-                  <div><b>Descripci├│n / Lore:</b> <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic', margin: '5px 0 0 0', fontSize: '0.85rem' }}>{cDesc || 'Sin descripci├│n.'}</p></div>
+                  <div><b>Descripción / Lore:</b> <p style={{ color: 'var(--text-secondary)', fontStyle: 'italic', margin: '5px 0 0 0', fontSize: '0.85rem' }}>{cDesc || 'Sin descripción.'}</p></div>
                   
                   <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '20px', borderTop: '1px solid var(--border-color)', paddingTop: '15px' }}>
                     <div>
@@ -295,7 +295,7 @@ export const ClassWizardModal = ({ formState, editingClassId, socket }: any) => 
                       <div style={{ color: 'var(--accent-gold)', fontSize: '0.8rem', textTransform: 'uppercase', marginBottom: '5px' }}>Estructura</div>
                       <div><b>Subclase:</b> Nivel {cSubclassLvl} ({cSubclassTitle})</div>
                       <div><b>Recurso:</b> {cResourceName || 'Ninguno'}</div>
-                      <div><b>Tabla Progresi├│n:</b> Se generar├í una tabla del nivel 1 al 20 vac├¡a de rasgos por defecto.</div>
+                      <div><b>Tabla Progresión:</b> Se generará una tabla del nivel 1 al 20 vacía de rasgos por defecto.</div>
                     </div>
                   </div>
                 </div>
@@ -314,7 +314,7 @@ export const ClassWizardModal = ({ formState, editingClassId, socket }: any) => 
                 padding: '10px 20px', cursor: classWizardStep === 1 ? 'not-allowed' : 'pointer'
               }}
             >
-              ATR├üS
+              ATRÁS
             </button>
 
             {classWizardStep < 4 ? (
