@@ -21,6 +21,29 @@ const socket = io(
 
 function App() {
   const [user, setUser] = useState<{ name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string } | null>(null);
+  const [globalAlert, setGlobalAlert] = useState<{ message: string; isFadingOut: boolean } | null>(null);
+  const alertTimeoutRef = useRef<any>(null);
+
+  // Sobrescribir window.alert globalmente para evitar bugs de foco de Electron
+  useEffect(() => {
+    window.alert = (msg: any) => {
+      setGlobalAlert({ message: String(msg), isFadingOut: false });
+      if (alertTimeoutRef.current) {
+        clearTimeout(alertTimeoutRef.current);
+      }
+      alertTimeoutRef.current = setTimeout(() => {
+        setGlobalAlert(prev => prev ? { ...prev, isFadingOut: true } : null);
+        alertTimeoutRef.current = setTimeout(() => {
+          setGlobalAlert(null);
+        }, 500);
+      }, 3500);
+    };
+    return () => {
+      if (alertTimeoutRef.current) {
+        clearTimeout(alertTimeoutRef.current);
+      }
+    };
+  }, []);
   const [isCheckingToken, setIsCheckingToken] = useState(!!localStorage.getItem('dnd_vtt_token'));
   const userRef = useRef(user);
   useEffect(() => {
@@ -35,6 +58,7 @@ function App() {
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [isCampaignsLoaded, setIsCampaignsLoaded] = useState(false);
+  const [isCharactersLoaded, setIsCharactersLoaded] = useState(false);
 
   const [currentRoomCampaignId, setCurrentRoomCampaignId] = useState<number | null>(() => {
     const saved = localStorage.getItem('dnd_vtt_campaign_room');
@@ -58,29 +82,26 @@ function App() {
     const campaign = campaigns.find(c => c.id === campaignId);
     if (!campaign) return;
 
+    const savedHeroId = localStorage.getItem(`dnd_vtt_campaign_${campaignId}_hero`);
     const isPlayer = user && user.role !== 'admin' && campaign.owner !== user.name;
-    if (isPlayer) {
-      // Verificar si ya tiene un héroe asignado para esta campaña
-      const savedHeroId = localStorage.getItem(`dnd_vtt_campaign_${campaignId}_hero`);
-      if (!savedHeroId) {
-        // Es la primera vez que se une: validar héroes del jugador
-        const playerCharacters = characters.filter(c => c.owner === user.name);
-        if (playerCharacters.length === 0) {
-          alert("⚔️ ¡No tienes ningún héroe creado! Te redirigiremos a la pestaña de HÉROES para que crees tu personaje antes de entrar a la aventura.");
-          setActiveTab('characters');
-          return;
-        }
-        
-        // Mostrar selector de héroes
-        setShowHeroSelectorForCampaignId(campaignId);
+
+    if (isPlayer && !savedHeroId) {
+      // Primera vez que se une: validar héroes del jugador
+      const playerCharacters = characters.filter(c => c.owner === user.name);
+      if (playerCharacters.length === 0) {
+        alert("⚔️ ¡No tienes ningún héroe creado! Te redirigiremos a la pestaña de HÉROES para que crees tu personaje antes de entrar a la aventura.");
+        setActiveTab('characters');
         return;
       }
+      // Mostrar selector de héroes
+      setShowHeroSelectorForCampaignId(campaignId);
+      return;
     }
 
-    // Entrar directo si es DM, admin o ya eligió personaje
+    // Entrar directo (DM, admin, o jugador que ya eligió héroe)
     setCurrentRoomCampaignId(campaignId);
     localStorage.setItem('dnd_vtt_campaign_room', String(campaignId));
-    socket.emit('room:join', { campaignId });
+    socket.emit('room:join', { campaignId, characterId: savedHeroId ? Number(savedHeroId) : undefined });
     setActiveTab('combat');
   };
 
@@ -99,7 +120,7 @@ function App() {
 
   // Efecto para procesar ingresos pendientes (link o recargas)
   useEffect(() => {
-    if (pendingRoomJoin !== null && campaigns.length > 0 && user && characters.length >= 0) {
+    if (pendingRoomJoin !== null && isCampaignsLoaded && isCharactersLoaded && user) {
       const roomId = pendingRoomJoin;
       setPendingRoomJoin(null); // Limpiar para evitar bucles
       
@@ -121,15 +142,14 @@ function App() {
         }
         
         // Si ya tiene personaje o es DM/admin, entra directo
+        const savedHeroId2 = localStorage.getItem(`dnd_vtt_campaign_${roomId}_hero`);
         setCurrentRoomCampaignId(roomId);
         localStorage.setItem('dnd_vtt_campaign_room', String(roomId));
-        socket.emit('room:join', { campaignId: roomId });
-        if (user.role !== 'admin') {
-          setActiveTab('combat');
-        }
+        socket.emit('room:join', { campaignId: roomId, characterId: savedHeroId2 ? Number(savedHeroId2) : undefined });
+        setActiveTab('combat');
       }
     }
-  }, [pendingRoomJoin, campaigns, user, characters]);
+  }, [pendingRoomJoin, isCampaignsLoaded, isCharactersLoaded, user, campaigns, characters]);
 
   useEffect(() => {
     if (isCampaignsLoaded && currentRoomCampaignId === null && activeTab === 'combat') {
@@ -194,6 +214,7 @@ function App() {
 
     socket.on('character:list', (list) => {
       setCharacters(list);
+      setIsCharactersLoaded(true);
     });
 
     socket.on('monsters:list', (data: any[]) => {
@@ -492,7 +513,7 @@ function App() {
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-base)', padding: 'var(--tabs-padding)', borderBottom: '1px solid var(--border-color)' }}>
         <div style={{ display: 'flex', gap: '2px' }}>
           {[
-            { id: 'combat', label: 'COMBATE', color: 'var(--combat-red)', visible: currentRole !== 'admin' && currentRoomCampaignId !== null },
+            { id: 'combat', label: 'COMBATE', color: 'var(--combat-red)', visible: currentRoomCampaignId !== null },
             { id: 'characters', label: 'HÉROES', color: 'var(--natural-green)', visible: currentRole !== 'admin' },
             { id: 'campaigns', label: 'CAMPAÑAS', color: 'var(--accent-gold)', visible: true },
             { id: 'database', label: 'COMPENDIO', color: 'var(--accent-gold)', visible: true },
@@ -909,7 +930,7 @@ function App() {
                       
                       setCurrentRoomCampaignId(showHeroSelectorForCampaignId);
                       localStorage.setItem('dnd_vtt_campaign_room', String(showHeroSelectorForCampaignId));
-                      socket.emit('room:join', { campaignId: showHeroSelectorForCampaignId });
+                      socket.emit('room:join', { campaignId: showHeroSelectorForCampaignId, characterId: char.id });
                       setActiveTab('combat');
                       
                       setShowHeroSelectorForCampaignId(null);
@@ -983,6 +1004,78 @@ function App() {
           </div>
         );
       })()}
+
+      <style>{`
+        @keyframes fadeInScale {
+          from { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+          to { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+        }
+        @keyframes fadeOutScale {
+          from { opacity: 1; transform: translate(-50%, -50%) scale(1); }
+          to { opacity: 0; transform: translate(-50%, -50%) scale(0.85); }
+        }
+      `}</style>
+
+      {/* GLOBAL TOAST ALERT */}
+      {globalAlert && (
+        <div style={{
+          position: 'fixed',
+          top: '50%',
+          left: '50%',
+          transform: 'translate(-50%, -50%)',
+          zIndex: 99999,
+          background: 'linear-gradient(135deg, rgba(26,26,31,0.98), rgba(17,17,20,0.98))',
+          border: '1px solid var(--accent-gold)',
+          borderRadius: '8px',
+          padding: '20px 30px',
+          display: 'flex',
+          alignItems: 'center',
+          gap: '16px',
+          boxShadow: '0 10px 45px rgba(200, 135, 42, 0.35)',
+          backdropFilter: 'blur(10px)',
+          animation: globalAlert.isFadingOut 
+            ? 'fadeOutScale 0.5s ease-in forwards' 
+            : 'fadeInScale 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards',
+          maxWidth: '450px',
+          width: '90%'
+        }} className="clipped-frame">
+          <AlertTriangle size={26} style={{ color: 'var(--accent-gold)', flexShrink: 0 }} />
+          <div style={{ flex: 1 }}>
+            <div className="font-cinzel" style={{
+              color: 'var(--accent-gold)',
+              fontSize: '0.85rem',
+              fontWeight: 'bold',
+              textTransform: 'uppercase',
+              letterSpacing: '2px',
+              marginBottom: '4px'
+            }}>
+              Advertencia
+            </div>
+            <div style={{ color: 'var(--text-parchment)', fontSize: '0.95rem', fontWeight: '500', lineHeight: '1.4' }}>
+              {globalAlert.message}
+            </div>
+          </div>
+          <button
+            onClick={() => setGlobalAlert(null)}
+            style={{
+              background: 'none',
+              border: 'none',
+              color: 'var(--text-secondary)',
+              cursor: 'pointer',
+              fontSize: '1.2rem',
+              padding: '0 5px',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center',
+              transition: 'color 0.2s'
+            }}
+            onMouseEnter={e => e.currentTarget.style.color = 'var(--accent-gold)'}
+            onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}
+          >
+            ✕
+          </button>
+        </div>
+      )}
     </div>
   );
 }

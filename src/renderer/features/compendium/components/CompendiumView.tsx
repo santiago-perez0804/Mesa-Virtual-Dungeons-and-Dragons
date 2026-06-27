@@ -15,6 +15,7 @@ import { formatDescription } from '../../../utils/formateador';
 import { useDatabaseForms } from '../../../modules/compendium/hooks/useFormulariosBaseDatos';
 import { useCompendiumState } from '../hooks/useCompendiumState';
 import { useCompendiumSave } from '../hooks/useCompendiumSave';
+import { CompendiumService } from '../services/CompendiumService';
 
 import { ACTION_TYPES, DAMAGE_TYPES, EMERGENCY_SRD_CLASSES } from '../../../modules/compendium/compendio.traducciones';
 const safeStr = (val: any) => val != null ? String(val) : '';
@@ -87,7 +88,8 @@ export const CompendiumView = ({ compendium, socket, userRole, isOverlay, forceO
     createRuleCategory, setCreateRuleCategory
   } = formState;
 
-  const compendiumState = useCompendiumState(compendium, isOverlay, forceOpenId);
+  const compendiumService = useMemo(() => new CompendiumService(socket), [socket]);
+  const compendiumState = useCompendiumState(compendiumService, compendium, isOverlay, forceOpenId);
   const {
     searchTerm, setSearchTerm,
     category, setCategory,
@@ -130,7 +132,7 @@ export const CompendiumView = ({ compendium, socket, userRole, isOverlay, forceO
     PAGE_SIZE
   } = compendiumState;
 
-  const compendiumSave = useCompendiumSave({ socket, formState, setIsEditingFeature, refreshFeaturesList, setSelectedFeature, setIsEditingRule });
+  const compendiumSave = useCompendiumSave({ compendiumService, formState, setIsEditingFeature, refreshFeaturesList, setSelectedFeature, setIsEditingRule });
   const { handleImageUpload, handleSave, handleSaveFeature, handleDeleteFeature, handleSaveRule } = compendiumSave;
 
   const openCreateFeatureForm = () => {

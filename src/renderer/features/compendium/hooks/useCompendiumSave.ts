@@ -1,4 +1,13 @@
-export const useCompendiumSave = ({ socket, formState, setIsEditingFeature, refreshFeaturesList, setSelectedFeature, setIsEditingRule }: any) => {
+import type { ICompendiumService } from '../interfaces/ICompendiumService';
+
+export const useCompendiumSave = ({ compendiumService, formState, setIsEditingFeature, refreshFeaturesList, setSelectedFeature, setIsEditingRule }: {
+  compendiumService: ICompendiumService,
+  formState: any,
+  setIsEditingFeature: any,
+  refreshFeaturesList: any,
+  setSelectedFeature: any,
+  setIsEditingRule: any
+}) => {
   const {
     editingId, createType, createName, createImage, createDesc,
     createShortDesc, createSpellLevel, createSpellComponents, createSpellRange,
@@ -96,9 +105,9 @@ export const useCompendiumSave = ({ socket, formState, setIsEditingFeature, refr
     }
 
     if (editingId) {
-      socket.emit('content:update', { id: editingId, name: createName, type: createType, data });
+      compendiumService.updateItem(editingId, { name: createName, type: createType, data });
     } else {
-      socket.emit('content:create', { name: createName, type: createType, data });
+      compendiumService.createItem({ name: createName, type: createType, data });
     }
 
     // Reset
@@ -111,7 +120,6 @@ export const useCompendiumSave = ({ socket, formState, setIsEditingFeature, refr
       return;
     }
 
-    const host = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
     const payload = {
       class_name: featureFormClass,
       feature_name: featureFormName,
@@ -121,54 +129,31 @@ export const useCompendiumSave = ({ socket, formState, setIsEditingFeature, refr
     };
 
     if (featureFormId && !isNaN(Number(featureFormId))) {
-      fetch(`${host}/api/class-features/${featureFormId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      .then(res => {
-        if (!res.ok) throw new Error("Error al actualizar el rasgo");
-        return res.json();
-      })
-      .then(() => {
-        setIsEditingFeature(false);
-        refreshFeaturesList();
-      })
-      .catch(err => alert(err.message));
+      compendiumService.updateFeature(featureFormId, payload)
+        .then(() => {
+          setIsEditingFeature(false);
+          refreshFeaturesList();
+        })
+        .catch(err => alert(err.message));
     } else {
-      fetch(`${host}/api/class-features`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(payload)
-      })
-      .then(res => {
-        if (!res.ok) throw new Error("Error al crear el rasgo");
-        return res.json();
-      })
-      .then(() => {
-        setIsEditingFeature(false);
-        refreshFeaturesList();
-      })
-      .catch(err => alert(err.message));
+      compendiumService.createFeature(payload)
+        .then(() => {
+          setIsEditingFeature(false);
+          refreshFeaturesList();
+        })
+        .catch(err => alert(err.message));
     }
   };
 
   const handleDeleteFeature = (id: string) => {
     if (!confirm("¿Estás seguro de que deseas eliminar este rasgo de clase de forma permanente?")) return;
 
-    const host = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
-    fetch(`${host}/api/class-features/${id}`, {
-      method: 'DELETE'
-    })
-    .then(res => {
-      if (!res.ok) throw new Error("Error al eliminar el rasgo");
-      return res.json();
-    })
-    .then(() => {
-      refreshFeaturesList();
-      setSelectedFeature(null);
-    })
-    .catch(err => alert(err.message));
+    compendiumService.deleteFeature(id)
+      .then(() => {
+        refreshFeaturesList();
+        setSelectedFeature(null);
+      })
+      .catch(err => alert(err.message));
   };
 
   const handleSaveRule = () => {
@@ -180,9 +165,9 @@ export const useCompendiumSave = ({ socket, formState, setIsEditingFeature, refr
     };
 
     if (ruleFormId) {
-      socket.emit('content:update', { id: ruleFormId, name: ruleFormName, type: ruleFormType, data });
+      compendiumService.updateItem(ruleFormId, { name: ruleFormName, type: ruleFormType, data });
     } else {
-      socket.emit('content:create', { name: ruleFormName, type: ruleFormType, data });
+      compendiumService.createItem({ name: ruleFormName, type: ruleFormType, data });
     }
     
     setIsEditingRule(false);

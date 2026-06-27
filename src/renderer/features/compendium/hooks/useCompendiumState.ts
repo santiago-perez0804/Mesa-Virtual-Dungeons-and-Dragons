@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from 'react';
 import { EMERGENCY_SRD_CLASSES } from '../../../modules/compendium/compendio.traducciones';
+import type { ICompendiumService } from '../interfaces/ICompendiumService';
 
-export const useCompendiumState = (compendium: any[], isOverlay?: boolean, forceOpenId?: string) => {
+export const useCompendiumState = (compendiumService: ICompendiumService, compendium: any[], isOverlay?: boolean, forceOpenId?: string) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [category, setCategory] = useState<'all' | 'monster' | 'spell' | 'item' | 'class' | 'subclass' | 'race' | 'subrace' | 'condition' | 'language' | 'features' | 'rule' | 'rule_section'>('all');
   const [selectedItem, setSelectedItem] = useState<any>(null);
@@ -50,12 +51,7 @@ export const useCompendiumState = (compendium: any[], isOverlay?: boolean, force
 
   useEffect(() => {
     setLoadingFeatures(true);
-    const host = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
-    fetch(`${host}/api/class-features`)
-      .then(res => {
-        if (!res.ok) throw new Error("Error al obtener los rasgos de clase");
-        return res.json();
-      })
+    compendiumService.getFeatures()
       .then((data: any[]) => {
         setClassFeatures(data);
         setLoadingFeatures(false);
@@ -64,12 +60,10 @@ export const useCompendiumState = (compendium: any[], isOverlay?: boolean, force
         console.error("No se pudieron cargar los rasgos de clase:", err);
         setLoadingFeatures(false);
       });
-  }, []);
+  }, [compendiumService]);
 
   const refreshFeaturesList = () => {
-    const host = window.location.hostname === 'localhost' ? 'http://localhost:3000' : window.location.origin;
-    fetch(`${host}/api/class-features`)
-      .then(res => res.json())
+    compendiumService.getFeatures()
       .then(data => setClassFeatures(data))
       .catch(err => console.error("Error al refrescar rasgos:", err));
   };
