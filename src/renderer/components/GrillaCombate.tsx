@@ -35,7 +35,7 @@ const renderConditionIcon = (emo) => {
   }
 };
 
-export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, characters, monsters, chatMessages, compendium = [], onOpenCharacterSheet, onOpenMonsterSheet }: any) => {
+export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, characters, monsters, chatMessages, compendium = [], onOpenCharacterSheet, onOpenMonsterSheet, campaignImage }: any) => {
   const [bgImage, setBgImage] = useState<string | null>(null);
   const [bgInputUrl, setBgInputUrl] = useState('');
   const [showGridLines, setShowGridLines] = useState(true);
@@ -147,7 +147,7 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
 
   const uiProps = {
     socket, userRole, currentUser, boardTokens, characters, monsters, chatMessages, compendium,
-    onOpenCharacterSheet, onOpenMonsterSheet,
+    onOpenCharacterSheet, onOpenMonsterSheet, campaignImage,
     bgImage, setBgImage, bgInputUrl, setBgInputUrl, showGridLines, setShowGridLines, gridOpacity,
     saveNotification, setSaveNotification, isSidebarOpen, setIsSidebarOpen, isChatOpen, setIsChatOpen,
     viewingToken, setViewingToken, sidebarTab, prevSidebarTab, isTabTransitioning, switchTab,

@@ -29,7 +29,8 @@ export const CombatBoard = (props: any) => {
     handleBoardContextMenu, handleCreateChestSubmit, handleSpawnItem, handleVerifyPasswordSubmit,
     handleChestSlotClick, handleSelectItemForSlot, handleLootItemClick, handleLootAllCoins, handlePickupFloorItem,
     handleCreateNoteSubmit, handleCreateImageSubmit, handleImageFileChange, handleSpawnAoe,
-    CELL_PX, GRID_SIZE, BOARD_PX, renderConditionIcon
+    CELL_PX, GRID_SIZE, BOARD_PX, renderConditionIcon,
+    campaignImage
   } = props;
 
   const myTeam = currentUser ? (characters.find((c: any) => c.name === currentUser.name)?.teamColor || 'blue') : 'blue';
@@ -44,6 +45,18 @@ export const CombatBoard = (props: any) => {
     <>
         <div ref={viewportRef} style={{ position: 'relative', flex: 1, overflow: 'hidden', background: '#000' }} onMouseDown={handleViewportMouseDown}>
           
+          {campaignImage && (
+            <div style={{
+              position: 'absolute', inset: 0,
+              backgroundImage: `url("${campaignImage}")`,
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              filter: 'blur(30px)',
+              transform: 'scale(1.1)',
+              zIndex: 0
+            }} />
+          )}
+
           {/* BOTONES FLOTANTES DE ACCIÓN (PH / TS) */}
           {(() => {
             if (!activeTokenId) return null;

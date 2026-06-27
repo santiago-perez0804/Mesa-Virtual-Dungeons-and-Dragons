@@ -1,5 +1,5 @@
 import { Ghost, User, Backpack, Swords } from 'lucide-react';
-import { NoteTokenIcon, ImageTokenIcon, ClosedChestIcon, OpenChestIcon, ItemDropIcon } from '../../../shared/components/iconos';
+import { NoteTokenIcon, ImageTokenIcon, ClosedChestIcon, OpenChestIcon, ItemDropIcon, getAoeIcon } from '../../../shared/components/iconos';
 
 export const CombatSidebar = (props: any) => {
   const {
@@ -9,7 +9,7 @@ export const CombatSidebar = (props: any) => {
     activeTokenId, setActiveTokenId, combatState,
     setSelectedChestToken, setPasswordPromptChest,
     setEnteredPassword, setPasswordError, setSelectedItemToken,
-    setSelectedNoteToken, setSelectedImageToken,
+    setSelectedNoteToken, setSelectedImageToken, setSelectedAoeToken,
     isSidebarOpen, setHealthModalToken, setHealthInput, setConditionInput
   } = props;
 
@@ -119,7 +119,7 @@ export const CombatSidebar = (props: any) => {
               visibility: sidebarTab === 'combatants' || (isTabTransitioning && prevSidebarTab === 'combatants') ? 'visible' : 'hidden'
             }}>
               {(() => {
-                const sortedCombatants = [...boardTokens].filter(canSeeInSidebar).sort((a: any, b: any) => {
+                const sortedCombatants = [...boardTokens].filter((t: any) => t.type === 'character' || t.type === 'monster').filter(canSeeInSidebar).sort((a: any, b: any) => {
                   const aInit = combatState.initiativeOrder.findIndex(i => i.tokenId === a.instanceId);
                   const bInit = combatState.initiativeOrder.findIndex(i => i.tokenId === b.instanceId);
                   if (aInit !== -1 && bInit !== -1) return aInit - bInit;
@@ -331,11 +331,12 @@ export const CombatSidebar = (props: any) => {
               pointerEvents: sidebarTab === 'objects' ? 'auto' : 'none',
               visibility: sidebarTab === 'objects' || (isTabTransitioning && prevSidebarTab === 'objects') ? 'visible' : 'hidden'
             }}>
-              {boardTokens.filter((t: any) => t.type === 'chest' || t.type === 'item' || t.type === 'note').map((t: any, idx: number) => {
+              {boardTokens.filter((t: any) => t.type === 'chest' || t.type === 'item' || t.type === 'note' || t.type === 'image' || t.type === 'aoe').map((t: any, idx: number) => {
                 const isChest = t.type === 'chest';
                 const isItem = t.type === 'item';
                 const isNote = t.type === 'note';
                 const isImage = t.type === 'image';
+                const isAoe = t.type === 'aoe';
 
                 let icon = null;
                 let statusText = '';
@@ -351,6 +352,9 @@ export const CombatSidebar = (props: any) => {
                 } else if (isImage) {
                   icon = t.imageData?.url ? <img src={t.imageData.url} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px' }} /> : <ImageTokenIcon />;
                   statusText = 'Imagen';
+                } else if (isAoe) {
+                  icon = getAoeIcon(t.aoeData?.shape || null);
+                  statusText = 'Área de Efecto';
                 }
 
                 return (
@@ -382,6 +386,8 @@ export const CombatSidebar = (props: any) => {
                         setSelectedNoteToken(t);
                       } else if (isImage) {
                         setSelectedImageToken(t);
+                      } else if (isAoe) {
+                        setSelectedAoeToken(t);
                       }
                     }}
                   >
@@ -394,14 +400,14 @@ export const CombatSidebar = (props: any) => {
                           {t.name}
                         </div>
                         <div style={{ fontSize: '0.65rem', color: isChest ? 'var(--accent-gold)' : 'var(--text-secondary)', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                          {isChest ? `Cofre • ${statusText}` : (isItem ? `Objeto • ${statusText}` : (isNote ? 'Nota' : 'Imagen'))}
+                          {isChest ? `Cofre • ${statusText}` : (isItem ? `Objeto • ${statusText}` : (isNote ? 'Nota' : (isImage ? 'Imagen' : 'AoE')))}
                         </div>
                       </div>
                     </div>
                   </div>
                 );
               })}
-              {boardTokens.filter((t: any) => t.type === 'chest' || t.type === 'item' || t.type === 'note').length === 0 && (
+              {boardTokens.filter((t: any) => t.type === 'chest' || t.type === 'item' || t.type === 'note' || t.type === 'image' || t.type === 'aoe').length === 0 && (
                 <div style={{ textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.8rem', padding: '30px 20px', opacity: 0.6 }}>
                   <div style={{ fontSize: '2rem', marginBottom: '8px' }}><Backpack className="w-10 h-10 m-auto" /></div>
                   Sin objetos en el mapa

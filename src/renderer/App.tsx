@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { Palette, AlertTriangle, LogOut, Search, DoorOpen } from 'lucide-react';
+import { Palette, AlertTriangle, LogOut, Search, DoorOpen, Book } from 'lucide-react';
 import LoginScreen from './components/PantallaLogin';
 import DiceVisualizer from './components/VisualizadorDados';
 import { CharacterManager } from './components/GestorPersonajes.tsx';
@@ -9,6 +9,7 @@ import { CompendiumView } from './features/compendium/components/CompendiumView'
 import { AdminPanel } from './features/admin/components/AdminPanel';
 // import { ChatPanel } from './components/PanelChat.tsx';
 import { CampaignsView } from './features/campaigns/components/CampaignsView';
+import { MiniCompendium } from './features/compendium/components/MiniCompendium';
 import { parseAndRollHP } from './utils/utilidadesDados';
 
 type DiceType = 'd3' | 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20';
@@ -68,6 +69,7 @@ function App() {
   const [showHeroSelectorForCampaignId, setShowHeroSelectorForCampaignId] = useState<number | null>(null);
   const [pendingRoomJoin, setPendingRoomJoin] = useState<number | null>(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
+  const [showMiniCompendium, setShowMiniCompendium] = useState(false);
 
   const joinedCampaign = campaigns.find(c => c.id === currentRoomCampaignId);
   const currentRole = user
@@ -482,7 +484,18 @@ function App() {
           </span>
         </div>
         
-        <div style={{ position: 'relative' }}>
+        <div style={{ display: 'flex', alignItems: 'stretch', gap: 'var(--header-gap)' }}>
+          {currentRoomCampaignId !== null && (
+            <button
+              onClick={() => setShowMiniCompendium(true)}
+              className="torch-glow"
+              style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--accent-gold)', padding: '0 12px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }}
+              title="Compendio"
+            >
+              <Book size={18} />
+            </button>
+          )}
+          <div style={{ position: 'relative' }}>
           <div 
             onClick={() => setShowProfileMenu(prev => !prev)}
             style={{ display: 'flex', alignItems: 'center', gap: 'var(--header-user-gap)', background: showProfileMenu ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.3)', padding: 'var(--header-user-padding)', borderRadius: '4px', border: showProfileMenu ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)', cursor: 'pointer', width: '200px', overflow: 'hidden' }}
@@ -583,6 +596,7 @@ function App() {
             </>
           )}
         </div>
+        </div>
       </header>
 
       {/* TABS NAVEGACIÓN */}
@@ -634,6 +648,8 @@ function App() {
                   compendium={compendium}
                   userRole={currentRole}
                   currentUser={user}
+                  currentRoomCampaignId={currentRoomCampaignId}
+                  campaignImage={joinedCampaign?.image || null}
                   activeTab={activeTab}
                   onOpenCharacterSheet={setOverlayCharacterId}
                   onOpenMonsterSheet={setOverlayMonsterId}
@@ -1074,6 +1090,13 @@ function App() {
       `}</style>
 
       {/* GLOBAL TOAST ALERT */}
+      {showMiniCompendium && (
+        <MiniCompendium
+          compendium={compendium}
+          onClose={() => setShowMiniCompendium(false)}
+        />
+      )}
+
       {globalAlert && (
         <div style={{
           position: 'fixed',
