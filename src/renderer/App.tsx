@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { Palette, AlertTriangle, LogOut, Search } from 'lucide-react';
+import { Palette, AlertTriangle, LogOut, Search, DoorOpen } from 'lucide-react';
 import LoginScreen from './components/PantallaLogin';
 import DiceVisualizer from './components/VisualizadorDados';
 import { CharacterManager } from './components/GestorPersonajes.tsx';
@@ -500,27 +500,36 @@ function App() {
             </div>
             <div style={{ display: 'flex', flexDirection: 'column', justifyContent: 'center' }}>
               <span style={{ fontSize: 'var(--header-role-size)', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
-                {currentRole === 'dm' ? 'Dungeon Master' : (currentRole === 'admin' ? 'Administrador' : 'Aventurero')}
+                {currentRole === 'dm' ? 'DM' : (currentRole === 'admin' ? 'Administrador' : 'Aventurero')}
               </span>
               <span className="font-cinzel" style={{ fontSize: 'var(--header-name-size)', color: 'var(--text-parchment)', fontWeight: 'bold' }}>{user.name}</span>
             </div>
           </div>
           <button 
             onClick={() => {
-              localStorage.removeItem('dnd_vtt_token');
-              setUser(null);
+              if (currentRoomCampaignId !== null) {
+                handleLeaveRoom();
+              } else {
+                localStorage.removeItem('dnd_vtt_token');
+                setUser(null);
+              }
             }}
             className="torch-glow"
             style={{ background: 'transparent', border: '1px solid var(--combat-red)', color: 'var(--combat-red)', padding: '0 20px', borderRadius: '4px', cursor: 'pointer', fontSize: 'var(--header-button-font-size)', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--header-button-gap)' }}
           >
-            <LogOut style={{ width: 'var(--header-logout-icon-size)', height: 'var(--header-logout-icon-size)' }} /> SALIR
+            {currentRoomCampaignId !== null ? (
+              <><DoorOpen style={{ width: 'var(--header-logout-icon-size)', height: 'var(--header-logout-icon-size)' }} /> SALIR</>
+            ) : (
+              <><LogOut style={{ width: 'var(--header-logout-icon-size)', height: 'var(--header-logout-icon-size)' }} /> SALIR</>
+            )}
           </button>
         </div>
       </header>
 
       {/* TABS NAVEGACIÓN */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-base)', padding: 'var(--tabs-padding)', borderBottom: '1px solid var(--border-color)' }}>
-        <div style={{ display: 'flex', gap: '2px' }}>
+      {currentRoomCampaignId === null && (
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-base)', padding: 'var(--tabs-padding)', borderBottom: '1px solid var(--border-color)' }}>
+          <div style={{ display: 'flex', gap: '2px' }}>
           {[
             { id: 'combat', label: 'COMBATE', color: 'var(--combat-red)', visible: currentRoomCampaignId !== null },
             { id: 'characters', label: 'HÉROES', color: 'var(--natural-green)', visible: currentRole !== 'admin' && currentRoomCampaignId === null },
@@ -549,29 +558,9 @@ function App() {
               {tab.label}
             </button>
           ))}
+          </div>
         </div>
-        {currentRoomCampaignId !== null && (
-          <button
-            onClick={handleLeaveRoom}
-            className="font-cinzel torch-glow"
-            style={{
-              padding: '6px 14px',
-              border: '1px solid var(--combat-red)',
-              background: 'transparent',
-              color: 'var(--combat-red)',
-              fontWeight: 'bold',
-              cursor: 'pointer',
-              fontSize: '0.85rem',
-              borderRadius: '4px',
-              display: 'flex',
-              alignItems: 'center',
-              gap: '6px'
-            }}
-          >
-            🚪 SALIR DE LA SALA
-          </button>
-        )}
-      </div>
+      )}
 
       <main className={`vtt-main-container ${activeTab === 'database' ? 'database-view-active' : ''}`} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', width: '100%', boxSizing: 'border-box', margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
         {activeTab === 'combat' && (

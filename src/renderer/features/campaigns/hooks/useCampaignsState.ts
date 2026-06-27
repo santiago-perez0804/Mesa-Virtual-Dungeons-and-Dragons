@@ -16,33 +16,45 @@ export const useCampaignsState = (socket: any) => {
     
     socket.emit('campaign:request');
 
-    socket.on('campaign:list', (list: Campaign[]) => {
+    const handleCampaignList = (list: Campaign[]) => {
       setCampaigns(list);
-      if (selectedCampaign) {
-        const updated = list.find(c => c.id === selectedCampaign.id);
-        if (updated) setSelectedCampaign(updated);
-        else setSelectedCampaign(null);
-      }
-    });
+      setSelectedCampaign(prevSelected => {
+        if (prevSelected) {
+          const updated = list.find(c => c.id === prevSelected.id);
+          return updated ? updated : null;
+        }
+        return prevSelected;
+      });
+    };
 
-    socket.on('campaign:diary:list', (data: { campaign_id: number; diary: DiaryEntry[] }) => {
-      if (selectedCampaign && selectedCampaign.id === data.campaign_id) {
-        setDiaryEntries(data.diary);
-      }
-    });
+    const handleDiaryList = (data: { campaign_id: number; diary: DiaryEntry[] }) => {
+      setSelectedCampaign(prevSelected => {
+        if (prevSelected && prevSelected.id === data.campaign_id) {
+          setDiaryEntries(data.diary);
+        }
+        return prevSelected;
+      });
+    };
 
-    socket.on('ai:session_status', (data: { campaignId: number; active: boolean }) => {
-      if (selectedCampaign && selectedCampaign.id === data.campaignId) {
-        setIsAiActive(data.active);
-      }
-    });
+    const handleSessionStatus = (data: { campaignId: number; active: boolean }) => {
+      setSelectedCampaign(prevSelected => {
+        if (prevSelected && prevSelected.id === data.campaignId) {
+          setIsAiActive(data.active);
+        }
+        return prevSelected;
+      });
+    };
+
+    socket.on('campaign:list', handleCampaignList);
+    socket.on('campaign:diary:list', handleDiaryList);
+    socket.on('ai:session_status', handleSessionStatus);
 
     return () => {
-      socket.off('campaign:list');
-      socket.off('campaign:diary:list');
-      socket.off('ai:session_status');
+      socket.off('campaign:list', handleCampaignList);
+      socket.off('campaign:diary:list', handleDiaryList);
+      socket.off('ai:session_status', handleSessionStatus);
     };
-  }, [socket, selectedCampaign]);
+  }, [socket]);
 
   const viewCampaign = (campaign: Campaign) => {
     setSelectedCampaign(campaign);
