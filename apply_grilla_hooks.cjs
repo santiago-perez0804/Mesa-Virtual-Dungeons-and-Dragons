@@ -1,11 +1,18 @@
-import { useEffect, useState } from 'react';
-import { Ghost, HeartCrack, Flame, Snowflake, Moon, Shield, Zap, Biohazard, Activity, X } from 'lucide-react';
+const fs = require('fs');
+const path = 'src/renderer/components/GrillaCombate.tsx';
+const content = fs.readFileSync(path, 'utf8');
 
+const returnIdx = content.indexOf("  return (\\n    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-base)', position: 'relative' }}");
 
-import { CombatToolbar } from '../features/combat/components/CombatToolbar';
-import { CombatSidebar } from '../features/combat/components/CombatSidebar';
-import { CombatBoard } from '../features/combat/components/CombatBoard';
-import { CombatModals } from '../features/combat/components/CombatModals';
+if (returnIdx === -1) {
+    console.error("Could not find return statement");
+    process.exit(1);
+}
+
+const importsAndTop = `import React, { useEffect, useState, useRef } from 'react';
+import { Ghost, HeartCrack, Flame, Snowflake, Moon, Shield, Zap, Biohazard, Activity, X, User, Backpack, Dices, StickyNote, Box, Lock, Coins, Swords, ArrowRight } from 'lucide-react';
+import { ChatPanel } from './PanelChat';
+import { NoteTokenIcon, ImageTokenIcon, ClosedChestIcon, OpenChestIcon, ItemDropIcon, CompassIcon, LineAoeIcon, ConeAoeIcon, CircleAoeIcon, SquareAoeIcon, getAoeIcon } from '../shared/components/iconos';
 
 import { useFogOfWar } from '../features/combat/hooks/useFogOfWar';
 import { useBoardInteraction } from '../features/combat/hooks/useBoardInteraction';
@@ -16,8 +23,7 @@ const CELL_PX = 50;
 const GRID_SIZE = 30;
 const BOARD_PX = GRID_SIZE * CELL_PX;
 
-
-const renderConditionIcon = (emo) => {
+const renderConditionIcon = (emo: string) => {
   switch (emo) {
     case '😵': return <Ghost className="w-4 h-4 m-auto" />;
     case '😨': return <HeartCrack className="w-4 h-4 m-auto" />;
@@ -31,7 +37,7 @@ const renderConditionIcon = (emo) => {
     case '🤸': return <Activity className="w-4 h-4 m-auto" />;
     case '❌': return <X className="w-3 h-3 m-auto" />;
     case '': return <X className="w-4 h-4 m-auto" />;
-    default: return emo;
+    default: return emo as any;
   }
 };
 
@@ -145,42 +151,18 @@ export const CombatGrid = ({ socket, userRole, currentUser, boardTokens, charact
     };
   }, [socket]);
 
-  const uiProps = {
-    socket, userRole, currentUser, boardTokens, characters, monsters, chatMessages, compendium,
-    onOpenCharacterSheet, onOpenMonsterSheet,
-    bgImage, setBgImage, bgInputUrl, setBgInputUrl, showGridLines, setShowGridLines, gridOpacity,
-    saveNotification, setSaveNotification, isSidebarOpen, setIsSidebarOpen, isChatOpen, setIsChatOpen,
-    viewingToken, setViewingToken, sidebarTab, prevSidebarTab, isTabTransitioning, switchTab,
-    healthModalToken, setHealthModalToken, healthInput, setHealthInput, conditionInput, setConditionInput,
-    activeActionMenu, setActiveActionMenu, isRadialOpen, setIsRadialOpen,
-    combatState, setCombatState, activeTokenId, setActiveTokenId, currentTurnTokenId, currentToken,
-    isMyTurn, blockRolls, allCombatantsRolled,
-    isEditingSurface, setIsEditingSurface, solidCells, setSolidCells, isNightMode, setIsNightMode,
-    isEditingSurfaceRef, solidCellsRef, isCellVisible, getLineCells,
-    zoom, setZoom, pan, setPan, viewportRef, boardRef, ghostRef, snapRef, drag, wasDraggingRef,
-    handleViewportMouseDown, handleTokenMouseDown,
-    contextMenu, setContextMenu, isCreatingChest, setIsCreatingChest, chestPassword, setChestPassword,
-    isSelectingCompendiumItem, setIsSelectingCompendiumItem, itemSearchQuery, setItemSearchQuery,
-    selectedChestToken, setSelectedChestToken, passwordPromptChest, setPasswordPromptChest,
-    enteredPassword, setEnteredPassword, passwordError, setPasswordError, selectedItemToken, setSelectedItemToken,
-    compendiumSlotIndex, setCompendiumSlotIndex, isCreatingNote, setIsCreatingNote, noteText, setNoteText,
-    selectedNoteToken, setSelectedNoteToken, isCreatingImage, setIsCreatingImage, imageUrlInput, setImageUrlInput,
-    selectedImageToken, setSelectedImageToken, isCreatingAoe, setIsCreatingAoe, aoeForm, setAoeForm,
-    selectedAoeToken, setSelectedAoeToken, activeAoeTool, setActiveAoeTool,
-    handleBoardContextMenu, handleCreateChestSubmit, handleSpawnItem, handleVerifyPasswordSubmit,
-    handleChestSlotClick, handleSelectItemForSlot, handleLootItemClick, handleLootAllCoins, handlePickupFloorItem,
-    handleCreateNoteSubmit, handleCreateImageSubmit, handleImageFileChange, handleSpawnAoe,
-    CELL_PX, GRID_SIZE, BOARD_PX, renderConditionIcon
+  // Visibilidad en el Panel de Combatientes (Sidebar)
+  const canSeeInSidebar = (t: any) => {
+    if (t.type === 'chest' || t.type === 'item' || t.type === 'note' || t.type === 'image' || t.type === 'aoe') return false;
+    if (userRole === 'dm' || userRole === 'admin') return true;
+    const myCharToken = boardTokens.find((charToken: any) => charToken.type === 'character' && charToken.owner === currentUser?.name);
+    const myTeam = myCharToken?.teamColor;
+    if (!myTeam || !t.teamColor) return false;
+    return t.teamColor === myTeam;
   };
+`;
 
-  return (
-    <div style={{ display: 'flex', flexDirection: 'column', height: '100%', background: 'var(--bg-base)', position: 'relative' }} onClick={() => { setActiveTokenId(null); setContextMenu(null); }}>
-      <CombatToolbar {...uiProps} />
-      <div style={{ display: 'flex', flex: 1, overflow: 'hidden' }}>
-        <CombatSidebar {...uiProps} />
-        <CombatBoard {...uiProps} />
-      </div>
-      <CombatModals {...uiProps} />
-    </div>
-  );
-};
+const newContent = importsAndTop + '\n' + content.substring(returnIdx);
+
+fs.writeFileSync(path, newContent);
+console.log('Updated GrillaCombate.tsx logic successfully!');

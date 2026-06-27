@@ -5,10 +5,10 @@ import LoginScreen from './components/PantallaLogin';
 import DiceVisualizer from './components/VisualizadorDados';
 import { CharacterManager } from './components/GestorPersonajes.tsx';
 import { CombatGrid } from './components/GrillaCombate.tsx';
-import { DatabaseView } from './components/VistaCompendio.tsx';
-import { AdminPanel } from './components/PanelAdmin.tsx';
+import { CompendiumView } from './features/compendium/components/CompendiumView';
+import { AdminPanel } from './features/admin/components/AdminPanel';
 // import { ChatPanel } from './components/PanelChat.tsx';
-import { CampaignsView } from './components/VistaCampanas.tsx';
+import { CampaignsView } from './features/campaigns/components/CampaignsView';
 import { parseAndRollHP } from './utils/utilidadesDados';
 
 type DiceType = 'd3' | 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20';
@@ -814,7 +814,7 @@ function App() {
             )}
 
             {overlayMonsterId && (
-              <DatabaseView 
+              <CompendiumView 
                 compendium={compendium}
                 socket={socket}
                 userRole={currentRole} 
@@ -826,7 +826,7 @@ function App() {
           </div>
         )}
         {activeTab === 'database' && (
-          <DatabaseView compendium={compendium} socket={socket} userRole={currentRole} />
+          <CompendiumView compendium={compendium} socket={socket} userRole={currentRole} />
         )}
         {activeTab === 'admin' && currentRole === 'admin' && (
           <AdminPanel socket={socket} />
@@ -849,7 +849,6 @@ function App() {
                socket={socket}
                userRole={currentRole}
                characters={characters}
-               campaigns={campaigns}
                currentUser={user}
                onEnterCampaign={handleJoinCampaignRoom}
              />

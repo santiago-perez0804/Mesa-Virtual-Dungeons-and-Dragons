@@ -1,6 +1,5 @@
 
-import React from 'react';
-import { parseClasses } from '../../utils/character';
+import { parseClasses } from '../../utils/personaje';
 
 export const CharacterTraitsTab = ({
   character,

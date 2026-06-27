@@ -1,18 +1,17 @@
 
-import React from 'react';
-import { Ghost, Scroll, Swords, Plus, Trash, Link } from 'lucide-react';
+import { Ghost, Scroll, Swords, Camera, Search, RefreshCw } from 'lucide-react';
 import { ACTION_TYPES, DAMAGE_TYPES } from '../../modules/compendium/compendio.traducciones';
 
-export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave, userRole }: any) => {
+export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave }: any) => {
   const {
-    setIsCreating, editingId, createType, setCreateType, createName, setCreateName,
-    createImage, setCreateImage, createDesc, setCreateDesc, createShortDesc, setCreateShortDesc,
+    setIsCreating, editingId, createType, createName, setCreateName,
+    createImage, createDesc, setCreateDesc, createShortDesc, setCreateShortDesc,
     createSpellLevel, setCreateSpellLevel, createSpellComponents, setCreateSpellComponents,
     createSpellRange, setCreateSpellRange, createSpellDuration, setCreateSpellDuration,
     createSpellConcentration, setCreateSpellConcentration, createHp, setCreateHp,
     createAc, setCreateAc, createCr, setCreateCr, createSpeed, setCreateSpeed,
     createStats, setCreateStats, createAttacks, setCreateAttacks, createVuln, setCreateVuln,
-    createRes, setCreateRes, createImm, setCreateImm, createSize, setCreateSize,
+    createRes, setCreateRes, createImm, setCreateImm,
     createTraits, setCreateTraits, createRarity, setCreateRarity, isDamageItem, setIsDamageItem,
     itemAttackBonus, setItemAttackBonus, itemDamageFormula, setItemDamageFormula,
     itemDamageType, setItemDamageType, createTags, setCreateTags, createArmorType, setCreateArmorType,
@@ -358,6 +357,25 @@ export const DatabaseCreateForm = ({ formState, handleImageUpload, handleSave, u
                               <label style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', display: 'block', marginBottom: '5px', textTransform: 'uppercase' }}>Nombre</label>
                               <input className="mono font-cinzel" style={{ width: '100%', padding: '10px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white', fontSize: '1.2rem', outline: 'none' }} value={createName} onChange={(e) => setCreateName(e.target.value)} />
                             </div>
+
+                            {createType === 'rule' && (
+                              <div>
+                                <label style={{ color: 'var(--text-secondary)', fontSize: '0.75rem', display: 'block', marginBottom: '5px', textTransform: 'uppercase' }}>Categoría / Carpeta</label>
+                                <select 
+                                  className="mono" 
+                                  style={{ width: '100%', padding: '10px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'white', outline: 'none' }} 
+                                  value={formState.createRuleCategory} 
+                                  onChange={(e) => formState.setCreateRuleCategory(e.target.value)}
+                                >
+                                  <option value="1. El Turno de Combate (Acciones y Estructura)">1. El Turno de Combate (Acciones y Estructura)</option>
+                                  <option value="2. Reglas de Lanzamiento de Conjuros (Spellcasting)">2. Reglas de Lanzamiento de Conjuros (Spellcasting)</option>
+                                  <option value="3. Condiciones del Estado (Conditions)">3. Condiciones del Estado (Conditions)</option>
+                                  <option value="4. Mecánicas del Entorno y Supervivencia">4. Mecánicas del Entorno y Supervivencia</option>
+                                  <option value="5. Pruebas de Característica y Combate Avanzado">5. Pruebas de Característica y Combate Avanzado</option>
+                                  <option value="Otras Reglas">Otras Reglas</option>
+                                </select>
+                              </div>
+                            )}
 
                             {createType !== 'spell' ? (
                               <div>

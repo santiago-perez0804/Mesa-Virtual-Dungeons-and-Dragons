@@ -8,6 +8,7 @@ export const useDatabaseForms = () => {
   const [createName, setCreateName] = useState('');
   const [createImage, setCreateImage] = useState('');
   const [createDesc, setCreateDesc] = useState('');
+  const [createRuleCategory, setCreateRuleCategory] = useState('1. El Turno de Combate (Acciones y Estructura)');
   
   const [createHp, setCreateHp] = useState('10');
   const [createAc, setCreateAc] = useState<number | string>(10);
@@ -76,6 +77,7 @@ export const useDatabaseForms = () => {
     setEditingId(null);
     setCreateName('');
     setCreateDesc('');
+    setCreateRuleCategory('1. El Turno de Combate (Acciones y Estructura)');
     setCreateImage('');
     setCreateHp('10');
     setCreateAc(10);
@@ -131,6 +133,7 @@ export const useDatabaseForms = () => {
     createName, setCreateName,
     createImage, setCreateImage,
     createDesc, setCreateDesc,
+    createRuleCategory, setCreateRuleCategory,
     createHp, setCreateHp,
     createAc, setCreateAc,
     createCr, setCreateCr,

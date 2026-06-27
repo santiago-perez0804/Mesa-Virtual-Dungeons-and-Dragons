@@ -1,8 +1,35 @@
-
 import { formatDescription } from '../../utils/formateador';
 import { Ghost, Scroll, Swords, Link, AlertTriangle, Dna, Languages } from 'lucide-react';
-import { typeIcons } from '../VistaCompendio';
-export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onCloseOverlay, userRole }: any) => {
+
+// Bypassing formateador.ts cache and simply stripping markdown to plain text
+const inlineFormatDescription = (text: any): string => {
+  if (!text) return '';
+  if (Array.isArray(text)) text = text.join('\n');
+  if (typeof text !== 'string') text = String(text);
+
+  let html = text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+
+  // Strip markdown characters
+  html = html.replace(/^#+\s+/gim, ''); // Remove header hashes
+  html = html.replace(/\*\*/g, ''); // Remove bold asterisks
+  html = html.replace(/\*/g, ''); // Remove italic asterisks
+  html = html.replace(/\//g, ''); // Remove slashes
+  html = html.replace(/`/g, ''); // Remove backticks
+
+  // Convert newlines to HTML breaks so spacing is maintained
+  html = html.replace(/\n/g, '<br />');
+
+  // Force-strip absolutely ANY HTML-like tags (both actual tags and escaped tags) except <br />
+  html = html.replace(/<[^>]+>/g, (match) => {
+    if (match === '<br />' || match === '<br>') return match;
+    return '';
+  });
+  html = html.replace(/&lt;[^;]+&gt;/gi, '');
+
+  return html;
+};
+
+export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onCloseOverlay }: any) => {
   const d = selectedItem.data ? (typeof selectedItem.data === 'string' ? JSON.parse(selectedItem.data) : selectedItem.data) : {};
   const isMonster = selectedItem.type === 'monster';
   const cr = d.cr || d.challenge_rating || '�';
@@ -158,7 +185,7 @@ export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onClo
                               <div style={{ flex: 1, maxHeight: '380px', overflowY: 'auto', paddingRight: '10px', display: 'flex', flexDirection: 'column', gap: '20px' }} className="custom-scroll">
                                 <div>
                                   <div className="font-cinzel" style={{ fontSize: '0.9rem', color: 'var(--gold-primary)', marginBottom: '8px' }}>Descripción</div>
-                                  <p style={{ fontSize: '12px', lineHeight: 1.6, margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: formatDescription(d.description || d.desc || 'Sin descripción.') }} />
+                                  <div style={{ fontSize: '12px', lineHeight: 1.6, margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: formatDescription(d.description || d.desc || 'Sin descripción.') }} />
                                 </div>
 
                                 {((Array.isArray(d.traits) && d.traits.length > 0) || (Array.isArray(d.special_abilities) && d.special_abilities.length > 0)) && (
@@ -227,7 +254,7 @@ export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onClo
                             <div>
                               <h1 className="font-cinzel" style={{ margin: 0, color: 'var(--accent-gold)', fontSize: '2.8rem', textShadow: '0 0 20px rgba(200, 135, 42, 0.2)' }}>{selectedItem.name}</h1>
                               <div style={{ display: 'flex', gap: '15px', alignItems: 'center', marginTop: '5px' }}>
-                                <span className="font-cinzel" style={{ color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '2px', fontSize: '0.9rem' }}>{selectedItem.type === 'monster' ? <><Ghost className="w-4 h-4 inline-block mr-1" /> MONSTRUO</> : selectedItem.type === 'spell' ? <><Scroll className="w-4 h-4 inline-block mr-1" /> HECHIZO</> : selectedItem.type === 'condition' ? <><AlertTriangle className="w-4 h-4 inline-block mr-1" /> ESTADO</> : selectedItem.type === 'subrace' ? <><Dna className="w-4 h-4 inline-block mr-1" /> SUBRAZA</> : selectedItem.type === 'language' ? <><Languages className="w-4 h-4 inline-block mr-1" /> IDIOMA</> : <><Swords className="w-4 h-4 inline-block mr-1" /> OBJETO</>}</span>
+                                <span className="font-cinzel" style={{ color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '2px', fontSize: '0.9rem' }}>{selectedItem.type === 'monster' ? <><Ghost className="w-4 h-4 inline-block mr-1" /> MONSTRUO</> : selectedItem.type === 'spell' ? <><Scroll className="w-4 h-4 inline-block mr-1" /> HECHIZO</> : selectedItem.type === 'condition' ? <><AlertTriangle className="w-4 h-4 inline-block mr-1" /> ESTADO</> : selectedItem.type === 'subrace' ? <><Dna className="w-4 h-4 inline-block mr-1" /> SUBRAZA</> : selectedItem.type === 'language' ? <><Languages className="w-4 h-4 inline-block mr-1" /> IDIOMA</> : selectedItem.type === 'rule' || selectedItem.type === 'rule_section' ? <><Scroll className="w-4 h-4 inline-block mr-1" /> REGLA</> : <><Swords className="w-4 h-4 inline-block mr-1" /> OBJETO</>}</span>
                                 {isMonster && d.size && <span style={{ color: 'var(--text-secondary)', fontSize: '0.9rem' }}>• {d.size}</span>}
                                 {isMonster && cr !== '—' && <span style={{ color: 'var(--accent-gold)', fontSize: '0.9rem', fontWeight: 'bold' }}>• CR {cr}</span>}
                               </div>
@@ -235,9 +262,10 @@ export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onClo
                             <button onClick={() => setSelectedItem(null)} style={{ background: 'transparent', border: 'none', color: 'var(--text-secondary)', fontSize: '2.5rem', cursor: 'pointer', transition: 'color 0.2s' }} onMouseEnter={e => e.currentTarget.style.color = 'var(--combat-red)'} onMouseLeave={e => e.currentTarget.style.color = 'var(--text-secondary)'}>✕</button>
                           </div>
 
-                          <div style={{ display: 'grid', gridTemplateColumns: '1fr 2fr', gap: '50px' }}>
-                            <div>
-                              <div style={{ position: 'relative', marginBottom: '30px' }}>
+                          <div style={{ display: 'grid', gridTemplateColumns: selectedItem.type === 'rule' || selectedItem.type === 'rule_section' ? '1fr' : '1fr 2fr', gap: '50px' }}>
+                            {selectedItem.type !== 'rule' && selectedItem.type !== 'rule_section' && (
+                              <div>
+                                <div style={{ position: 'relative', marginBottom: '30px' }}>
                                 <div style={{ width: '100%', aspectRatio: '1/1', background: 'var(--bg-base)', border: '1px solid var(--border-color)', overflow: 'hidden', display: 'flex', alignItems: 'center', justifyContent: 'center', position: 'relative' }}>
                                   {d.image ? (
                                     <img 
@@ -265,6 +293,7 @@ export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onClo
                                 <div style={{ position: 'absolute', bottom: '-10px', left: '10px', right: '10px', height: '4px', background: 'var(--accent-gold)', boxShadow: '0 0 15px var(--accent-gold)' }} />
                               </div>
                             </div>
+                            )}
 
                             {/* Detalles en Columna Derecha (2fr) */}
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', color: 'var(--text-parchment)' }}>
@@ -385,9 +414,7 @@ export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onClo
                               {/* Description Section */}
                               <div>
                                 <h3 className="font-cinzel" style={{ fontSize: '1rem', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', margin: '0 0 10px 0' }}>Descripción</h3>
-                                <p style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: formatDescription(d.description || d.desc || 'Sin descripción.') }}>
-
-                                </p>
+                                <div style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: formatDescription(d.description || d.desc || 'Sin descripción.') }} />
                               </div>
                             </div>
                           ) }
@@ -445,9 +472,7 @@ export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onClo
 
                               <div>
                                 <h3 className="font-cinzel" style={{ fontSize: '1rem', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', margin: '0 0 10px 0' }}>Descripción Completa</h3>
-                                <p style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: formatDescription(d.description || d.desc || 'Sin descripción.') }}>
-
-                                </p>
+                                <div style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: formatDescription(d.description || d.desc || 'Sin descripción.') }} />
                               </div>
                             </div>
                           )}
@@ -459,10 +484,10 @@ export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onClo
                                 <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
                                   {Array.isArray(d.desc) ? (
                                     d.desc.map((paragraph: string, pIdx: number) => (
-                                      <p key={pIdx} style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: formatDescription(paragraph) }} />
+                                      <div key={pIdx} style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: inlineFormatDescription(paragraph) }} />
                                     ))
                                   ) : (
-                                    <p style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: formatDescription(d.description || d.desc || 'Sin descripción.') }} />
+                                    <div style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: inlineFormatDescription(d.description || d.desc || 'Sin descripción.') }} />
                                   )}
                                 </div>
                               </div>
@@ -503,7 +528,7 @@ export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onClo
                               )}
                               <div>
                                 <h3 className="font-cinzel" style={{ fontSize: '1.05rem', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', margin: '0 0 10px 0' }}>Descripción</h3>
-                                <p style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: formatDescription(d.description || d.desc || 'Sin descripción.') }} />
+                                <div style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: formatDescription(d.description || d.desc || 'Sin descripción.') }} />
                               </div>
                             </div>
                           )}
@@ -530,8 +555,46 @@ export const DatabaseDetail = ({ selectedItem, setSelectedItem, isOverlay, onClo
                               </div>
                               <div>
                                 <h3 className="font-cinzel" style={{ fontSize: '1.05rem', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', margin: '0 0 10px 0' }}>Descripción</h3>
-                                <p style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: formatDescription(d.description || d.desc || 'Sin descripción.') }} />
+                                <div style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: formatDescription(d.description || d.desc || 'Sin descripción.') }} />
                               </div>
+                            </div>
+                          )}
+
+                          {(()=>{ 
+                            if (selectedItem.type === 'rule' || selectedItem.type === 'rule_section') {
+                              console.log('--- DEBUG RULE RENDER ---');
+                              console.log('RAW d.desc:', d.desc);
+                              console.log('FORMATTED d.desc:', formatDescription(d.desc));
+                              console.log('--- END DEBUG ---');
+                            }
+                            return null;
+                          })()}
+                          {(selectedItem.type === 'rule' || selectedItem.type === 'rule_section') && (
+                            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+                              <div>
+                                <h3 className="font-cinzel" style={{ fontSize: '1rem', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', margin: '0 0 15px 0' }}>Contenido de la Regla</h3>
+                                <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                                  {Array.isArray(d.desc) ? (
+                                    d.desc.map((paragraph: string, pIdx: number) => (
+                                      <div key={pIdx} style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: inlineFormatDescription(paragraph) }} />
+                                    ))
+                                  ) : (
+                                    <div style={{ fontSize: '0.95rem', lineHeight: '1.6', margin: 0, color: 'var(--text-secondary)' }} dangerouslySetInnerHTML={{ __html: inlineFormatDescription(d.description || d.desc || 'Sin descripción.') }} />
+                                  )}
+                                </div>
+                              </div>
+                              {d.subsections && d.subsections.length > 0 && (
+                                <div>
+                                  <h3 className="font-cinzel" style={{ fontSize: '1.05rem', color: 'var(--accent-gold)', borderBottom: '1px solid var(--border-color)', paddingBottom: '6px', margin: '0 0 10px 0' }}>Subsecciones</h3>
+                                  <ul style={{ margin: 0, paddingLeft: '20px', color: 'var(--text-secondary)', fontSize: '0.95rem' }}>
+                                    {d.subsections.map((t: any, tIdx: number) => (
+                                      <li key={tIdx}>
+                                        <b>{t.name}</b>
+                                      </li>
+                                    ))}
+                                  </ul>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
