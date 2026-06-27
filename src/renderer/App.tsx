@@ -67,6 +67,7 @@ function App() {
 
   const [showHeroSelectorForCampaignId, setShowHeroSelectorForCampaignId] = useState<number | null>(null);
   const [pendingRoomJoin, setPendingRoomJoin] = useState<number | null>(null);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
 
   const joinedCampaign = campaigns.find(c => c.id === currentRoomCampaignId);
   const currentRole = user
@@ -481,9 +482,12 @@ function App() {
           </span>
         </div>
         
-        <div style={{ display: 'flex', alignItems: 'stretch', gap: 'var(--header-gap)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 'var(--header-user-gap)', background: 'rgba(0,0,0,0.3)', padding: 'var(--header-user-padding)', borderRadius: '4px', border: '1px solid var(--border-color)' }}>
-            <div style={{ position: 'relative', width: 'var(--header-avatar-size)', height: 'var(--header-avatar-size)', overflow: 'hidden', background: 'var(--bg-base)', border: '1px solid var(--accent-gold)', cursor: 'pointer' }} title="Cambiar foto de perfil">
+        <div style={{ position: 'relative' }}>
+          <div 
+            onClick={() => setShowProfileMenu(prev => !prev)}
+            style={{ display: 'flex', alignItems: 'center', gap: 'var(--header-user-gap)', background: showProfileMenu ? 'rgba(0,0,0,0.5)' : 'rgba(0,0,0,0.3)', padding: 'var(--header-user-padding)', borderRadius: '4px', border: showProfileMenu ? '1px solid var(--accent-gold)' : '1px solid var(--border-color)', cursor: 'pointer', width: '200px', overflow: 'hidden' }}
+          >
+            <div onClick={e => e.stopPropagation()} style={{ position: 'relative', width: 'var(--header-avatar-size)', height: 'var(--header-avatar-size)', overflow: 'hidden', background: 'var(--bg-base)', border: '1px solid var(--accent-gold)', cursor: 'pointer' }} title="Cambiar foto de perfil">
               {user.profile_image ? (
                 <img src={user.profile_image} alt="Profile" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
               ) : (
@@ -505,24 +509,79 @@ function App() {
               <span className="font-cinzel" style={{ fontSize: 'var(--header-name-size)', color: 'var(--text-parchment)', fontWeight: 'bold' }}>{user.name}</span>
             </div>
           </div>
-          <button 
-            onClick={() => {
-              if (currentRoomCampaignId !== null) {
-                handleLeaveRoom();
-              } else {
-                localStorage.removeItem('dnd_vtt_token');
-                setUser(null);
-              }
-            }}
-            className="torch-glow"
-            style={{ background: 'transparent', border: '1px solid var(--combat-red)', color: 'var(--combat-red)', padding: '0 20px', borderRadius: '4px', cursor: 'pointer', fontSize: 'var(--header-button-font-size)', fontWeight: 'bold', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 'var(--header-button-gap)' }}
-          >
-            {currentRoomCampaignId !== null ? (
-              <><DoorOpen style={{ width: 'var(--header-logout-icon-size)', height: 'var(--header-logout-icon-size)' }} /> SALIR</>
-            ) : (
-              <><LogOut style={{ width: 'var(--header-logout-icon-size)', height: 'var(--header-logout-icon-size)' }} /> SALIR</>
-            )}
-          </button>
+
+          {showProfileMenu && (
+            <>
+              <div style={{ position: 'fixed', inset: 0, zIndex: 999 }} onClick={() => setShowProfileMenu(false)} />
+              <div
+                style={{
+                  position: 'absolute',
+                  top: '100%',
+                  right: 0,
+                  zIndex: 1000,
+                  marginTop: '4px',
+                  background: 'var(--bg-surface)',
+                  border: '1px solid var(--border-gold-subtle)',
+                  borderRadius: 'var(--radius-lg)',
+                  minWidth: '200px',
+                  padding: '8px 0',
+                  boxShadow: 'var(--shadow-modal)',
+                  animation: 'fadeInUp 0.15s ease-out'
+                }}
+              >
+                <div style={{ padding: '10px 16px 8px', borderBottom: '1px solid var(--border-subtle)', marginBottom: '4px' }}>
+                  <div style={{ fontSize: '0.75rem', color: 'var(--text-secondary)', textTransform: 'uppercase', letterSpacing: '1px' }}>
+                    {currentRole === 'dm' ? 'DM' : (currentRole === 'admin' ? 'Administrador' : 'Aventurero')}
+                  </div>
+                  <div className="font-cinzel" style={{ fontSize: '0.9rem', color: 'var(--text-parchment)', fontWeight: 'bold' }}>
+                    {user.name}
+                  </div>
+                </div>
+                {currentRoomCampaignId !== null && (
+                  <div
+                    onClick={() => { handleLeaveRoom(); setShowProfileMenu(false); }}
+                    style={{
+                      padding: '10px 16px',
+                      display: 'flex',
+                      alignItems: 'center',
+                      gap: '10px',
+                      cursor: 'pointer',
+                      color: 'var(--text-primary)',
+                      fontSize: '0.9rem',
+                      fontWeight: 500,
+                      transition: 'background 0.15s'
+                    }}
+                    onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-raised)'}
+                    onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                  >
+                    <DoorOpen style={{ width: '16px', height: '16px' }} /> Salir de sala
+                  </div>
+                )}
+                <div
+                  onClick={() => {
+                    localStorage.removeItem('dnd_vtt_token');
+                    setUser(null);
+                    setShowProfileMenu(false);
+                  }}
+                  style={{
+                    padding: '10px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    color: 'var(--combat-red)',
+                    fontSize: '0.9rem',
+                    fontWeight: 500,
+                    transition: 'background 0.15s'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-raised)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <LogOut style={{ width: '16px', height: '16px' }} /> Cerrar sesión
+                </div>
+              </div>
+            </>
+          )}
         </div>
       </header>
 

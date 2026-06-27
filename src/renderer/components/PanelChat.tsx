@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Dices } from 'lucide-react';
+import { Dices, Users } from 'lucide-react';
 import { DiceRoller } from './LanzadorDados';
 
 export const ChatPanel = ({ socket, currentUser, characters, messages, blockRolls = false }: any) => {
@@ -175,26 +175,39 @@ export const ChatPanel = ({ socket, currentUser, characters, messages, blockRoll
         })}
       </div>
 
-      <div style={{ padding: '15px', background: 'rgba(0,0,0,0.3)', borderTop: '1px solid var(--border-color)' }}>
-        <div style={{ display: 'flex', gap: '8px', marginBottom: '8px' }}>
-          <select value={sendTo} onChange={(e) => setSendTo(e.target.value)} style={{ padding: '5px', fontSize: '0.7rem', background: 'var(--bg-base)', color: 'var(--text-parchment)', border: '1px solid var(--border-color)' }}>
+      <div style={{ padding: '15px', background: 'rgba(0,0,0,0.3)', borderTop: '1px solid var(--border-color)', display: 'flex', gap: '8px', alignItems: 'center' }}>
+        <div style={{ position: 'relative', width: '42px', height: '42px', minWidth: '42px' }}>
+          <div style={{ 
+            position: 'absolute', inset: 0, 
+            display: 'flex', alignItems: 'center', justifyContent: 'center', 
+            background: 'var(--bg-base)', border: '1px solid var(--border-color)', 
+            color: sendTo === 'all' ? 'var(--text-parchment)' : '#a855f7',
+            pointerEvents: 'none' 
+          }}>
+            <Users size={18} />
+          </div>
+          <select 
+            title={`Enviar a: ${sendTo === 'all' ? 'Todos' : sendTo}`}
+            value={sendTo} 
+            onChange={(e) => setSendTo(e.target.value)} 
+            style={{ 
+              width: '100%', height: '100%', opacity: 0, cursor: 'pointer', appearance: 'none'
+            }}
+          >
             <option value="all">Todos</option>
             {users.filter(u => u !== currentUser.name).map((u: any) => (
               <option key={u} value={u}>{u === 'Dungeon Master' ? 'DM' : u}</option>
             ))}
           </select>
         </div>
-        <div style={{ display: 'flex', gap: '8px' }}>
-          <input
-            className="mono"
-            style={{ flex: 1, padding: '10px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)', outline: 'none', fontSize: '0.85rem' }}
-            placeholder="/r 1d20"
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyDown={(e) => e.key === 'Enter' && handleSend()}
-          />
-          <button onClick={handleSend} className="torch-glow" style={{ background: 'var(--accent-gold)', color: 'white', border: 'none', padding: '0 15px', cursor: 'pointer', fontWeight: 'bold' }}>➤</button>
-        </div>
+        <input
+          className="mono"
+          style={{ flex: 1, padding: '10px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)', outline: 'none', fontSize: '0.85rem', height: '42px', boxSizing: 'border-box', minWidth: 0 }}
+          placeholder="Mensaje o dados (/r 1d20)..."
+          value={inputValue}
+          onChange={(e) => setInputValue(e.target.value)}
+          onKeyDown={(e) => e.key === 'Enter' && handleSend()}
+        />
       </div>
     </div>
   );
