@@ -32,19 +32,6 @@ export const CompendiumGrid = ({ compendiumState, compendiumSave, formState, ...
   return (
     <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--compendium-content-padding)', position: 'relative' }}>
       <div style={{ maxWidth: '1000px', margin: '0 auto' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', marginBottom: 'var(--compendium-header-margin)', borderBottom: '2px solid var(--border-color)', paddingBottom: '20px' }}>
-          <div>
-            <h1 className="font-cinzel" style={{ margin: 0, color: 'var(--text-parchment)', fontSize: 'var(--compendium-title-size)', fontWeight: '900' }}>Compendio</h1>
-            <p style={{ color: 'var(--text-secondary)', margin: '10px 0 0 0', textTransform: 'uppercase', letterSpacing: '2px', fontSize: 'var(--compendium-subtitle-size)' }}>Registros oficiales del reino</p>
-          </div>
-          <div style={{ width: 'var(--compendium-search-width)' }}>
-              <input 
-                className="mono clipped-frame"
-                style={{ width: '100%', padding: 'var(--compendium-search-padding)', background: 'var(--bg-surface)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)', outline: 'none' }}
-                placeholder="Buscar pergamino..." value={searchTerm} onChange={(e) => handleSearch(e.target.value)}
-              />
-            </div>
-          </div>
 
               {category === 'class' ? (() => {
                 const activeClass = selectedClass || classesList[0];

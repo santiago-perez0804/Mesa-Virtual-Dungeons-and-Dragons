@@ -16,14 +16,21 @@ export function DMPanel({ socket, currentUserId, currentUserName, onClose, onSel
   const [messages, setMessages] = useState<any[]>([]);
   const [input, setInput] = useState('');
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
+    setError(null);
     socket.emit('dm:conversations');
     const convHandler = (data: any[]) => { setConversations(data); setLoading(false); };
+    const errorHandler = (msg: string) => { setError(msg); setLoading(false); };
     socket.on('dm:conversations', convHandler);
-    return () => { socket.off('dm:conversations', convHandler); };
+    socket.on('dm:error', errorHandler);
+    return () => {
+      socket.off('dm:conversations', convHandler);
+      socket.off('dm:error', errorHandler);
+    };
   }, []);
 
   useEffect(() => {
@@ -106,7 +113,12 @@ export function DMPanel({ socket, currentUserId, currentUserName, onClose, onSel
 
         {activeConv === null ? (
           <div style={{ flex: 1, overflowY: 'auto' }}>
-            {loading ? (
+            {error ? (
+              <div style={{ padding: '24px', textAlign: 'center', color: 'var(--combat-red)', fontSize: '0.85rem' }}>
+                <X size={32} style={{ margin: '0 auto 12px', opacity: 0.6 }} />
+                {error}
+              </div>
+            ) : loading ? (
               <div style={{ display: 'flex', justifyContent: 'center', padding: '20px' }}><Loader size={20} style={{ color: 'var(--accent-gold)', animation: 'spin 0.8s linear infinite' }} /></div>
             ) : conversations.length === 0 ? (
               <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)', fontSize: '0.85rem' }}>

@@ -473,6 +473,51 @@ export const startServer = async () => {
 
   let activeAiCampaignId: number | null = null;
 
+  // Mapa de usuarios conectados: userId → Set de socket IDs
+  const connectedUsers = new Map<number, Set<string>>();
+
+  function addUserConnection(userId: number, socketId: string) {
+    if (!connectedUsers.has(userId)) connectedUsers.set(userId, new Set());
+    connectedUsers.get(userId)!.add(socketId);
+  }
+
+  function removeUserConnection(userId: number, socketId: string) {
+    const sockets = connectedUsers.get(userId);
+    if (!sockets) return;
+    sockets.delete(socketId);
+    if (sockets.size === 0) connectedUsers.delete(userId);
+  }
+
+  function isUserOnline(userId: number): boolean {
+    return connectedUsers.has(userId) && connectedUsers.get(userId)!.size > 0;
+  }
+
+  function notifyFriendsOnline(userId: number) {
+    try {
+      const friendIds = db.prepare(
+        "SELECT friend_id FROM friends WHERE user_id = ? AND status = 'accepted' UNION SELECT user_id FROM friends WHERE friend_id = ? AND status = 'accepted'"
+      ).all(userId, userId) as { friend_id?: number; user_id?: number }[];
+
+      for (const f of friendIds) {
+        const fid = f.friend_id ?? f.user_id;
+        if (fid === undefined) continue;
+        const friend = db.prepare("SELECT id, username, display_name, profile_image FROM users WHERE id = ?").get(fid) as any;
+        if (!friend) continue;
+        const friendSockets = connectedUsers.get(fid);
+        if (!friendSockets) continue;
+        const payload = [{
+          id: userId,
+          name: (db.prepare("SELECT username FROM users WHERE id = ?").get(userId) as any)?.username ?? 'Desconocido',
+          online: true,
+        }];
+        for (const sid of friendSockets) {
+          const sock = Array.from(io.sockets.sockets.values()).find(s => s.id === sid);
+          if (sock) sock.emit('dashboard:friends_online', payload);
+        }
+      }
+    } catch (e) { /* silencioso */ }
+  }
+
   // 2. Gestión de Sockets
   io.on('connection', (socket) => {
     console.log('⚡ Conexión establecida:', socket.id);
@@ -485,6 +530,9 @@ export const startServer = async () => {
           socket.data.userId = user.id;
           socket.data.userName = user.username;
           socket.data.role = user.role;
+
+          addUserConnection(user.id, socket.id);
+          notifyFriendsOnline(user.id);
 
           const token = jwt.sign(
             { userId: user.id, username: user.username, role: user.role },
@@ -528,6 +576,9 @@ export const startServer = async () => {
         socket.data.userName = username;
         socket.data.role = role || 'player';
 
+        addUserConnection(newUserId, socket.id);
+        notifyFriendsOnline(newUserId);
+
         // Asignar libro oficial D&D 5e al nuevo usuario
         try { db.prepare("INSERT OR IGNORE INTO user_books (user_id, book_id) VALUES (?, 1)").run(newUserId); } catch (e) {}
 
@@ -561,6 +612,9 @@ export const startServer = async () => {
           socket.data.userId = user.id;
           socket.data.userName = user.username;
           socket.data.role = user.role;
+
+          addUserConnection(user.id, socket.id);
+          notifyFriendsOnline(user.id);
 
           socket.emit('auth:success', { user, token });
           console.log(`👤 Re-autenticación automática exitosa para: ${user.username}`);
@@ -647,10 +701,29 @@ export const startServer = async () => {
       }
     });
 
-    // update last_seen on reconnect
-    if (socket.data.userId) {
-      db.prepare("UPDATE users SET last_seen = datetime('now') WHERE id = ?").run(socket.data.userId);
-    }
+    socket.on('dashboard:request_friends_online', () => {
+      if (!socket.data.userId) return;
+      try {
+        const friendRows = db.prepare(
+          "SELECT friend_id FROM friends WHERE user_id = ? AND status = 'accepted' UNION SELECT user_id FROM friends WHERE friend_id = ? AND status = 'accepted'"
+        ).all(socket.data.userId, socket.data.userId) as { friend_id?: number; user_id?: number }[];
+
+        const friends: any[] = friendRows.map(f => {
+          const fid = f.friend_id ?? f.user_id;
+          const u = db.prepare("SELECT id, username, display_name FROM users WHERE id = ?").get(fid) as any;
+          if (!u) return null;
+          return {
+            id: u.id,
+            name: u.display_name || u.username,
+            online: isUserOnline(u.id),
+          };
+        }).filter(Boolean);
+
+        socket.emit('dashboard:friends_online', friends);
+      } catch (e) {
+        console.error('Error en dashboard:request_friends_online:', e);
+      }
+    });
 
     // --- SISTEMA DE AMIGOS ---
     socket.on('friends:list', () => {
@@ -738,7 +811,10 @@ export const startServer = async () => {
 
     // --- MENSAJES DIRECTOS ---
     socket.on('dm:conversations', () => {
-      if (!socket.data.userId) return;
+      if (!socket.data.userId) {
+        socket.emit('dm:error', 'No has iniciado sesión.');
+        return;
+      }
       try {
         const conversations = db.prepare(`
           SELECT DISTINCT
@@ -750,7 +826,7 @@ export const startServer = async () => {
           JOIN users u ON u.id = CASE WHEN dm.sender_id = ? THEN dm.recipient_id ELSE dm.sender_id END
           WHERE dm.sender_id = ? OR dm.recipient_id = ?
           ORDER BY last_message DESC
-        `).all(socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId);
+        `).all(socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId);
         socket.emit('dm:conversations', conversations);
       } catch (e) {
         socket.emit('dm:error', 'Error al obtener conversaciones.');
@@ -758,7 +834,10 @@ export const startServer = async () => {
     });
 
     socket.on('dm:conversation', ({ otherUserId, offset = 0, limit = 50 }) => {
-      if (!socket.data.userId) return;
+      if (!socket.data.userId) {
+        socket.emit('dm:error', 'No has iniciado sesión.');
+        return;
+      }
       try {
         const messages = db.prepare(`
           SELECT * FROM direct_messages
@@ -773,7 +852,11 @@ export const startServer = async () => {
     });
 
     socket.on('dm:send', ({ recipientId, content }) => {
-      if (!socket.data.userId || !content?.trim()) return;
+      if (!socket.data.userId) {
+        socket.emit('dm:error', 'No has iniciado sesión.');
+        return;
+      }
+      if (!content?.trim()) return;
       try {
         const result = db.prepare("INSERT INTO direct_messages (sender_id, recipient_id, content) VALUES (?, ?, ?)").run(socket.data.userId, recipientId, content.trim());
         const msg = db.prepare("SELECT * FROM direct_messages WHERE id = ?").get(result.lastInsertRowid);
@@ -793,7 +876,10 @@ export const startServer = async () => {
     });
 
     socket.on('dm:mark_read', ({ otherUserId }) => {
-      if (!socket.data.userId) return;
+      if (!socket.data.userId) {
+        socket.emit('dm:error', 'No has iniciado sesión.');
+        return;
+      }
       try {
         db.prepare("UPDATE direct_messages SET read = 1 WHERE sender_id = ? AND recipient_id = ? AND read = 0").run(otherUserId, socket.data.userId);
         socket.emit('dm:marked_read', { otherUserId });
@@ -1636,7 +1722,14 @@ export const startServer = async () => {
       handleEndAiSession(campaignId);
     });
 
-    socket.on('disconnect', () => console.log('❌ Jugador desconectado'));
+    socket.on('disconnect', () => {
+      const uid = socket.data.userId;
+      console.log('❌ Jugador desconectado', uid ? `(userId: ${uid})` : '');
+      if (uid) {
+        removeUserConnection(uid, socket.id);
+        notifyFriendsOnline(uid);
+      }
+    });
   });
 
   // HELPERS DE SINCRONIZACIÓN[cite: 1]

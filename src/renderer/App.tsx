@@ -302,12 +302,22 @@ function App() {
       setTimeout(() => setImageToast(null), 4000);
     });
 
+    // Re-autenticar al reconectar (Socket.IO crea un nuevo socket sin datos de sesión)
+    const onReconnect = () => {
+      const token = localStorage.getItem('dnd_vtt_token');
+      if (token) {
+        socket.emit('auth:token_login', { token });
+      }
+    };
+    socket.on('connect', onReconnect);
+
     const savedToken = localStorage.getItem('dnd_vtt_token');
     if (savedToken) {
       socket.emit('auth:token_login', { token: savedToken });
     }
 
     return () => {
+      socket.off('connect', onReconnect);
       socket.off('auth:token_invalid');
       socket.off('auth:success');
       socket.off('character:list');

@@ -341,7 +341,8 @@ export const CompendiumView = ({ compendium, socket, userRole, isOverlay, forceO
   }
 
   return (
-    <div style={{ width: '100%', height: isOverlay ? 0 : 'var(--db-view-height, calc(100vh - 120px))', background: 'var(--bg-base)', display: 'flex', overflow: isOverlay ? 'visible' : 'hidden' }}>
+    <>
+      <div style={{ width: '100%', height: isOverlay ? 0 : 'var(--db-view-height, calc(100vh - 120px))', background: 'var(--bg-base)', display: 'flex', overflow: isOverlay ? 'visible' : 'hidden' }}>
       {/* SIDEBAR DE CATEGORÍAS */}
       <CompendiumSidebar compendiumState={compendiumState} formState={formState} openCreateFeatureForm={openCreateFeatureForm} userRole={userRole} onOpenBooks={() => setShowBooks(true)} />
 
@@ -388,5 +389,6 @@ export const CompendiumView = ({ compendium, socket, userRole, isOverlay, forceO
           </div>
         </div>
         {showBooks && <BooksLibrary socket={socket} onClose={() => setShowBooks(false)} />}
-      );
+    </>
+  );
 };
