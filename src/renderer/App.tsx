@@ -635,7 +635,7 @@ function App() {
         </div>
       )}
 
-      <main className={`vtt-main-container ${activeTab === 'database' ? 'database-view-active' : ''}`} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', width: '100%', boxSizing: 'border-box', margin: '0 auto', display: 'flex', flexDirection: 'column' }}>
+      <main className={`vtt-main-container ${activeTab === 'database' ? 'database-view-active' : ''}`} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', width: '100%', boxSizing: 'border-box', margin: '0 auto', display: 'flex', flexDirection: 'column', scrollbarGutter: 'stable' }}>
         {activeTab === 'combat' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
 

@@ -64,7 +64,7 @@ export const CampaignDetail: React.FC<CampaignDetailProps> = ({
   const isOwnerOrAdmin = selectedCampaign.owner === currentUser?.name || !selectedCampaign.owner || currentUser?.role === 'admin';
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', color: 'var(--text-parchment)', animation: 'fadeInUp 0.3s ease' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px', color: 'var(--text-parchment)', animation: 'fadeInUp 0.3s ease', width: '100%' }}>
 
       {/* HERO BANNER */}
       <div style={{
@@ -256,7 +256,7 @@ export const CampaignDetail: React.FC<CampaignDetailProps> = ({
 
       {/* ─── TAB: PANORAMA ─── */}
       {activeDetailTab === 'panorama' && (
-        <div className="clipped-frame" style={{ padding: '25px', animation: 'fadeInUp 0.3s ease' }}>
+        <div className="clipped-frame" style={{ padding: '25px', animation: 'fadeInUp 0.3s ease', width: '100%', boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
 
             {/* Long description */}
@@ -373,7 +373,7 @@ export const CampaignDetail: React.FC<CampaignDetailProps> = ({
 
       {/* ─── TAB: DIARIO ─── */}
       {activeDetailTab === 'diario' && (
-        <div className="clipped-frame" style={{ padding: '25px', animation: 'fadeInUp 0.3s ease' }}>
+        <div className="clipped-frame" style={{ padding: '25px', animation: 'fadeInUp 0.3s ease', width: '100%', boxSizing: 'border-box' }}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
 
             {/* New entry form */}
