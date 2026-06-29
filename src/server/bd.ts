@@ -62,6 +62,51 @@ export const initDB = () => {
     )
   `);
 
+  // Sistema de Libros (Compendios Personales)
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS books (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      name TEXT NOT NULL,
+      description TEXT,
+      cover_image TEXT,
+      author_id INTEGER,
+      author_name TEXT,
+      is_public INTEGER DEFAULT 0,
+      is_official INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      updated_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )
+  `);
+
+  try { db.exec("ALTER TABLE content_items ADD COLUMN book_id INTEGER DEFAULT 1"); } catch (e) { /* Columna ya existe */ }
+
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS user_books (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      book_id INTEGER NOT NULL,
+      added_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      UNIQUE(user_id, book_id)
+    )
+  `);
+
+  // Seed: libro oficial "D&D 5e" si no existe
+  const officialBook = db.prepare("SELECT id FROM books WHERE id = 1").get();
+  if (!officialBook) {
+    db.prepare("INSERT INTO books (id, name, description, is_official, is_public) VALUES (1, 'D&D 5e', 'El compendio oficial de Dungeons & Dragons 5ª edición. Contiene todas las reglas SRD: monstruos, conjuros, objetos, clases, razas y más.', 1, 1)").run();
+    // Migrar todos los content_items existentes al libro oficial
+    db.prepare("UPDATE content_items SET book_id = 1 WHERE book_id IS NULL OR book_id = 1").run();
+    console.log("📚 Libro oficial 'D&D 5e' creado y contenido migrado.");
+  }
+
+  // Asegurar que todos los usuarios tengan el libro D&D 5e
+  const allExistingUsers = db.prepare("SELECT id FROM users").all() as { id: number }[];
+  for (const u of allExistingUsers) {
+    try {
+      db.prepare("INSERT OR IGNORE INTO user_books (user_id, book_id) VALUES (?, 1)").run(u.id);
+    } catch (e) { /* ya existe */ }
+  }
+
   // Insertar administrador por defecto si no existe, hasheando contraseñas
   try {
     const adminCheck = db.prepare("SELECT count(*) as count FROM users WHERE username = 'admin'").get() as { count: number };

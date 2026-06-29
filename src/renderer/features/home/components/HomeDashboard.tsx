@@ -27,7 +27,7 @@ export const HomeDashboard: React.FC<HomeDashboardProps> = ({
   }
 
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', animation: 'fadeInUp 0.3s ease', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '25px', paddingTop: '20px', animation: 'fadeInUp 0.3s ease', width: '100%', maxWidth: '1400px', margin: '0 auto' }}>
 
       {/* Welcome */}
       <div style={{

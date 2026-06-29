@@ -9,6 +9,7 @@ import { CompendiumSidebar } from './CompendiumSidebar';
 import { CompendiumGrid } from './CompendiumGrid';
 import { ClassWizardModal } from '../../../components/compendium/ModalAsistenteClases';
 import { SubclassModal } from '../../../components/compendium/ModalSubclase';
+import { BooksLibrary } from '../../books/components/BooksLibrary';
 
 import { FeatureDetail } from '../../../components/compendium/DetalleRasgo';
 import { formatDescription } from '../../../utils/formateador';
@@ -20,6 +21,7 @@ import { CompendiumService } from '../services/CompendiumService';
 import { ACTION_TYPES, DAMAGE_TYPES, EMERGENCY_SRD_CLASSES } from '../../../modules/compendium/compendio.traducciones';
 const safeStr = (val: any) => val != null ? String(val) : '';
 export const CompendiumView = ({ compendium, socket, userRole, isOverlay, forceOpenId, onCloseOverlay }: any) => {
+  const [showBooks, setShowBooks] = useState(false);
 
   const formState = useDatabaseForms();
   const {
@@ -341,7 +343,7 @@ export const CompendiumView = ({ compendium, socket, userRole, isOverlay, forceO
   return (
     <div style={{ width: '100%', height: isOverlay ? 0 : 'var(--db-view-height, calc(100vh - 120px))', background: 'var(--bg-base)', display: 'flex', overflow: isOverlay ? 'visible' : 'hidden' }}>
       {/* SIDEBAR DE CATEGORÍAS */}
-      <CompendiumSidebar compendiumState={compendiumState} formState={formState} openCreateFeatureForm={openCreateFeatureForm} userRole={userRole} />
+      <CompendiumSidebar compendiumState={compendiumState} formState={formState} openCreateFeatureForm={openCreateFeatureForm} userRole={userRole} onOpenBooks={() => setShowBooks(true)} />
 
       {/* CONTENIDO PRINCIPAL */}
       <div style={{ flex: 1, overflowY: 'auto', padding: 'var(--compendium-content-padding)', position: 'relative' }}>
@@ -385,5 +387,6 @@ export const CompendiumView = ({ compendium, socket, userRole, isOverlay, forceO
             </div>
           </div>
         </div>
+        {showBooks && <BooksLibrary socket={socket} onClose={() => setShowBooks(false)} />}
       );
 };

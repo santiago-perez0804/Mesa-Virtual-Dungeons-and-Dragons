@@ -528,6 +528,9 @@ export const startServer = async () => {
         socket.data.userName = username;
         socket.data.role = role || 'player';
 
+        // Asignar libro oficial D&D 5e al nuevo usuario
+        try { db.prepare("INSERT OR IGNORE INTO user_books (user_id, book_id) VALUES (?, 1)").run(newUserId); } catch (e) {}
+
         socket.emit('auth:register_success', 'Usuario creado exitosamente.');
         socket.emit('auth:success', { user: safeUser, token });
         console.log(`👤 Nuevo aventurero registrado: ${username} como ${role || 'player'}`);
@@ -896,12 +899,204 @@ export const startServer = async () => {
       socket.emit('content:list', allContent);
     });
 
+    // --- SISTEMA DE LIBROS (COMPENDIOS PERSONALES) ---
+    socket.on('books:my_library', () => {
+      const userId = socket.data.userId;
+      if (!userId) return;
+      try {
+        const books = db.prepare(`
+          SELECT b.*, (SELECT COUNT(*) FROM content_items WHERE book_id = b.id) as item_count
+          FROM books b
+          JOIN user_books ub ON ub.book_id = b.id
+          WHERE ub.user_id = ?
+          ORDER BY b.is_official DESC, b.name ASC
+        `).all(userId);
+        socket.emit('books:library', books);
+      } catch (e) {
+        socket.emit('books:error', 'Error al obtener biblioteca.');
+      }
+    });
+
+    socket.on('books:discover', () => {
+      const userId = socket.data.userId;
+      if (!userId) return;
+      try {
+        const books = db.prepare(`
+          SELECT b.*, (SELECT COUNT(*) FROM content_items WHERE book_id = b.id) as item_count,
+            u.username as owner_name
+          FROM books b
+          LEFT JOIN users u ON u.id = b.author_id
+          WHERE (b.is_public = 1 OR b.is_official = 1) AND b.id NOT IN (SELECT book_id FROM user_books WHERE user_id = ?)
+          ORDER BY b.is_official DESC, b.name ASC
+        `).all(userId);
+        socket.emit('books:discover_results', books);
+      } catch (e) {
+        socket.emit('books:error', 'Error al descubrir libros.');
+      }
+    });
+
+    socket.on('books:add_to_library', ({ bookId }) => {
+      const userId = socket.data.userId;
+      if (!userId) return;
+      try {
+        db.prepare("INSERT OR IGNORE INTO user_books (user_id, book_id) VALUES (?, ?)").run(userId, bookId);
+        socket.emit('books:added', { bookId });
+
+        // Refrescar el compendio del usuario para que vea los nuevos items
+        const allContent = db.prepare("SELECT * FROM content_items WHERE book_id IN (SELECT book_id FROM user_books WHERE user_id = ?)").all(userId);
+        socket.emit('content:list', allContent);
+      } catch (e) {
+        socket.emit('books:error', 'Error al añadir libro.');
+      }
+    });
+
+    socket.on('books:remove_from_library', ({ bookId }) => {
+      const userId = socket.data.userId;
+      if (!userId || bookId === 1) return; // No permitir quitar el libro oficial
+      try {
+        db.prepare("DELETE FROM user_books WHERE user_id = ? AND book_id = ?").run(userId, bookId);
+        socket.emit('books:removed', { bookId });
+
+        const allContent = db.prepare("SELECT * FROM content_items WHERE book_id IN (SELECT book_id FROM user_books WHERE user_id = ?)").all(userId);
+        socket.emit('content:list', allContent);
+      } catch (e) {
+        socket.emit('books:error', 'Error al quitar libro.');
+      }
+    });
+
+    socket.on('books:get_content', ({ bookId }) => {
+      const userId = socket.data.userId;
+      if (!userId) return;
+      try {
+        // Verificar que el usuario tenga acceso al libro
+        const hasAccess = db.prepare("SELECT id FROM user_books WHERE user_id = ? AND book_id = ?").get(userId, bookId)
+          || db.prepare("SELECT id FROM books WHERE id = ? AND (is_public = 1 OR is_official = 1)").get(bookId);
+        if (!hasAccess) { socket.emit('books:error', 'No tienes acceso a este libro.'); return; }
+
+        const items = db.prepare("SELECT * FROM content_items WHERE book_id = ? ORDER BY type, name").all(bookId);
+        socket.emit('books:content', { bookId, items });
+      } catch (e) {
+        socket.emit('books:error', 'Error al obtener contenido del libro.');
+      }
+    });
+
+    socket.on('books:create', ({ name, description }) => {
+      const userId = socket.data.userId;
+      const userName = socket.data.userName;
+      if (!userId || !name?.trim()) return;
+      try {
+        const result = db.prepare("INSERT INTO books (name, description, author_id, author_name) VALUES (?, ?, ?, ?)")
+          .run(name.trim(), description || null, userId, userName);
+        const newBookId = result.lastInsertRowid;
+
+        // Auto-añadir a la biblioteca del creador
+        db.prepare("INSERT OR IGNORE INTO user_books (user_id, book_id) VALUES (?, ?)").run(userId, newBookId);
+
+        const book = db.prepare("SELECT * FROM books WHERE id = ?").get(newBookId);
+        socket.emit('books:created', book);
+      } catch (e) {
+        socket.emit('books:error', 'Error al crear libro.');
+      }
+    });
+
+    socket.on('books:update', ({ bookId, name, description }) => {
+      const userId = socket.data.userId;
+      if (!userId) return;
+      try {
+        const book = db.prepare("SELECT * FROM books WHERE id = ?").get(bookId) as any;
+        if (!book || (book.author_id !== userId && socket.data.role !== 'admin')) {
+          socket.emit('books:error', 'No tienes permiso para editar este libro.');
+          return;
+        }
+        if (name !== undefined) db.prepare("UPDATE books SET name = ? WHERE id = ?").run(name, bookId);
+        if (description !== undefined) db.prepare("UPDATE books SET description = ? WHERE id = ?").run(description, bookId);
+        db.prepare("UPDATE books SET updated_at = datetime('now') WHERE id = ?").run(bookId);
+        const updated = db.prepare("SELECT * FROM books WHERE id = ?").get(bookId);
+        socket.emit('books:updated', updated);
+      } catch (e) {
+        socket.emit('books:error', 'Error al actualizar libro.');
+      }
+    });
+
+    socket.on('books:delete', ({ bookId }) => {
+      const userId = socket.data.userId;
+      if (!userId || bookId === 1) return;
+      try {
+        const book = db.prepare("SELECT * FROM books WHERE id = ?").get(bookId) as any;
+        if (!book || (book.author_id !== userId && socket.data.role !== 'admin')) {
+          socket.emit('books:error', 'No tienes permiso para eliminar este libro.');
+          return;
+        }
+        // Mover items del libro al libro por defecto
+        db.prepare("UPDATE content_items SET book_id = 1 WHERE book_id = ?").run(bookId);
+        db.prepare("DELETE FROM user_books WHERE book_id = ?").run(bookId);
+        db.prepare("DELETE FROM books WHERE id = ?").run(bookId);
+        socket.emit('books:deleted', { bookId });
+
+        const allContent = db.prepare("SELECT * FROM content_items WHERE book_id IN (SELECT book_id FROM user_books WHERE user_id = ?)").all(userId);
+        socket.emit('content:list', allContent);
+      } catch (e) {
+        socket.emit('books:error', 'Error al eliminar libro.');
+      }
+    });
+
+    socket.on('books:publish', ({ bookId, isPublic }) => {
+      const userId = socket.data.userId;
+      if (!userId || bookId === 1) return;
+      try {
+        const book = db.prepare("SELECT * FROM books WHERE id = ?").get(bookId) as any;
+        if (!book || book.author_id !== userId) {
+          socket.emit('books:error', 'No tienes permiso para publicar este libro.');
+          return;
+        }
+        db.prepare("UPDATE books SET is_public = ?, updated_at = datetime('now') WHERE id = ?").run(isPublic ? 1 : 0, bookId);
+        const updated = db.prepare("SELECT * FROM books WHERE id = ?").get(bookId);
+        socket.emit('books:updated', updated);
+      } catch (e) {
+        socket.emit('books:error', 'Error al publicar libro.');
+      }
+    });
+
+    socket.on('books:add_content', ({ bookId, contentItemId }) => {
+      const userId = socket.data.userId;
+      if (!userId) return;
+      try {
+        const book = db.prepare("SELECT * FROM books WHERE id = ?").get(bookId) as any;
+        if (!book || (book.author_id !== userId && socket.data.role !== 'admin')) {
+          socket.emit('books:error', 'No tienes permiso para modificar este libro.');
+          return;
+        }
+        db.prepare("UPDATE content_items SET book_id = ? WHERE id = ?").run(bookId, contentItemId);
+        socket.emit('books:content_added', { bookId, contentItemId });
+      } catch (e) {
+        socket.emit('books:error', 'Error al añadir contenido.');
+      }
+    });
+
+    socket.on('books:remove_content', ({ bookId, contentItemId }) => {
+      const userId = socket.data.userId;
+      if (!userId) return;
+      try {
+        const book = db.prepare("SELECT * FROM books WHERE id = ?").get(bookId) as any;
+        if (!book || (book.author_id !== userId && socket.data.role !== 'admin')) {
+          socket.emit('books:error', 'No tienes permiso para modificar este libro.');
+          return;
+        }
+        // Mover de vuelta al libro por defecto
+        db.prepare("UPDATE content_items SET book_id = 1 WHERE id = ?").run(contentItemId);
+        socket.emit('books:content_removed', { bookId, contentItemId });
+      } catch (e) {
+        socket.emit('books:error', 'Error al quitar contenido.');
+      }
+    });
+
     socket.on('content:create', async (payload) => {
       const currentRole = getSocketRole(socket);
       if (currentRole === 'admin' || currentRole === 'dm') {
-        const { name, type, data, source } = payload;
-        const result = db.prepare("INSERT INTO content_items (name, type, data, source) VALUES (?, ?, ?, ?)")
-          .run(name, type, JSON.stringify(data), source || 'homebrew');
+        const { name, type, data, source, bookId } = payload;
+        const targetBookId = bookId || 1;
+        const result = db.prepare("INSERT INTO content_items (name, type, data, source, book_id) VALUES (?, ?, ?, ?, ?)")
+          .run(name, type, JSON.stringify(data), source || 'homebrew', targetBookId);
 
         if (type === 'class') {
           syncClassTraitsToFeaturesTable(name, data);

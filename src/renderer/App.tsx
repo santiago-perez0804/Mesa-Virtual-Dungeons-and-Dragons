@@ -75,6 +75,9 @@ function App() {
   const [pendingRoomJoin, setPendingRoomJoin] = useState<number | null>(null);
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showMiniCompendium, setShowMiniCompendium] = useState(false);
+  const [userBooks, setUserBooks] = useState<number[]>([]);
+
+  const libraryCompendium = compendium.filter((item: any) => userBooks.length === 0 || userBooks.includes(item.book_id));
 
   const joinedCampaign = campaigns.find(c => c.id === currentRoomCampaignId);
   const currentRole = user
@@ -212,6 +215,7 @@ function App() {
       }
       socket.emit('content:request');
       socket.emit('campaign:request');
+      socket.emit('books:my_library');
       setIsCheckingToken(false);
 
       // Programar la unión de sala tras cargar campañas
@@ -245,6 +249,10 @@ function App() {
 
     socket.on('content:list', (data: any[]) => {
       setCompendium(data);
+    });
+
+    socket.on('books:library', (data: any[]) => {
+      setUserBooks(data.map((b: any) => b.id));
     });
 
     socket.on('campaign:list', (list: any[]) => {
@@ -312,6 +320,7 @@ function App() {
       socket.off('content:generating_image');
       socket.off('content:image_ready');
       socket.off('content:image_failed');
+      socket.off('books:library');
     };
   }, []);
 
@@ -325,6 +334,7 @@ function App() {
     }
     socket.emit('content:request');
     socket.emit('campaign:request');
+    socket.emit('books:my_library');
   };
 
   const handleProfileImageChange = async (e: any) => {
@@ -643,12 +653,11 @@ function App() {
         </div>
       </header>
 
-      {/* TABS NAVEGACIÓN */}
-      {currentRoomCampaignId === null && (
+      {/* TABS NAVEGACIÓN - ocultos en home */}
+      {currentRoomCampaignId === null && activeTab !== 'home' && (
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-base)', padding: 'var(--tabs-padding)', borderBottom: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', gap: '2px' }}>
           {[
-            { id: 'home', label: 'INICIO', color: 'var(--accent-gold)', visible: currentRoomCampaignId === null },
             { id: 'combat', label: 'COMBATE', color: 'var(--combat-red)', visible: currentRoomCampaignId !== null },
             { id: 'characters', label: 'HÉROES', color: 'var(--natural-green)', visible: currentRole !== 'admin' && currentRoomCampaignId === null },
             { id: 'campaigns', label: 'CAMPAÑAS', color: 'var(--accent-gold)', visible: currentRoomCampaignId === null },
@@ -680,8 +689,9 @@ function App() {
         </div>
       )}
 
-      <main className={`vtt-main-container ${activeTab === 'database' ? 'database-view-active' : ''}`} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', width: '100%', boxSizing: 'border-box', margin: '0 auto', display: 'flex', flexDirection: 'column', scrollbarGutter: 'stable' }}>
-        {activeTab === 'home' && (
+      {/* HOME DASHBOARD - full screen, sin tabs */}
+      {activeTab === 'home' && (
+        <div style={{ flex: 1, overflow: 'hidden' }}>
           <HomeDashboard
             socket={socket}
             user={user}
@@ -691,7 +701,12 @@ function App() {
             onEnterCampaign={handleJoinCampaignRoom}
             onOpenCharacter={(id: number) => setOverlayCharacterId(id)}
           />
-        )}
+        </div>
+      )}
+
+      {/* CONTENIDO NORMAL (con tabs) */}
+      {activeTab !== 'home' && (
+      <main className={`vtt-main-container ${activeTab === 'database' ? 'database-view-active' : ''}`} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', width: '100%', boxSizing: 'border-box', margin: '0 auto', display: 'flex', flexDirection: 'column', scrollbarGutter: 'stable' }}>
         {activeTab === 'combat' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
 
@@ -976,7 +991,7 @@ function App() {
           </div>
         )}
         {activeTab === 'database' && (
-          <CompendiumView compendium={compendium} socket={socket} userRole={currentRole} />
+          <CompendiumView compendium={libraryCompendium} socket={socket} userRole={currentRole} />
         )}
         {activeTab === 'admin' && currentRole === 'admin' && (
           <AdminPanel socket={socket} />
@@ -1005,6 +1020,7 @@ function App() {
           </div>
         )}
       </main>
+      )}
 
       {/* MODAL: SELECCIONAR HÉROE AL ENTRAR POR PRIMERA VEZ */}
       {showHeroSelectorForCampaignId !== null && (() => {

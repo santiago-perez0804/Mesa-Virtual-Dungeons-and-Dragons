@@ -1,6 +1,6 @@
-import { typeIcons } from './CompendiumUtils';
+import { typeIcons, typeLabels } from './CompendiumUtils';
 
-export const CompendiumSidebar = ({ compendiumState, formState, openCreateFeatureForm, userRole }: any) => {
+export const CompendiumSidebar = ({ compendiumState, formState, openCreateFeatureForm, userRole, onOpenBooks }: any) => {
   const { category, handleCategory } = compendiumState;
   const { 
     setIsCreating, resetForm, setCreateType, setEditingClassId, setCName, setCDesc, setCHitDie, 
@@ -36,10 +36,36 @@ export const CompendiumSidebar = ({ compendiumState, formState, openCreateFeatur
               transition: 'all 0.2s'
             }}
           >
-            {typeIcons[cat]}
+            {typeIcons[cat]} <span>{typeLabels[cat] || cat}</span>
           </button>
         ))}
       </div>
+
+      <div style={{ padding: '0 20px', marginTop: '8px', marginBottom: '8px' }}>
+        <div style={{ height: '1px', background: 'var(--border-subtle)' }} />
+      </div>
+
+      <button
+        onClick={() => onOpenBooks?.()}
+        className="font-cinzel torch-glow"
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          gap: '8px',
+          textAlign: 'left',
+          padding: 'var(--sidebar-btn-padding)',
+          background: 'transparent',
+          color: 'var(--accent-gold)',
+          border: 'none',
+          borderLeft: '3px solid transparent',
+          cursor: 'pointer',
+          fontSize: 'var(--sidebar-btn-size)',
+          transition: 'all 0.2s',
+          marginBottom: '4px'
+        }}
+      >
+        📚 LIBROS
+      </button>
 
       {(userRole === 'admin' || userRole === 'dm') && (() => {
         let btnText = '+ NUEVO';

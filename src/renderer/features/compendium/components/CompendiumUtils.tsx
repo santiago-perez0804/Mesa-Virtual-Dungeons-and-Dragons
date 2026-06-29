@@ -4,6 +4,12 @@ import {
   Dna, Sparkles, AlertCircle, ScrollText, HeartPulse, Search 
 } from 'lucide-react';
 
+export const typeLabels: Record<string, string> = {
+  all: 'Todo', monster: 'Monstruos', spell: 'Conjuros', item: 'Objetos',
+  class: 'Clases', subclass: 'Subclases', race: 'Razas', subrace: 'Subrazas',
+  condition: 'Condiciones', language: 'Idiomas', features: 'Rasgos', rule: 'Reglas'
+};
+
 export const typeIcons: Record<string, React.ReactNode> = {
   all: <Search className="w-4 h-4" />,
   monster: <Skull className="w-4 h-4" />,
