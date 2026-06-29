@@ -53,6 +53,7 @@ export const CombatBoard = (props: any) => {
               backgroundPosition: 'center',
               filter: 'blur(30px)',
               transform: 'scale(1.1)',
+              opacity: 0.35,
               zIndex: 0
             }} />
           )}

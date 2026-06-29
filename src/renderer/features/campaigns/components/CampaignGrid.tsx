@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bot, Star, Tent, Users } from 'lucide-react';
+import { Bot, Star, Tent, Users, Plus, FileText, Swords } from 'lucide-react';
 import type { Campaign } from '../types';
 
 interface CampaignGridProps {
@@ -58,7 +58,7 @@ export const CampaignGrid: React.FC<CampaignGridProps> = ({
               e.currentTarget.style.color = 'var(--accent-gold)';
             }}
           >
-            ➕ NUEVA CAMPAÑA
+            <Plus size={16} /> NUEVA CAMPAÑA
           </button>
         )}
       </div>
@@ -171,49 +171,37 @@ export const CampaignGrid: React.FC<CampaignGridProps> = ({
                     </span>
                   ) : null}
                   {campaign.long_description && (
-                    <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>
-                      📖 Con descripción larga
+                    <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem', display: 'flex', alignItems: 'center', gap: '4px' }}>
+                      <FileText size={14} /> Con descripción larga
                     </span>
                   )}
                 </div>
-                <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
-                  <button 
-                    onClick={(e) => { e.stopPropagation(); viewCampaign(campaign); }} 
-                    style={{
-                      background: 'transparent',
-                      color: 'var(--accent-gold)',
-                      border: '1px solid var(--accent-gold)',
-                      padding: '8px 0',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '0.85rem',
-                      fontWeight: 'bold',
-                      flex: '0.4',
-                      textAlign: 'center'
-                    }}
-                  >
-                    Detalles
-                  </button>
-                  <button 
-                    onClick={(e) => joinCampaignRoom(e, campaign)} 
-                    className="torch-glow"
-                    style={{
-                      background: 'linear-gradient(135deg, var(--natural-green), #1b8a4f)',
-                      color: 'white',
-                      border: 'none',
-                      padding: '8px 0',
-                      borderRadius: '4px',
-                      cursor: 'pointer',
-                      fontSize: '0.85rem',
-                      fontWeight: 'bold',
-                      flex: '0.6',
-                      boxShadow: '0 2px 8px rgba(34, 197, 94, 0.2)',
-                      textAlign: 'center'
-                    }}
-                  >
-                    🎲 A la Grilla
-                  </button>
-                </div>
+                <button 
+                  onClick={(e) => joinCampaignRoom(e, campaign)} 
+                  className="torch-glow"
+                  style={{
+                    width: '100%',
+                    background: 'linear-gradient(135deg, var(--accent-gold), #8a6e1a)',
+                    color: '#111',
+                    border: 'none',
+                    padding: '10px 0',
+                    borderRadius: '6px',
+                    cursor: 'pointer',
+                    fontSize: '0.85rem',
+                    fontWeight: 'bold',
+                    letterSpacing: '2px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    justifyContent: 'center',
+                    gap: '8px',
+                    boxShadow: '0 2px 8px rgba(201, 162, 39, 0.25)',
+                    transition: 'all 0.2s'
+                  }}
+                  onMouseEnter={e => { e.currentTarget.style.background = 'linear-gradient(135deg, #d4b03a, #a07020)'; e.currentTarget.style.boxShadow = '0 4px 14px rgba(201, 162, 39, 0.45)'; e.currentTarget.style.transform = 'translateY(-1px)'; }}
+                  onMouseLeave={e => { e.currentTarget.style.background = 'linear-gradient(135deg, var(--accent-gold), #8a6e1a)'; e.currentTarget.style.boxShadow = '0 2px 8px rgba(201, 162, 39, 0.25)'; e.currentTarget.style.transform = 'none'; }}
+                >
+                  <Swords size={16} /> GRILLA
+                </button>
               </div>
             </div>
           ))
