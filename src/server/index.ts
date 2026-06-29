@@ -1097,9 +1097,9 @@ export const startServer = async () => {
     socket.on('campaign:create', (data: any) => {
       console.log(`[Campaign Create] Solicitando creación. Datos:`, data, `Usuario: ${socket.data.userName}`);
       if (socket.data.userName) {
-        const { name, description, image, active_heroes, is_ai_dm } = data;
-        db.prepare('INSERT INTO campaigns (name, description, image, active_heroes, is_ai_dm, owner) VALUES (?, ?, ?, ?, ?, ?)')
-          .run(name, description || null, image || null, JSON.stringify(active_heroes || []), is_ai_dm ? 1 : 0, socket.data.userName);
+        const { name, description, image, active_heroes, is_ai_dm, long_description, max_players } = data;
+        db.prepare('INSERT INTO campaigns (name, description, image, active_heroes, is_ai_dm, owner, long_description, max_players) VALUES (?, ?, ?, ?, ?, ?, ?, ?)')
+          .run(name, description || null, image || null, JSON.stringify(active_heroes || []), is_ai_dm ? 1 : 0, socket.data.userName, long_description || null, max_players || 0);
         console.log(`[Campaign Create] Campaña creada con éxito.`);
         refreshAllCampaigns();
       } else {
@@ -1108,12 +1108,12 @@ export const startServer = async () => {
     });
 
     socket.on('campaign:update', (data: any) => {
-      const { id, name, description, image, active_heroes, is_ai_dm } = data;
+      const { id, name, description, image, active_heroes, is_ai_dm, long_description, max_players } = data;
       const campaign = db.prepare("SELECT owner FROM campaigns WHERE id = ?").get(id) as { owner: string | null } | undefined;
       if (campaign && (campaign.owner === socket.data.userName || !campaign.owner || socket.data.role === 'admin')) {
         const finalOwner = campaign.owner || socket.data.userName;
-        db.prepare('UPDATE campaigns SET name = ?, description = ?, image = ?, active_heroes = ?, is_ai_dm = ?, owner = ? WHERE id = ?')
-          .run(name, description || null, image || null, JSON.stringify(active_heroes || []), is_ai_dm ? 1 : 0, finalOwner, id);
+        db.prepare('UPDATE campaigns SET name = ?, description = ?, image = ?, active_heroes = ?, is_ai_dm = ?, owner = ?, long_description = ?, max_players = ? WHERE id = ?')
+          .run(name, description || null, image || null, JSON.stringify(active_heroes || []), is_ai_dm ? 1 : 0, finalOwner, long_description || null, max_players || 0, id);
         refreshAllCampaigns();
       }
     });

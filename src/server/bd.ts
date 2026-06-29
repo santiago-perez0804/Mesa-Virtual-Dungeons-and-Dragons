@@ -75,6 +75,8 @@ export const initDB = () => {
   try { db.exec("ALTER TABLE campaigns ADD COLUMN is_ai_dm BOOLEAN DEFAULT 0"); } catch (e) { /* Columna ya existe */ }
   try { db.exec("ALTER TABLE campaigns ADD COLUMN is_active BOOLEAN DEFAULT 0"); } catch (e) { /* Columna ya existe */ }
   try { db.exec("ALTER TABLE campaigns ADD COLUMN owner TEXT"); } catch (e) { /* Columna ya existe */ }
+  try { db.exec("ALTER TABLE campaigns ADD COLUMN long_description TEXT"); } catch (e) { /* Columna ya existe */ }
+  try { db.exec("ALTER TABLE campaigns ADD COLUMN max_players INTEGER DEFAULT 0"); } catch (e) { /* Columna ya existe */ }
 
   // Diario de Campañas
   db.exec(`

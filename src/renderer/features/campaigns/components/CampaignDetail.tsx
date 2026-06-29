@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bot, Star, Check, BookOpen, OctagonX, Camera } from 'lucide-react';
+import { Bot, Star, Check, BookOpen, OctagonX, Camera, Users } from 'lucide-react';
 import type { Campaign, DiaryEntry } from '../types';
 
 interface CampaignDetailProps {
@@ -106,6 +106,22 @@ export const CampaignDetail: React.FC<CampaignDetailProps> = ({
               )) : <span style={{ color: '#666', fontSize: '0.9rem' }}>No hay héroes asignados</span>}
             </div>
           </div>
+
+          {selectedCampaign.long_description && (
+            <div style={{ marginTop: '15px' }}>
+              <h4 style={{ margin: '0 0 5px 0', color: 'var(--accent-gold)' }}>Descripción:</h4>
+              <p style={{ margin: 0, color: '#aaa', fontSize: '0.9rem', lineHeight: '1.6', whiteSpace: 'pre-wrap' }}>{selectedCampaign.long_description}</p>
+            </div>
+          )}
+
+          {selectedCampaign.max_players ? (
+            <div style={{ marginTop: '10px', display: 'flex', alignItems: 'center', gap: '8px' }}>
+              <Users size={16} style={{ color: 'var(--text-secondary)' }} />
+              <span style={{ color: 'var(--text-secondary)', fontSize: '0.85rem' }}>
+                Máx. {selectedCampaign.max_players} jugadores
+              </span>
+            </div>
+          ) : null}
 
           {onEnterCampaign && (
             <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '15px' }}>

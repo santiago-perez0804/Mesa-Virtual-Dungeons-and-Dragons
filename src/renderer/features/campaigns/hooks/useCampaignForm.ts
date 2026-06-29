@@ -7,6 +7,8 @@ export const useCampaignForm = (socket: any, selectedCampaign: Campaign | null, 
   // Form State
   const [name, setName] = useState('');
   const [description, setDescription] = useState('');
+  const [longDescription, setLongDescription] = useState('');
+  const [maxPlayers, setMaxPlayers] = useState(0);
   const [image, setImage] = useState('');
   const [activeHeroes, setActiveHeroes] = useState<number[]>([]);
   const [isAiDm, setIsAiDm] = useState(false);
@@ -16,6 +18,8 @@ export const useCampaignForm = (socket: any, selectedCampaign: Campaign | null, 
     if (selectedCampaign && !isCreating) {
       setName(selectedCampaign.name || '');
       setDescription(selectedCampaign.description || '');
+      setLongDescription(selectedCampaign.long_description || '');
+      setMaxPlayers(selectedCampaign.max_players || 0);
       setImage(selectedCampaign.image || '');
       setIsAiDm(selectedCampaign.is_ai_dm === 1);
       try {
@@ -31,6 +35,8 @@ export const useCampaignForm = (socket: any, selectedCampaign: Campaign | null, 
     setSelectedCampaign(null);
     setName('');
     setDescription('');
+    setLongDescription('');
+    setMaxPlayers(0);
     setImage('');
     setActiveHeroes([]);
     setIsAiDm(false);
@@ -74,6 +80,8 @@ export const useCampaignForm = (socket: any, selectedCampaign: Campaign | null, 
     const payload = {
       name,
       description,
+      long_description: longDescription,
+      max_players: maxPlayers,
       image,
       active_heroes: activeHeroes,
       is_ai_dm: isAiDm ? 1 : 0
@@ -99,6 +107,8 @@ export const useCampaignForm = (socket: any, selectedCampaign: Campaign | null, 
     isCreating,
     name, setName,
     description, setDescription,
+    longDescription, setLongDescription,
+    maxPlayers, setMaxPlayers,
     image, setImage,
     activeHeroes, setActiveHeroes,
     isAiDm, setIsAiDm,

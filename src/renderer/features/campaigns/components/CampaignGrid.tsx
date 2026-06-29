@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Bot, Star, Tent } from 'lucide-react';
+import { Bot, Star, Tent, Users } from 'lucide-react';
 import type { Campaign } from '../types';
 
 interface CampaignGridProps {
@@ -161,9 +161,21 @@ export const CampaignGrid: React.FC<CampaignGridProps> = ({
                   {campaign.is_ai_dm === 1 && <span title="DM IA" style={{ fontSize: '1.2rem' }}><Bot className="w-5 h-5 m-auto" /></span>}
                   {campaign.is_active === 1 && <span title="Activa" style={{ fontSize: '1.2rem' }}><Star className="w-5 h-5 m-auto" /></span>}
                 </div>
-                <p style={{ margin: 0, color: '#aaa', fontSize: '0.9rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: '15px' }}>
+                <p style={{ margin: 0, color: '#aaa', fontSize: '0.9rem', display: '-webkit-box', WebkitLineClamp: 2, WebkitBoxOrient: 'vertical', overflow: 'hidden', marginBottom: '10px' }}>
                   {campaign.description || 'Sin descripción'}
                 </p>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '12px', marginBottom: '12px' }}>
+                  {campaign.max_players ? (
+                    <span style={{ display: 'flex', alignItems: 'center', gap: '4px', color: 'var(--text-secondary)', fontSize: '0.75rem' }}>
+                      <Users size={14} /> Máx. {campaign.max_players} jug.
+                    </span>
+                  ) : null}
+                  {campaign.long_description && (
+                    <span style={{ color: 'var(--text-dim)', fontSize: '0.75rem' }}>
+                      📖 Con descripción larga
+                    </span>
+                  )}
+                </div>
                 <div style={{ display: 'flex', gap: '8px', width: '100%' }}>
                   <button 
                     onClick={(e) => { e.stopPropagation(); viewCampaign(campaign); }} 
