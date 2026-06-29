@@ -938,7 +938,7 @@ function App() {
           </div>
         )}
         {activeTab === 'campaigns' && (
-          <div style={{ maxWidth: '1400px', margin: '0 auto' }}>
+          <div style={{ width: '100%', maxWidth: '1400px', margin: '0 auto', display: 'flex', flexDirection: 'column', flex: 1 }}>
              <CampaignsView 
                socket={socket}
                userRole={currentRole}
