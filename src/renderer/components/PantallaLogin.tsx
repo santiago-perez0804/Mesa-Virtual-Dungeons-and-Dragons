@@ -3,7 +3,7 @@ import { Eye, EyeOff, Shield, User, Lock, Upload } from 'lucide-react';
 
 interface LoginProps {
   socket: any;
-  onLoginSuccess: (user: { name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string; token?: string }) => void;
+  onLoginSuccess: (user: { id: number; name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string; token?: string }) => void;
 }
 
 const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
@@ -21,7 +21,7 @@ const LoginScreen: React.FC<LoginProps> = ({ socket, onLoginSuccess }) => {
 
   useEffect(() => {
     socket.on('auth:success', ({ user, token }: { user: any; token: string }) => {
-      onLoginSuccess({ name: user.username, role: user.role, profile_image: user.profile_image, token });
+      onLoginSuccess({ id: user.id, name: user.username, role: user.role, profile_image: user.profile_image, token });
     });
 
     socket.on('auth:error', (msg: string) => {

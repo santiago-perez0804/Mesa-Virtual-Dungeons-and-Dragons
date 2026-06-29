@@ -579,10 +579,223 @@ export const startServer = async () => {
         try {
           db.prepare("UPDATE users SET profile_image = ? WHERE id = ?").run(profile_image, socket.data.userId);
           const user: any = db.prepare("SELECT id, username, role, profile_image FROM users WHERE id = ?").get(socket.data.userId);
-          socket.emit('auth:success', { user }); // Actualizamos el estado local del cliente
+          socket.emit('auth:success', { user });
         } catch (e) {
           socket.emit('auth:error', 'Error al actualizar perfil.');
         }
+      }
+    });
+
+    // --- PERFILES DE USUARIO ---
+    socket.on('users:search', ({ query }) => {
+      if (!socket.data.userId) return;
+      try {
+        const users = db.prepare("SELECT id, username, display_name, profile_image, role FROM users WHERE (username LIKE ? OR display_name LIKE ?) AND id != ? LIMIT 20")
+          .all(`%${query}%`, `%${query}%`, socket.data.userId);
+        socket.emit('users:search_results', users);
+      } catch (e) {
+        socket.emit('users:error', 'Error al buscar usuarios.');
+      }
+    });
+
+    socket.on('users:get_profile', ({ userId }) => {
+      if (!socket.data.userId) return;
+      try {
+        const user = db.prepare("SELECT id, username, display_name, email, role, profile_image, bio, last_seen FROM users WHERE id = ?").get(userId) as any;
+        if (user) {
+          // Check friendship status
+          const friendship = db.prepare("SELECT status FROM friends WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)").get(socket.data.userId, userId, userId, socket.data.userId) as { status: string } | undefined;
+          socket.emit('users:profile', { ...user, friendship: friendship?.status || null });
+        }
+      } catch (e) {
+        socket.emit('users:error', 'Error al obtener perfil.');
+      }
+    });
+
+    socket.on('users:update_profile', ({ display_name, bio, email }) => {
+      if (!socket.data.userId) return;
+      try {
+        if (display_name !== undefined) db.prepare("UPDATE users SET display_name = ? WHERE id = ?").run(display_name, socket.data.userId);
+        if (bio !== undefined) db.prepare("UPDATE users SET bio = ? WHERE id = ?").run(bio, socket.data.userId);
+        if (email !== undefined) db.prepare("UPDATE users SET email = ? WHERE id = ?").run(email, socket.data.userId);
+        const user = db.prepare("SELECT id, username, display_name, role, profile_image, bio, email FROM users WHERE id = ?").get(socket.data.userId);
+        socket.emit('users:profile_updated', user);
+      } catch (e) {
+        socket.emit('users:error', 'Error al actualizar perfil.');
+      }
+    });
+
+    socket.on('users:online_friends', () => {
+      if (!socket.data.userId) return;
+      try {
+        const friendIds = db.prepare("SELECT friend_id FROM friends WHERE user_id = ? AND status = 'accepted' UNION SELECT user_id FROM friends WHERE friend_id = ? AND status = 'accepted'").all(socket.data.userId, socket.data.userId) as { friend_id?: number; user_id?: number }[];
+        // We'll track online users via the io.sockets.sockets and match userId
+        const onlineUserIds = new Set<number>();
+        for (const s of Array.from(io.sockets.sockets.values())) {
+          if (s.data.userId) onlineUserIds.add(s.data.userId);
+        }
+        const onlineFriends = friendIds.filter(f => {
+          const fid = f.friend_id ?? f.user_id;
+          return fid !== undefined && onlineUserIds.has(fid);
+        });
+        socket.emit('users:online_friends', onlineFriends.length);
+      } catch (e) {
+        socket.emit('users:error', 'Error al obtener amigos online.');
+      }
+    });
+
+    // update last_seen on reconnect
+    if (socket.data.userId) {
+      db.prepare("UPDATE users SET last_seen = datetime('now') WHERE id = ?").run(socket.data.userId);
+    }
+
+    // --- SISTEMA DE AMIGOS ---
+    socket.on('friends:list', () => {
+      if (!socket.data.userId) return;
+      try {
+        const friends = db.prepare(`
+          SELECT u.id, u.username, u.display_name, u.profile_image, u.role, f.status, f.created_at
+          FROM friends f
+          JOIN users u ON (CASE WHEN f.user_id = ? THEN f.friend_id ELSE f.user_id END) = u.id
+          WHERE (f.user_id = ? OR f.friend_id = ?) AND f.status = 'accepted'
+        `).all(socket.data.userId, socket.data.userId, socket.data.userId);
+        socket.emit('friends:list', friends);
+      } catch (e) {
+        socket.emit('friends:error', 'Error al listar amigos.');
+      }
+    });
+
+    socket.on('friends:pending', () => {
+      if (!socket.data.userId) return;
+      try {
+        const received = db.prepare(`
+          SELECT u.id, u.username, u.display_name, u.profile_image, f.created_at
+          FROM friends f
+          JOIN users u ON f.user_id = u.id
+          WHERE f.friend_id = ? AND f.status = 'pending'
+        `).all(socket.data.userId);
+        const sent = db.prepare(`
+          SELECT u.id, u.username, u.display_name, u.profile_image, f.created_at
+          FROM friends f
+          JOIN users u ON f.friend_id = u.id
+          WHERE f.user_id = ? AND f.status = 'pending'
+        `).all(socket.data.userId);
+        socket.emit('friends:pending', { received, sent });
+      } catch (e) {
+        socket.emit('friends:error', 'Error al obtener solicitudes.');
+      }
+    });
+
+    socket.on('friends:request', ({ userId }) => {
+      if (!socket.data.userId || userId === socket.data.userId) return;
+      try {
+        db.prepare("INSERT OR IGNORE INTO friends (user_id, friend_id, status) VALUES (?, ?, 'pending')").run(socket.data.userId, userId);
+        socket.emit('friends:request_sent', { userId });
+        // Notify the target user if online
+        for (const s of Array.from(io.sockets.sockets.values())) {
+          if (s.data.userId === userId) {
+            const requester = db.prepare("SELECT id, username, display_name, profile_image FROM users WHERE id = ?").get(socket.data.userId);
+            s.emit('friends:new_request', requester);
+            break;
+          }
+        }
+      } catch (e) {
+        socket.emit('friends:error', 'Error al enviar solicitud.');
+      }
+    });
+
+    socket.on('friends:accept', ({ userId }) => {
+      if (!socket.data.userId) return;
+      try {
+        db.prepare("UPDATE friends SET status = 'accepted' WHERE user_id = ? AND friend_id = ? AND status = 'pending'").run(userId, socket.data.userId);
+        const accepted = db.prepare("SELECT id, username, display_name, profile_image FROM users WHERE id = ?").get(userId);
+        socket.emit('friends:accepted', accepted);
+        // Notify the requester
+        for (const s of Array.from(io.sockets.sockets.values())) {
+          if (s.data.userId === userId) {
+            const accepter = db.prepare("SELECT id, username, display_name, profile_image FROM users WHERE id = ?").get(socket.data.userId);
+            s.emit('friends:request_accepted', accepter);
+            break;
+          }
+        }
+      } catch (e) {
+        socket.emit('friends:error', 'Error al aceptar solicitud.');
+      }
+    });
+
+    socket.on('friends:remove', ({ userId }) => {
+      if (!socket.data.userId) return;
+      try {
+        db.prepare("DELETE FROM friends WHERE (user_id = ? AND friend_id = ?) OR (user_id = ? AND friend_id = ?)").run(socket.data.userId, userId, userId, socket.data.userId);
+        socket.emit('friends:removed', { userId });
+      } catch (e) {
+        socket.emit('friends:error', 'Error al eliminar amigo.');
+      }
+    });
+
+    // --- MENSAJES DIRECTOS ---
+    socket.on('dm:conversations', () => {
+      if (!socket.data.userId) return;
+      try {
+        const conversations = db.prepare(`
+          SELECT DISTINCT
+            CASE WHEN sender_id = ? THEN recipient_id ELSE sender_id END AS other_user_id,
+            u.username, u.display_name, u.profile_image,
+            (SELECT content FROM direct_messages WHERE (sender_id = ? AND recipient_id = CASE WHEN sender_id = ? THEN recipient_id ELSE sender_id END) OR (sender_id = CASE WHEN sender_id = ? THEN recipient_id ELSE sender_id END AND recipient_id = ?) ORDER BY created_at DESC LIMIT 1) AS last_message,
+            (SELECT MAX(CASE WHEN sender_id != ? AND read = 0 THEN 1 ELSE 0 END) FROM direct_messages WHERE (sender_id = ? AND recipient_id = CASE WHEN sender_id = ? THEN recipient_id ELSE sender_id END) OR (sender_id = CASE WHEN sender_id = ? THEN recipient_id ELSE sender_id END AND recipient_id = ?)) AS unread
+          FROM direct_messages dm
+          JOIN users u ON u.id = CASE WHEN dm.sender_id = ? THEN dm.recipient_id ELSE dm.sender_id END
+          WHERE dm.sender_id = ? OR dm.recipient_id = ?
+          ORDER BY last_message DESC
+        `).all(socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId, socket.data.userId);
+        socket.emit('dm:conversations', conversations);
+      } catch (e) {
+        socket.emit('dm:error', 'Error al obtener conversaciones.');
+      }
+    });
+
+    socket.on('dm:conversation', ({ otherUserId, offset = 0, limit = 50 }) => {
+      if (!socket.data.userId) return;
+      try {
+        const messages = db.prepare(`
+          SELECT * FROM direct_messages
+          WHERE (sender_id = ? AND recipient_id = ?) OR (sender_id = ? AND recipient_id = ?)
+          ORDER BY created_at DESC
+          LIMIT ? OFFSET ?
+        `).all(socket.data.userId, otherUserId, otherUserId, socket.data.userId, limit, offset);
+        socket.emit('dm:conversation', { otherUserId, messages: messages.reverse() });
+      } catch (e) {
+        socket.emit('dm:error', 'Error al obtener mensajes.');
+      }
+    });
+
+    socket.on('dm:send', ({ recipientId, content }) => {
+      if (!socket.data.userId || !content?.trim()) return;
+      try {
+        const result = db.prepare("INSERT INTO direct_messages (sender_id, recipient_id, content) VALUES (?, ?, ?)").run(socket.data.userId, recipientId, content.trim());
+        const msg = db.prepare("SELECT * FROM direct_messages WHERE id = ?").get(result.lastInsertRowid);
+        socket.emit('dm:sent', msg);
+        // Notify recipient if online
+        for (const s of Array.from(io.sockets.sockets.values())) {
+          if (s.data.userId === recipientId) {
+            s.emit('dm:new_message', msg);
+            const senderInfo = db.prepare("SELECT id, username, display_name, profile_image FROM users WHERE id = ?").get(socket.data.userId);
+            s.emit('dm:new_conversation', { ...msg, sender: senderInfo });
+            break;
+          }
+        }
+      } catch (e) {
+        socket.emit('dm:error', 'Error al enviar mensaje.');
+      }
+    });
+
+    socket.on('dm:mark_read', ({ otherUserId }) => {
+      if (!socket.data.userId) return;
+      try {
+        db.prepare("UPDATE direct_messages SET read = 1 WHERE sender_id = ? AND recipient_id = ? AND read = 0").run(otherUserId, socket.data.userId);
+        socket.emit('dm:marked_read', { otherUserId });
+      } catch (e) {
+        socket.emit('dm:error', 'Error al marcar como leído.');
       }
     });
 

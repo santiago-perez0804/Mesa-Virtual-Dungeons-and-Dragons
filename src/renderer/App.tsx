@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from 'react';
 import { io } from 'socket.io-client';
-import { Palette, AlertTriangle, LogOut, Search, DoorOpen, Book } from 'lucide-react';
+import { Palette, AlertTriangle, LogOut, Search, DoorOpen, Book, UserPlus, MessageCircle, User } from 'lucide-react';
 import LoginScreen from './components/PantallaLogin';
 import DiceVisualizer from './components/VisualizadorDados';
 import { CharacterManager } from './components/GestorPersonajes.tsx';
@@ -10,6 +10,11 @@ import { AdminPanel } from './features/admin/components/AdminPanel';
 // import { ChatPanel } from './components/PanelChat.tsx';
 import { CampaignsView } from './features/campaigns/components/CampaignsView';
 import { MiniCompendium } from './features/compendium/components/MiniCompendium';
+import { HomeDashboard } from './features/home/components/HomeDashboard';
+import { UserProfile } from './features/social/components/UserProfile';
+import { UserSearch } from './features/social/components/UserSearch';
+import { FriendList } from './features/social/components/FriendList';
+import { DMPanel } from './features/social/components/DMPanel';
 import { parseAndRollHP } from './utils/utilidadesDados';
 
 type DiceType = 'd3' | 'd4' | 'd6' | 'd8' | 'd10' | 'd12' | 'd20';
@@ -21,7 +26,7 @@ const socket = io(
 );
 
 function App() {
-  const [user, setUser] = useState<{ name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string } | null>(null);
+  const [user, setUser] = useState<{ id: number; name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string } | null>(null);
   const [globalAlert, setGlobalAlert] = useState<{ message: string; isFadingOut: boolean } | null>(null);
   const alertTimeoutRef = useRef<any>(null);
 
@@ -55,7 +60,7 @@ function App() {
   const [monsters, setMonsters] = useState<any[]>([]);
   const [compendium, setCompendium] = useState<any[]>([]);
   const [boardTokens, setBoardTokens] = useState<any[]>([]);
-  const [activeTab, setActiveTab] = useState<'combat' | 'database' | 'admin' | 'characters' | 'campaigns'>('campaigns');
+  const [activeTab, setActiveTab] = useState<'home' | 'combat' | 'database' | 'admin' | 'characters' | 'campaigns'>('home');
   const [campaigns, setCampaigns] = useState<any[]>([]);
   const [chatMessages, setChatMessages] = useState<any[]>([]);
   const [isCampaignsLoaded, setIsCampaignsLoaded] = useState(false);
@@ -172,6 +177,11 @@ function App() {
 
   const [overlayCharacterId, setOverlayCharacterId] = useState<number | null>(null);
   const [overlayMonsterId, setOverlayMonsterId] = useState<string | null>(null);
+  const [showProfileOverlay, setShowProfileOverlay] = useState<number | null>(null);
+  const [showSearch, setShowSearch] = useState(false);
+  const [showFriendList, setShowFriendList] = useState(false);
+  const [showDMPanel, setShowDMPanel] = useState(false);
+  const [dmInitialUser, setDmInitialUser] = useState<number | null>(null);
 
   const onRollCompleteRef = useRef<(() => void) | null>(null);
 
@@ -193,7 +203,7 @@ function App() {
     });
 
     socket.on('auth:success', ({ user, token }: { user: any; token?: string }) => {
-      setUser({ name: user.username, role: user.role, profile_image: user.profile_image });
+      setUser({ id: user.id, name: user.username, role: user.role, profile_image: user.profile_image });
       if (token) {
         localStorage.setItem('dnd_vtt_token', token);
       }
@@ -305,7 +315,7 @@ function App() {
     };
   }, []);
 
-  const handleLogin = (loggedUser: { name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string; token?: string }) => {
+  const handleLogin = (loggedUser: { id: number; name: string; role: 'dm' | 'player' | 'admin'; profile_image?: string; token?: string }) => {
     setUser(loggedUser);
     if (loggedUser.token) {
       localStorage.setItem('dnd_vtt_token', loggedUser.token);
@@ -313,7 +323,7 @@ function App() {
     if (loggedUser.role === 'admin') {
       setActiveTab('database');
     }
-    socket.emit('content:request'); // Ahora TODOS pueden ver el compendio
+    socket.emit('content:request');
     socket.emit('campaign:request');
   };
 
@@ -469,8 +479,11 @@ function App() {
 
       {/* HEADER */}
       <header style={{ background: 'var(--bg-surface)', padding: 'var(--header-padding)', borderBottom: '2px solid var(--border-color)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', boxShadow: '0 4px 20px rgba(0,0,0,0.5)' }}>
-        <div style={{ display: 'flex', flexDirection: 'column' }}>
-          <span className="font-cinzel" style={{ fontSize: 'var(--header-title-size)', fontWeight: '900', color: 'var(--accent-gold)', textShadow: '0 0 15px rgba(200, 135, 42, 0.4)', lineHeight: '1' }}>
+        <div style={{ display: 'flex', flexDirection: 'column', cursor: currentRoomCampaignId === null ? 'pointer' : 'default' }} onClick={() => { if (currentRoomCampaignId === null) setActiveTab('home'); }}>
+          <span className="font-cinzel" style={{ fontSize: 'var(--header-title-size)', fontWeight: '900', color: 'var(--accent-gold)', textShadow: '0 0 15px rgba(200, 135, 42, 0.4)', lineHeight: '1', transition: 'opacity 0.15s' }}
+            onMouseEnter={e => { if (currentRoomCampaignId === null) e.currentTarget.style.opacity = '0.8'; }}
+            onMouseLeave={e => { e.currentTarget.style.opacity = '1'; }}
+          >
             {(() => {
               const joinedCampaign = campaigns.find(c => c.id === currentRoomCampaignId);
               if (joinedCampaign) {
@@ -479,8 +492,8 @@ function App() {
               return 'D&D PP';
             })()}
           </span>
-          <span className="font-cinzel" style={{ fontSize: 'var(--header-subtitle-size)', color: 'var(--text-parchment)', letterSpacing: '4px', opacity: 0.7 }}>
-            {campaigns.find(c => c.id === currentRoomCampaignId) ? `Sala #${currentRoomCampaignId}` : 'PARA POBRES'}
+          <span className="font-cinzel" style={{ fontSize: 'var(--header-subtitle-size)', color: currentRoomCampaignId !== null ? 'var(--text-parchment)' : 'var(--accent-gold)', letterSpacing: '4px', opacity: currentRoomCampaignId !== null ? 0.7 : 1 }}>
+            {campaigns.find(c => c.id === currentRoomCampaignId) ? `Sala #${currentRoomCampaignId}` : currentRoomCampaignId === null ? 'INICIO' : 'PARA POBRES'}
           </span>
         </div>
         
@@ -494,6 +507,19 @@ function App() {
             >
               <Book size={18} />
             </button>
+          )}
+          {currentRoomCampaignId === null && (
+            <>
+              <button onClick={() => setShowSearch(true)} style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--text-secondary)', padding: '0 10px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '6px', fontSize: '0.8rem' }} title="Buscar jugadores">
+                <Search size={16} /> Buscar
+              </button>
+              <button onClick={() => setShowFriendList(true)} style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--accent-gold)', padding: '0 10px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Amigos">
+                <UserPlus size={16} />
+              </button>
+              <button onClick={() => { setShowDMPanel(true); setDmInitialUser(null); }} style={{ background: 'transparent', border: '1px solid var(--border-color)', color: 'var(--accent-gold)', padding: '0 10px', borderRadius: '4px', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center' }} title="Mensajes directos">
+                <MessageCircle size={16} />
+              </button>
+            </>
           )}
           <div style={{ position: 'relative' }}>
           <div 
@@ -550,6 +576,24 @@ function App() {
                     {user.name}
                   </div>
                 </div>
+                <div
+                  onClick={() => { setShowProfileOverlay(user.id); setShowProfileMenu(false); }}
+                  style={{
+                    padding: '10px 16px',
+                    display: 'flex',
+                    alignItems: 'center',
+                    gap: '10px',
+                    cursor: 'pointer',
+                    color: 'var(--text-primary)',
+                    fontSize: '0.9rem',
+                    fontWeight: 500,
+                    transition: 'background 0.15s'
+                  }}
+                  onMouseEnter={e => e.currentTarget.style.background = 'var(--bg-raised)'}
+                  onMouseLeave={e => e.currentTarget.style.background = 'transparent'}
+                >
+                  <User size={16} /> Ver perfil
+                </div>
                 {currentRoomCampaignId !== null && (
                   <div
                     onClick={() => { handleLeaveRoom(); setShowProfileMenu(false); }}
@@ -604,6 +648,7 @@ function App() {
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', background: 'var(--bg-base)', padding: 'var(--tabs-padding)', borderBottom: '1px solid var(--border-color)' }}>
           <div style={{ display: 'flex', gap: '2px' }}>
           {[
+            { id: 'home', label: 'INICIO', color: 'var(--accent-gold)', visible: currentRoomCampaignId === null },
             { id: 'combat', label: 'COMBATE', color: 'var(--combat-red)', visible: currentRoomCampaignId !== null },
             { id: 'characters', label: 'HÉROES', color: 'var(--natural-green)', visible: currentRole !== 'admin' && currentRoomCampaignId === null },
             { id: 'campaigns', label: 'CAMPAÑAS', color: 'var(--accent-gold)', visible: currentRoomCampaignId === null },
@@ -636,6 +681,17 @@ function App() {
       )}
 
       <main className={`vtt-main-container ${activeTab === 'database' ? 'database-view-active' : ''}`} style={{ flex: 1, overflowY: 'auto', overflowX: 'hidden', width: '100%', boxSizing: 'border-box', margin: '0 auto', display: 'flex', flexDirection: 'column', scrollbarGutter: 'stable' }}>
+        {activeTab === 'home' && (
+          <HomeDashboard
+            socket={socket}
+            user={user}
+            campaigns={campaigns || []}
+            characters={characters || []}
+            onNavigate={(tab: string) => setActiveTab(tab as any)}
+            onEnterCampaign={handleJoinCampaignRoom}
+            onOpenCharacter={(id: number) => setOverlayCharacterId(id)}
+          />
+        )}
         {activeTab === 'combat' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '25px' }}>
 
@@ -1094,6 +1150,44 @@ function App() {
         <MiniCompendium
           compendium={compendium}
           onClose={() => setShowMiniCompendium(false)}
+        />
+      )}
+
+      {/* SOCIAL OVERLAYS */}
+      {showProfileOverlay !== null && user && (
+        <UserProfile
+          socket={socket}
+          userId={showProfileOverlay}
+          currentUserId={user.id}
+          onClose={() => setShowProfileOverlay(null)}
+          onStartDM={(userId) => { setShowProfileOverlay(null); setDmInitialUser(userId); setShowDMPanel(true); }}
+        />
+      )}
+      {showSearch && user && (
+        <UserSearch
+          socket={socket}
+          currentUserId={user.id}
+          onSelectUser={(userId) => { setShowSearch(false); setShowProfileOverlay(userId); }}
+          onClose={() => setShowSearch(false)}
+        />
+      )}
+      {showFriendList && user && (
+        <FriendList
+          socket={socket}
+          currentUserId={user.id}
+          onClose={() => setShowFriendList(false)}
+          onSelectUser={(userId) => { setShowFriendList(false); setShowProfileOverlay(userId); }}
+          onStartDM={(userId) => { setShowFriendList(false); setDmInitialUser(userId); setShowDMPanel(true); }}
+        />
+      )}
+      {showDMPanel && user && (
+        <DMPanel
+          socket={socket}
+          currentUserId={user.id}
+          currentUserName={user.name}
+          onClose={() => setShowDMPanel(false)}
+          onSelectUser={(userId) => { setShowDMPanel(false); setShowProfileOverlay(userId); }}
+          initialUserId={dmInitialUser}
         />
       )}
 

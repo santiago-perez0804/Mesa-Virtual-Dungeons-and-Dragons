@@ -29,6 +29,38 @@ export const initDB = () => {
   `);
 
   try { db.exec("ALTER TABLE users ADD COLUMN profile_image TEXT"); } catch (e) { /* Columna ya existe */ }
+  try { db.exec("ALTER TABLE users ADD COLUMN email TEXT"); } catch (e) { /* Columna ya existe */ }
+  try { db.exec("ALTER TABLE users ADD COLUMN display_name TEXT"); } catch (e) { /* Columna ya existe */ }
+  try { db.exec("ALTER TABLE users ADD COLUMN bio TEXT"); } catch (e) { /* Columna ya existe */ }
+  try { db.exec("ALTER TABLE users ADD COLUMN last_seen DATETIME"); } catch (e) { /* Columna ya existe */ }
+
+  // Sistema de Amigos
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS friends (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      friend_id INTEGER NOT NULL,
+      status TEXT NOT NULL DEFAULT 'pending',
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(user_id) REFERENCES users(id),
+      FOREIGN KEY(friend_id) REFERENCES users(id),
+      UNIQUE(user_id, friend_id)
+    )
+  `);
+
+  // Mensajes Directos
+  db.exec(`
+    CREATE TABLE IF NOT EXISTS direct_messages (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      sender_id INTEGER NOT NULL,
+      recipient_id INTEGER NOT NULL,
+      content TEXT NOT NULL,
+      read INTEGER DEFAULT 0,
+      created_at DATETIME DEFAULT CURRENT_TIMESTAMP,
+      FOREIGN KEY(sender_id) REFERENCES users(id),
+      FOREIGN KEY(recipient_id) REFERENCES users(id)
+    )
+  `);
 
   // Insertar administrador por defecto si no existe, hasheando contraseñas
   try {
