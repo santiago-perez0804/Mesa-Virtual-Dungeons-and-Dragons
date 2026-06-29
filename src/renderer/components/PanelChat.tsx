@@ -203,7 +203,7 @@ export const ChatPanel = ({ socket, currentUser, characters, messages, blockRoll
         <input
           className="mono"
           style={{ flex: 1, padding: '10px', background: 'var(--bg-base)', border: '1px solid var(--border-color)', color: 'var(--text-parchment)', outline: 'none', fontSize: '0.85rem', height: '42px', boxSizing: 'border-box', minWidth: 0 }}
-          placeholder="Mensaje o dados (/r 1d20)..."
+          placeholder="/r 1d20"
           value={inputValue}
           onChange={(e) => setInputValue(e.target.value)}
           onKeyDown={(e) => e.key === 'Enter' && handleSend()}
