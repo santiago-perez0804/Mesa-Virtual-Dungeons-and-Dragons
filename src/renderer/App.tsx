@@ -480,7 +480,7 @@ function App() {
             })()}
           </span>
           <span className="font-cinzel" style={{ fontSize: 'var(--header-subtitle-size)', color: 'var(--text-parchment)', letterSpacing: '4px', opacity: 0.7 }}>
-            {campaigns.find(c => c.id === currentRoomCampaignId) ? 'SALA ACTIVA' : 'PARA POBRES'}
+            {campaigns.find(c => c.id === currentRoomCampaignId) ? `Sala #${currentRoomCampaignId}` : 'PARA POBRES'}
           </span>
         </div>
         
