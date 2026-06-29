@@ -194,7 +194,8 @@ export const CampaignDetail: React.FC<CampaignDetailProps> = ({
                     background: 'rgba(0,0,0,0.5)', backdropFilter: 'blur(6px)',
                     color: 'var(--accent-gold)', border: '1px solid var(--border-color)',
                     padding: '12px 16px', borderRadius: '6px', cursor: 'pointer',
-                    transition: 'all 0.2s', display: 'flex', alignItems: 'center'
+                    transition: 'all 0.2s', display: 'flex', alignItems: 'center',
+                    animation: copied ? 'flashBorder 0.5s ease' : 'none'
                   }}
                   onMouseEnter={e => { e.currentTarget.style.background = 'rgba(200,135,42,0.15)'; e.currentTarget.style.borderColor = 'var(--accent-gold)'; }}
                   onMouseLeave={e => { e.currentTarget.style.background = 'rgba(0,0,0,0.5)'; e.currentTarget.style.borderColor = 'var(--border-color)'; }}
@@ -210,10 +211,11 @@ export const CampaignDetail: React.FC<CampaignDetailProps> = ({
                     cursor: 'pointer', fontWeight: 'bold', fontSize: '1.1rem',
                     boxShadow: '0 4px 20px rgba(34, 197, 94, 0.4)',
                     letterSpacing: '2px', transition: 'transform 0.15s ease',
-                    display: 'flex', alignItems: 'center', gap: '8px'
+                    display: 'flex', alignItems: 'center', gap: '8px',
+                    animation: 'pulseGlow 3s ease-in-out infinite'
                   }}
-                  onMouseEnter={e => e.currentTarget.style.transform = 'scale(1.03)'}
-                  onMouseLeave={e => e.currentTarget.style.transform = 'scale(1)'}
+                  onMouseEnter={e => { e.currentTarget.style.transform = 'scale(1.03)'; e.currentTarget.style.animation = 'none'; }}
+                  onMouseLeave={e => { e.currentTarget.style.transform = 'scale(1)'; e.currentTarget.style.animation = 'pulseGlow 3s ease-in-out infinite'; }}
                 >
                   <Swords size={18} />
                   ENTRAR
@@ -284,11 +286,12 @@ export const CampaignDetail: React.FC<CampaignDetailProps> = ({
                 </h3>
                 {activeCharacterObjects.length > 0 ? (
                   <div style={{ display: 'flex', flexDirection: 'column', gap: '8px' }}>
-                    {activeCharacterObjects.map(c => (
+                    {activeCharacterObjects.map((c, i) => (
                       <div key={c.id} style={{
                         display: 'flex', alignItems: 'center', gap: '10px',
                         background: 'rgba(200,135,42,0.04)', border: '1px solid var(--border-gold-subtle)',
-                        padding: '8px 12px', borderRadius: '6px', transition: 'all 0.2s'
+                        padding: '8px 12px', borderRadius: '6px', transition: 'all 0.2s',
+                        animation: `fadeInUp 0.3s ease ${i * 0.06}s both`
                       }}
                         onMouseEnter={e => { e.currentTarget.style.background = 'rgba(200,135,42,0.08)'; e.currentTarget.style.borderColor = 'var(--border-gold-active)'; }}
                         onMouseLeave={e => { e.currentTarget.style.background = 'rgba(200,135,42,0.04)'; e.currentTarget.style.borderColor = 'var(--border-gold-subtle)'; }}
@@ -441,11 +444,12 @@ export const CampaignDetail: React.FC<CampaignDetailProps> = ({
                   <p style={{ fontSize: '0.8rem' }}>Comienza a documentar las aventuras de tus héroes.</p>
                 </div>
               ) : (
-                diaryEntries.map(entry => (
+                diaryEntries.map((entry, i) => (
                   <div key={entry.id} style={{
                     background: 'var(--bg-base)', border: '1px solid var(--border-color)',
                     borderLeft: '3px solid var(--accent-gold)', borderRadius: '6px',
-                    padding: '16px', transition: 'all 0.2s'
+                    padding: '16px', transition: 'all 0.2s',
+                    animation: `fadeInUp 0.35s ease ${i * 0.05}s both`
                   }}
                     onMouseEnter={e => { e.currentTarget.style.borderColor = 'var(--border-gold-active)'; e.currentTarget.style.background = 'rgba(200,135,42,0.03)'; }}
                     onMouseLeave={e => { e.currentTarget.style.borderColor = 'var(--border-color)'; e.currentTarget.style.background = 'var(--bg-base)'; }}

@@ -260,6 +260,22 @@ button {
   to   { opacity: 1; transform: translateY(0); }
 }
 
+@keyframes pulseGlow {
+  0%, 100% { box-shadow: 0 4px 20px rgba(34, 197, 94, 0.4); }
+  50%      { box-shadow: 0 4px 35px rgba(34, 197, 94, 0.75), 0 0 60px rgba(34, 197, 94, 0.15); }
+}
+
+@keyframes fadeInScale {
+  from { opacity: 0; transform: scale(0.92); }
+  to   { opacity: 1; transform: scale(1); }
+}
+
+@keyframes flashBorder {
+  0%   { border-color: var(--border-color); }
+  30%  { border-color: var(--natural-green); box-shadow: 0 0 12px rgba(45, 94, 58, 0.5); }
+  100% { border-color: var(--border-color); box-shadow: none; }
+}
+
 /* Quitar flechas a inputs numéricos */
 input[type="number"]::-webkit-inner-spin-button,
 input[type="number"]::-webkit-outer-spin-button {
